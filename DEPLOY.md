@@ -27,11 +27,13 @@
 1. Crie um novo **Web Service**
 2. Conecte o repositório Git
 3. Configurações:
-   - **Build Command:** `cd backend && mvn clean package -DskipTests`
-   - **Start Command:** `java -jar backend/target/someli-backend-0.0.1-SNAPSHOT.jar`
-   - **Environment:** Java
+   - **Language:** Docker
+   - **Branch:** main
+   - **Region:** Oregon (US West) ou a mais próxima
+   - **Root Directory:** `backend`
+   - **Dockerfile Path:** `./Dockerfile` (padrão, relativo ao Root Directory)
 
-4. **Variáveis de ambiente:**
+4. **Variáveis de ambiente** (Environment → Add Environment Variable):
    - `DB_URL` = Connection string do Supabase (ex: `jdbc:postgresql://...`)
    - `DB_USERNAME` = usuário do Supabase (geralmente `postgres`)
    - `DB_PASSWORD` = senha do Supabase
