@@ -11,12 +11,15 @@
 ## 1. Supabase (Banco de dados)
 
 1. No painel do Supabase, vá em **Project Settings** → **Database**
-2. Copie a **Connection string** (URI ou Session mode)
-3. Para o backend Spring, use no formato JDBC: `jdbc:postgresql://HOST:PORT/postgres`
-   - Exemplo direto: `jdbc:postgresql://db.jksueuziekvhdmctbtey.supabase.co:5432/postgres`
-   - Exemplo pooler: `jdbc:postgresql://aws-0-us-east-1.pooler.supabase.com:6543/postgres`
-4. `DB_USERNAME`: geralmente `postgres` (ou `postgres.[ref]` no pooler)
-5. `DB_PASSWORD`: a senha do banco
+2. Use a **Connection string** do **Connection pooler** (Session mode) — evita "Tenant or user not found"
+3. **DB_URL** (formato JDBC):
+   ```
+   jdbc:postgresql://aws-0-[REGIAO].pooler.supabase.com:6543/postgres?sslmode=require&prepareThreshold=0
+   ```
+   - Região: ex. `us-east-1` (veja no Supabase qual é a sua)
+   - `prepareThreshold=0` é obrigatório para o transaction pooler
+4. **DB_USERNAME**: no pooler NÃO é só `postgres` — é `postgres.[PROJECT_REF]` (ex: `postgres.jksueuziekvhdmctbtey`)
+5. **DB_PASSWORD**: a senha do banco
 
 **Importante:** O backend usa **Flyway** para migrations. As tabelas serão criadas automaticamente na primeira execução.
 
