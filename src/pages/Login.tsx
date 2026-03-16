@@ -81,7 +81,7 @@ export default function Login() {
           </form>
 
           <p className="text-xs text-muted-foreground text-center mt-6">
-            CPF: 111.222.333-44 · Senha: qualquer
+            Use um usuário cadastrado no backend para acessar
           </p>
         </div>
       </motion.div>

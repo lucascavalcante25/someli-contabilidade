@@ -1,0 +1,38 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/someliContab}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:ZmFrZV9zdXBlcl9zZWNyZXRfZmFrZV9zdXBlcl9zZWNyZXRfZmFrZV9zdXBlcl9zZWNyZXQ=}
+    expiration-hours: 8
+
+receitaws:
+  api:
+    url: ${RECEITAWS_API_URL:https://www.receitaws.com.br/v1/cnpj/}
+
+infosimples:
+  token: ${INFOSIMPLES_TOKEN:Kst6NquxRVjb5A_c9nRyOkU3IasEIjKs1RBN2fkJ}
+  api:
+    url: ${INFOSIMPLES_API_URL:https://api.infosimples.com/api/v2/consultas/sintegra/unificada}

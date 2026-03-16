@@ -22,7 +22,7 @@ export default function StatCard({ label, value, icon: Icon, accent = 'primary',
       <div className="flex items-start justify-between">
         <div className="space-y-1">
           <p className="label-text">{label}</p>
-          <p className="text-2xl font-semibold tracking-tight tabular-nums">{value}</p>
+          <p className="text-xl sm:text-2xl font-semibold tracking-tight tabular-nums">{value}</p>
           {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
         </div>
         <div className="rounded-lg bg-muted p-2.5">

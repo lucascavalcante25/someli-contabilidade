@@ -1,67 +1,241 @@
-import { useState } from 'react';
-import { mockUsuarios, type Usuario } from '@/data/mockData';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Plus, Pencil, Trash2, X, Eye, EyeOff, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const perfilColors: Record<string, string> = {
+type Perfil = 'ADMIN' | 'CONTADOR' | 'OPERADOR';
+
+interface Usuario {
+  id: number;
+  nome: string;
+  cpf: string;
+  email: string;
+  telefone: string;
+  perfil: Perfil;
+  ativo: boolean;
+}
+
+interface UsuarioFormData {
+  nome: string;
+  cpf: string;
+  email: string;
+  telefone: string;
+  perfil: Perfil;
+  ativo: boolean;
+  senha: string;
+  confirmarSenha: string;
+}
+
+const perfilColors: Record<Perfil, string> = {
   ADMIN: 'bg-primary/10 text-primary',
   CONTADOR: 'bg-success/10 text-success',
   OPERADOR: 'bg-warning/10 text-warning',
 };
 
 export default function Usuarios() {
-  const [usuarios, setUsuarios] = useState<Usuario[]>(mockUsuarios);
+  const apiBaseUrl = useMemo(() => import.meta.env.VITE_API_URL || 'http://localhost:8080', []);
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Usuario | null>(null);
 
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('someli_token');
+    return {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token || ''}`,
+    };
+  };
+
+  const parseApiError = async (response: Response) => {
+    try {
+      const body = await response.json();
+      return body?.message || 'Erro ao processar requisição';
+    } catch {
+      return 'Erro ao processar requisição';
+    }
+  };
+
+  const maskCpf = (v: string) => {
+    const nums = v.replace(/\D/g, '').slice(0, 11);
+    return nums
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+  };
+
+  const formatCpf = (cpf: string) => {
+    const nums = cpf.replace(/\D/g, '').slice(0, 11);
+    if (nums.length !== 11) return cpf;
+    return `${nums.slice(0, 3)}.${nums.slice(3, 6)}.${nums.slice(6, 9)}-${nums.slice(9, 11)}`;
+  };
+
+  const fetchUsuarios = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${apiBaseUrl}/usuarios`, {
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) {
+        throw new Error(await parseApiError(response));
+      }
+      const data = (await response.json()) as Usuario[];
+      setUsuarios(data);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Falha ao carregar usuários');
+    } finally {
+      setLoading(false);
+    }
+  }, [apiBaseUrl]);
+
+  useEffect(() => {
+    void fetchUsuarios();
+  }, [fetchUsuarios]);
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Deseja realmente remover este usuário?')) return;
+    try {
+      const response = await fetch(`${apiBaseUrl}/usuarios/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) {
+        throw new Error(await parseApiError(response));
+      }
+      setUsuarios(prev => prev.filter(u => u.id !== id));
+      toast.success('Usuário removido');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Falha ao remover usuário');
+    }
+  };
+
+  const handleSave = async (form: UsuarioFormData, usuarioId?: number) => {
+    const cpf = form.cpf.replace(/\D/g, '');
+    if (cpf.length !== 11) {
+      toast.error('CPF inválido');
+      return;
+    }
+    if (!form.nome || !form.email || !form.telefone || !form.perfil) {
+      toast.error('Preencha todos os campos obrigatórios');
+      return;
+    }
+    if (!usuarioId && !form.senha) {
+      toast.error('Senha é obrigatória para novo usuário');
+      return;
+    }
+    if (form.senha && form.senha !== form.confirmarSenha) {
+      toast.error('As senhas não coincidem');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const payload = {
+        nome: form.nome.trim(),
+        cpf,
+        email: form.email.trim(),
+        telefone: form.telefone.trim(),
+        perfil: form.perfil,
+        ativo: form.ativo,
+        ...(form.senha ? { senha: form.senha } : {}),
+      };
+
+      const response = await fetch(
+        usuarioId ? `${apiBaseUrl}/usuarios/${usuarioId}` : `${apiBaseUrl}/usuarios`,
+        {
+          method: usuarioId ? 'PUT' : 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(await parseApiError(response));
+      }
+
+      const usuarioSalvo = (await response.json()) as Usuario;
+      if (usuarioId) {
+        setUsuarios(prev => prev.map(u => (u.id === usuarioSalvo.id ? usuarioSalvo : u)));
+        toast.success('Usuário atualizado');
+      } else {
+        setUsuarios(prev => [...prev, usuarioSalvo]);
+        toast.success('Usuário cadastrado');
+      }
+      setShowForm(false);
+      setEditing(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Falha ao salvar usuário');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Usuários</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Usuários</h1>
           <p className="text-sm text-muted-foreground mt-1">Gerenciamento de usuários do sistema</p>
         </div>
         <button
           onClick={() => { setEditing(null); setShowForm(true); }}
-          className="flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
+          className="flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity shrink-0"
         >
           <Plus size={16} /> Novo Usuário
         </button>
       </div>
 
       <div className="card-surface overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[420px]">
           <thead>
             <tr className="bg-muted/50">
-              <th className="label-text px-4 py-3 text-left">Nome</th>
-              <th className="label-text px-4 py-3 text-left">CPF</th>
-              <th className="label-text px-4 py-3 text-left hidden md:table-cell">E-mail</th>
-              <th className="label-text px-4 py-3 text-center">Perfil</th>
-              <th className="label-text px-4 py-3 text-center">Ações</th>
+              <th className="label-text px-3 sm:px-4 py-3 text-left whitespace-nowrap">Nome</th>
+              <th className="label-text px-3 sm:px-4 py-3 text-left whitespace-nowrap">CPF</th>
+              <th className="label-text px-3 sm:px-4 py-3 text-left hidden md:table-cell">Telefone</th>
+              <th className="label-text px-3 sm:px-4 py-3 text-left hidden md:table-cell">E-mail</th>
+              <th className="label-text px-3 sm:px-4 py-3 text-center whitespace-nowrap">Perfil</th>
+              <th className="label-text px-3 sm:px-4 py-3 text-center whitespace-nowrap">Ações</th>
             </tr>
           </thead>
           <tbody>
-            {usuarios.map(u => (
+            {loading && (
+              <tr>
+                <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">
+                  Carregando usuários...
+                </td>
+              </tr>
+            )}
+            {!loading && usuarios.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">
+                  Nenhum usuário cadastrado
+                </td>
+              </tr>
+            )}
+            {!loading && usuarios.map(u => (
               <tr key={u.id} className="border-t border-border hover:bg-muted/30 transition-colors">
-                <td className="px-4 py-3 font-medium">{u.nome}</td>
-                <td className="px-4 py-3 tabular-nums text-muted-foreground">{u.cpf}</td>
-                <td className="px-4 py-3 hidden md:table-cell text-muted-foreground">{u.email}</td>
-                <td className="px-4 py-3 text-center">
-                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${perfilColors[u.perfil]}`}>
+                <td className="px-3 sm:px-4 py-3 font-medium max-w-[100px] sm:max-w-none truncate" title={u.nome}>{u.nome}</td>
+                <td className="px-3 sm:px-4 py-3 tabular-nums text-muted-foreground whitespace-nowrap">{formatCpf(u.cpf)}</td>
+                <td className="px-3 sm:px-4 py-3 hidden md:table-cell text-muted-foreground">{u.telefone}</td>
+                <td className="px-3 sm:px-4 py-3 hidden md:table-cell text-muted-foreground truncate max-w-[120px]" title={u.email}>{u.email}</td>
+                <td className="px-3 sm:px-4 py-3 text-center whitespace-nowrap">
+                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${perfilColors[u.perfil as Perfil]}`}>
                     {u.perfil}
                   </span>
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-3 sm:px-4 py-3 whitespace-nowrap">
                   <div className="flex items-center justify-center gap-1">
                     <button onClick={() => { setEditing(u); setShowForm(true); }} className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"><Pencil size={14} /></button>
-                    <button onClick={() => { setUsuarios(prev => prev.filter(p => p.id !== u.id)); toast.success('Usuário removido'); }} className="p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
+                    <button onClick={() => void handleDelete(u.id)} className="p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
                   </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       <AnimatePresence>
@@ -69,16 +243,9 @@ export default function Usuarios() {
           <UsuarioFormModal
             usuario={editing}
             onClose={() => setShowForm(false)}
-            onSave={(u) => {
-              if (editing) {
-                setUsuarios(prev => prev.map(p => p.id === u.id ? u : p));
-                toast.success('Usuário atualizado');
-              } else {
-                setUsuarios(prev => [...prev, { ...u, id: Date.now() }]);
-                toast.success('Usuário cadastrado');
-              }
-              setShowForm(false);
-            }}
+            loading={saving}
+            onSave={(form) => void handleSave(form, editing?.id)}
+            maskCpf={maskCpf}
           />
         )}
       </AnimatePresence>
@@ -86,13 +253,46 @@ export default function Usuarios() {
   );
 }
 
-function UsuarioFormModal({ usuario, onClose, onSave }: { usuario: Usuario | null; onClose: () => void; onSave: (u: Usuario) => void }) {
-  const [form, setForm] = useState<Partial<Usuario & { senha: string; confirmarSenha: string }>>(
-    usuario ? { ...usuario, senha: '', confirmarSenha: '' } : { nome: '', cpf: '', email: '', perfil: 'OPERADOR', senha: '', confirmarSenha: '' }
+function UsuarioFormModal({
+  usuario,
+  onClose,
+  onSave,
+  loading,
+  maskCpf,
+}: {
+  usuario: Usuario | null;
+  onClose: () => void;
+  onSave: (u: UsuarioFormData) => void;
+  loading: boolean;
+  maskCpf: (cpf: string) => string;
+}) {
+  const [form, setForm] = useState<UsuarioFormData>(
+    usuario
+      ? {
+          nome: usuario.nome,
+          cpf: maskCpf(usuario.cpf),
+          email: usuario.email,
+          telefone: usuario.telefone,
+          perfil: usuario.perfil,
+          ativo: usuario.ativo,
+          senha: '',
+          confirmarSenha: '',
+        }
+      : {
+          nome: '',
+          cpf: '',
+          email: '',
+          telefone: '',
+          perfil: 'OPERADOR',
+          ativo: true,
+          senha: '',
+          confirmarSenha: '',
+        }
   );
   const [showPass, setShowPass] = useState(false);
 
-  const update = (k: string, v: any) => setForm(prev => ({ ...prev, [k]: v }));
+  const update = <K extends keyof UsuarioFormData>(k: K, v: UsuarioFormData[K]) =>
+    setForm(prev => ({ ...prev, [k]: v }));
 
   const senha = form.senha || '';
   const strength = [
@@ -104,9 +304,12 @@ function UsuarioFormModal({ usuario, onClose, onSave }: { usuario: Usuario | nul
   ];
   const strengthScore = strength.filter(Boolean).length;
 
-  const maskCpf = (v: string) => {
+  const maskTelefone = (v: string) => {
     const nums = v.replace(/\D/g, '').slice(0, 11);
-    return nums.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    if (nums.length <= 10) {
+      return nums.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{4})(\d)/, '$1-$2');
+    }
+    return nums.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2');
   };
 
   return (
@@ -130,15 +333,23 @@ function UsuarioFormModal({ usuario, onClose, onSave }: { usuario: Usuario | nul
             <input type="email" value={form.email || ''} onChange={e => update('email', e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all" />
           </div>
           <div className="space-y-1.5">
+            <label className="label-text">Telefone</label>
+            <input value={form.telefone || ''} onChange={e => update('telefone', maskTelefone(e.target.value))} placeholder="(00) 00000-0000" className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all" />
+          </div>
+          <div className="space-y-1.5">
             <label className="label-text">Perfil</label>
-            <select value={form.perfil || 'OPERADOR'} onChange={e => update('perfil', e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all">
+            <select value={form.perfil || 'OPERADOR'} onChange={e => update('perfil', e.target.value as Perfil)} className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all">
               <option value="ADMIN">Admin</option>
               <option value="CONTADOR">Contador</option>
               <option value="OPERADOR">Operador</option>
             </select>
           </div>
+          <div className="flex items-center gap-2">
+            <input type="checkbox" checked={form.ativo} onChange={e => update('ativo', e.target.checked)} className="h-4 w-4 rounded border-input accent-primary cursor-pointer" />
+            <label className="text-sm text-muted-foreground">Usuário ativo</label>
+          </div>
           <div className="space-y-1.5">
-            <label className="label-text">Senha</label>
+            <label className="label-text">Senha {usuario ? '(opcional na edição)' : ''}</label>
             <div className="relative">
               <input type={showPass ? 'text' : 'password'} value={form.senha || ''} onChange={e => update('senha', e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all" />
               <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
@@ -172,7 +383,9 @@ function UsuarioFormModal({ usuario, onClose, onSave }: { usuario: Usuario | nul
         </div>
         <div className="flex justify-end gap-3 mt-6">
           <button onClick={onClose} className="px-4 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted transition-colors">Cancelar</button>
-          <button onClick={() => onSave(form as Usuario)} className="px-4 py-2.5 rounded-md bg-primary text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity">Salvar</button>
+          <button disabled={loading} onClick={() => onSave(form)} className="px-4 py-2.5 rounded-md bg-primary text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-60">
+            {loading ? 'Salvando...' : 'Salvar'}
+          </button>
         </div>
       </motion.div>
     </motion.div>

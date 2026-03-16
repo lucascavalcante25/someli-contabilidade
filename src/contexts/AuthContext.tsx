@@ -16,22 +16,57 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+
   const [user, setUser] = useState<User | null>(() => {
     const stored = localStorage.getItem('someli_user');
-    return stored ? JSON.parse(stored) : null;
+    if (!stored) return null;
+    try {
+      return JSON.parse(stored) as User;
+    } catch {
+      localStorage.removeItem('someli_user');
+      return null;
+    }
   });
 
-  const login = useCallback(async (cpf: string, _senha: string) => {
-    // Mock login
-    if (cpf === '111.222.333-44' || cpf === '11122233344') {
-      const u: User = { nome: 'Administrador SOMELI', cpf: '111.222.333-44', perfil: 'ADMIN' };
+  const login = useCallback(async (cpf: string, senha: string) => {
+    try {
+      const cpfApenasNumeros = cpf.replace(/\D/g, '');
+      const response = await fetch(`${apiBaseUrl}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          cpf: cpfApenasNumeros,
+          senha,
+        }),
+      });
+
+      if (!response.ok) {
+        return false;
+      }
+
+      const data = await response.json();
+      const usuario = data?.usuario;
+      const token = data?.token;
+      if (!usuario || !token) {
+        return false;
+      }
+
+      const u: User = {
+        nome: usuario.nome,
+        cpf: usuario.cpf,
+        perfil: usuario.perfil,
+      };
       setUser(u);
       localStorage.setItem('someli_user', JSON.stringify(u));
-      localStorage.setItem('someli_token', 'mock-jwt-token');
+      localStorage.setItem('someli_token', token);
       return true;
+    } catch {
+      return false;
     }
-    return false;
-  }, []);
+  }, [apiBaseUrl]);
 
   const logout = useCallback(() => {
     setUser(null);
