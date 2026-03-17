@@ -4,6 +4,7 @@ import { Search, Plus, Pencil, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '@/lib/api';
 
 type TipoPagamento = 'pessoa_fisica' | 'pessoa_juridica' | 'terceiros';
 type StatusCliente = 'em_dia' | 'pendente' | 'atrasado';
@@ -90,7 +91,7 @@ function normalizeClienteFromApi(raw: any): Cliente {
 }
 
 export default function Clientes() {
-  const apiBaseUrl = useMemo(() => import.meta.env.VITE_API_URL || 'http://localhost:8080', []);
+  const apiBaseUrl = useMemo(() => API_BASE_URL, []);
   const location = useLocation();
   const navigate = useNavigate();
   const [clientes, setClientes] = useState<Cliente[]>([]);

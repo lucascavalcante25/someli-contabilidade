@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { API_BASE_URL } from '@/lib/api';
 import { LogOut, Bell, ChevronRight, Menu } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -39,7 +40,7 @@ export default function Toolbar({ onMenuClick }: ToolbarProps) {
   const navigate = useNavigate();
   const [atrasados, setAtrasados] = useState<ClienteAtrasado[]>([]);
 
-  const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+  const apiBaseUrl = API_BASE_URL;
 
   const carregarAtrasados = useCallback(async () => {
     try {

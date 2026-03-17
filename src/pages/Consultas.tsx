@@ -3,6 +3,7 @@ import { Search, Loader2, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '@/lib/api';
 
 interface CnpjResult {
   razaoSocial: string;
@@ -62,7 +63,7 @@ interface SintegraApiResponse {
 }
 
 export default function Consultas() {
-  const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+  const apiBaseUrl = API_BASE_URL;
   const [cnpj, setCnpj] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CnpjResult | null>(null);

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
+import { API_BASE_URL } from '@/lib/api';
 
 interface User {
   nome: string;
@@ -16,7 +17,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+  const apiBaseUrl = API_BASE_URL;
 
   const [user, setUser] = useState<User | null>(() => {
     const stored = localStorage.getItem('someli_user');

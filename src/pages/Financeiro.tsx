@@ -4,6 +4,7 @@ import { DollarSign, Clock, TrendingUp, CheckCircle, Receipt, Banknote } from 'l
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useIsMobile } from '@/hooks/useMediaQuery';
+import { API_BASE_URL } from '@/lib/api';
 
 const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -59,7 +60,7 @@ interface GraficoItem {
 
 export default function Financeiro() {
   const isMobile = useIsMobile();
-  const apiBaseUrl = useMemo(() => import.meta.env.VITE_API_URL || 'http://localhost:8080', []);
+  const apiBaseUrl = useMemo(() => API_BASE_URL, []);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [resumo, setResumo] = useState<ResumoFinanceiro | null>(null);

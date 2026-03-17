@@ -3,6 +3,7 @@ import StatusBadge from '@/components/shared/StatusBadge';
 import { Plus, Pencil, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { API_BASE_URL } from '@/lib/api';
 
 const TIPOS_DESPESA = [
   { value: 'fixa', label: 'Fixa' },
@@ -56,7 +57,7 @@ interface Despesa {
 }
 
 export default function Despesas() {
-  const apiBaseUrl = useMemo(() => import.meta.env.VITE_API_URL || 'http://localhost:8080', []);
+  const apiBaseUrl = useMemo(() => API_BASE_URL, []);
   const [despesas, setDespesas] = useState<Despesa[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);

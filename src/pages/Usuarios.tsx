@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Plus, Pencil, Trash2, X, Eye, EyeOff, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { API_BASE_URL } from '@/lib/api';
 
 type Perfil = 'ADMIN' | 'CONTADOR' | 'OPERADOR';
 
@@ -33,7 +34,7 @@ const perfilColors: Record<Perfil, string> = {
 };
 
 export default function Usuarios() {
-  const apiBaseUrl = useMemo(() => import.meta.env.VITE_API_URL || 'http://localhost:8080', []);
+  const apiBaseUrl = useMemo(() => API_BASE_URL, []);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

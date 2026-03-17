@@ -4,6 +4,7 @@ import StatCard from '@/components/shared/StatCard';
 import { formatCurrency, getGreeting } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/useMediaQuery';
+import { API_BASE_URL } from '@/lib/api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { motion } from 'framer-motion';
 
@@ -41,7 +42,7 @@ interface GraficoItem {
 export default function Dashboard() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
-  const apiBaseUrl = useMemo(() => import.meta.env.VITE_API_URL || 'http://localhost:8080', []);
+  const apiBaseUrl = useMemo(() => API_BASE_URL, []);
 
   const [clientes, setClientes] = useState<ClienteResumo[]>([]);
   const [resumo, setResumo] = useState<ResumoFinanceiro | null>(null);
