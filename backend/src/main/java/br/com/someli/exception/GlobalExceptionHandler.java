@@ -68,6 +68,15 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.BAD_REQUEST, message, request.getRequestURI());
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiErrorDTO> handleIllegalArgument(
+            IllegalArgumentException ex,
+            HttpServletRequest request
+    ) {
+        log.warn("Argumento invalido em {}: {}", request.getRequestURI(), ex.getMessage());
+        return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), request.getRequestURI());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorDTO> handleGeneric(Exception ex, HttpServletRequest request) {
         log.error("Erro não tratado em {}: {}", request.getRequestURI(), ex.getMessage(), ex);

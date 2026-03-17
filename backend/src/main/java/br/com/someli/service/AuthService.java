@@ -34,15 +34,21 @@ public class AuthService {
     }
 
     public LoginResponseDTO login(LoginRequestDTO request) {
-        Usuario usuario = usuarioService.buscarPorCpf(request.getCpf());
+        String cpfNormalizado = request.getCpf() != null ? request.getCpf().replaceAll("\\D", "") : "";
+        Usuario usuario = usuarioService.buscarPorCpf(cpfNormalizado);
 
-        if (!passwordEncoder.matches(request.getSenha(), usuario.getSenha())) {
-            LOGGER.warn("Login invalido para CPF {}", request.getCpf());
+        String senhaHash = usuario.getSenha();
+        if (senhaHash == null) {
+            LOGGER.warn("Usuario {} sem senha cadastrada", usuario.getCpf());
+            throw new SenhaInvalidaException("Senha invalida");
+        }
+        if (!passwordEncoder.matches(request.getSenha(), senhaHash)) {
+            LOGGER.warn("Login invalido para CPF {}", cpfNormalizado);
             throw new SenhaInvalidaException("Senha invalida");
         }
 
         String token = jwtService.gerarToken(usuario);
-        LOGGER.info("Login realizado com sucesso para CPF {}", request.getCpf());
+        LOGGER.info("Login realizado com sucesso para CPF {}", cpfNormalizado);
         return new LoginResponseDTO(token, usuarioMapper.toDto(usuario));
     }
 }

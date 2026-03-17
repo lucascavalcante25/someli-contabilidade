@@ -26,11 +26,12 @@ public class JwtService {
         Instant now = Instant.now();
         Instant expiration = now.plus(expirationHours, ChronoUnit.HOURS);
 
+        String perfil = usuario.getPerfil() != null ? usuario.getPerfil().name() : "OPERADOR";
         return Jwts.builder()
                 .subject(usuario.getCpf())
                 .claim("userId", usuario.getId())
                 .claim("cpf", usuario.getCpf())
-                .claim("perfil", usuario.getPerfil().name())
+                .claim("perfil", perfil)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(expiration))
                 .signWith(getSigningKey())
