@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { API_BASE_URL } from '@/lib/api';
+import { apiFetch } from '@/lib/http';
 
 const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -13,10 +14,8 @@ function formatCurrency(value: number): string {
 }
 
 function getAuthHeaders() {
-  const token = localStorage.getItem('someli_token');
   return {
     'Content-Type': 'application/json',
-    Authorization: `Bearer ${token || ''}`,
   };
 }
 
@@ -72,7 +71,7 @@ export default function Financeiro() {
   const carregarResumo = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${apiBaseUrl}/financeiro/resumo?mes=${mesAtual}&ano=${selectedYear}`,
         { headers: getAuthHeaders() }
       );
@@ -114,7 +113,7 @@ export default function Financeiro() {
 
   const carregarGrafico = useCallback(async () => {
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${apiBaseUrl}/financeiro/grafico?ano=${selectedYear}`,
         { headers: getAuthHeaders() }
       );
@@ -154,7 +153,7 @@ export default function Financeiro() {
     const acao = cliente.pago ? 'desmarcar' : 'marcar';
     try {
       const url = `${apiBaseUrl}/financeiro/pagamentos/${clienteId}/${acao}?mes=${mesAtual}&ano=${selectedYear}`;
-      const res = await fetch(url, { method: 'POST', headers: getAuthHeaders() });
+      const res = await apiFetch(url, { method: 'POST', headers: getAuthHeaders() });
       if (!res.ok) throw new Error('Erro ao atualizar pagamento');
       toast.success(
         acao === 'marcar'
@@ -174,7 +173,7 @@ export default function Financeiro() {
     const acao = despesa.paga ? 'desmarcar' : 'marcar';
     try {
       const url = `${apiBaseUrl}/financeiro/despesas/${despesaId}/${acao}?mes=${mesAtual}&ano=${selectedYear}`;
-      const res = await fetch(url, { method: 'POST', headers: getAuthHeaders() });
+      const res = await apiFetch(url, { method: 'POST', headers: getAuthHeaders() });
       if (!res.ok) throw new Error('Erro ao atualizar despesa');
       toast.success('Despesa atualizada');
       await carregarResumo();

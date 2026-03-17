@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { API_BASE_URL } from '@/lib/api';
+import { apiFetch } from '@/lib/http';
 import { LogOut, Bell, ChevronRight, Menu } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -24,10 +25,8 @@ function formatCurrency(value: number): string {
 }
 
 function getAuthHeaders() {
-  const token = localStorage.getItem('someli_token');
   return {
     'Content-Type': 'application/json',
-    Authorization: `Bearer ${token || ''}`,
   };
 }
 
@@ -44,7 +43,7 @@ export default function Toolbar({ onMenuClick }: ToolbarProps) {
 
   const carregarAtrasados = useCallback(async () => {
     try {
-      const res = await fetch(`${apiBaseUrl}/clientes`, { headers: getAuthHeaders() });
+      const res = await apiFetch(`${apiBaseUrl}/clientes`, { headers: getAuthHeaders() });
       if (!res.ok) return;
       const data = await res.json();
       const lista = Array.isArray(data) ? data : [];

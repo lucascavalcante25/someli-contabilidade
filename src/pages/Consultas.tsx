@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '@/lib/api';
+import { apiFetch } from '@/lib/http';
 
 interface CnpjResult {
   razaoSocial: string;
@@ -98,7 +99,7 @@ export default function Consultas() {
     setSintegraResult(null);
 
     try {
-      const response = await fetch(`${apiBaseUrl}/someli/api/consultaCNPJ/${nums}`);
+      const response = await apiFetch(`${apiBaseUrl}/someli/api/consultaCNPJ/${nums}`);
       if (!response.ok) {
         throw new Error(await buildApiError(response));
       }
@@ -142,7 +143,7 @@ export default function Consultas() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${apiBaseUrl}/someli/api/sintegra/consulta`, {
+      const response = await apiFetch(`${apiBaseUrl}/someli/api/sintegra/consulta`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

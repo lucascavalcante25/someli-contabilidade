@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '@/lib/api';
+import { apiFetch } from '@/lib/http';
 
 type TipoPagamento = 'pessoa_fisica' | 'pessoa_juridica' | 'terceiros';
 type StatusCliente = 'em_dia' | 'pendente' | 'atrasado';
@@ -105,10 +106,8 @@ export default function Clientes() {
   const perPage = 8;
 
   const getAuthHeaders = () => {
-    const token = localStorage.getItem('someli_token');
     return {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token || ''}`,
     };
   };
 
@@ -124,7 +123,7 @@ export default function Clientes() {
   const carregarClientes = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${apiBaseUrl}/clientes`, {
+      const response = await apiFetch(`${apiBaseUrl}/clientes`, {
         headers: getAuthHeaders(),
       });
       if (!response.ok) {
@@ -176,7 +175,7 @@ export default function Clientes() {
   const handleDelete = async (id: number) => {
     if (!window.confirm('Deseja realmente remover este cliente?')) return;
     try {
-      const response = await fetch(`${apiBaseUrl}/clientes/${id}`, {
+      const response = await apiFetch(`${apiBaseUrl}/clientes/${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
       });
@@ -225,7 +224,7 @@ export default function Clientes() {
         status: form.status,
       };
 
-      const response = await fetch(
+      const response = await apiFetch(
         clienteId ? `${apiBaseUrl}/clientes/${clienteId}` : `${apiBaseUrl}/clientes`,
         {
           method: clienteId ? 'PUT' : 'POST',

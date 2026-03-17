@@ -5,16 +5,15 @@ import { formatCurrency, getGreeting } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { API_BASE_URL } from '@/lib/api';
+import { apiFetch } from '@/lib/http';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { motion } from 'framer-motion';
 
 const CHART_COLORS = ['hsl(var(--primary))', 'hsl(var(--sidebar-primary))', 'hsl(var(--accent))'];
 
 function getAuthHeaders() {
-  const token = localStorage.getItem('someli_token');
   return {
     'Content-Type': 'application/json',
-    Authorization: `Bearer ${token || ''}`,
   };
 }
 
@@ -53,9 +52,9 @@ export default function Dashboard() {
     setLoading(true);
     try {
       const [resClientes, resResumo, resGrafico] = await Promise.all([
-        fetch(`${apiBaseUrl}/clientes`, { headers: getAuthHeaders() }),
-        fetch(`${apiBaseUrl}/financeiro/resumo`, { headers: getAuthHeaders() }),
-        fetch(`${apiBaseUrl}/financeiro/grafico`, { headers: getAuthHeaders() }),
+        apiFetch(`${apiBaseUrl}/clientes`, { headers: getAuthHeaders() }),
+        apiFetch(`${apiBaseUrl}/financeiro/resumo`, { headers: getAuthHeaders() }),
+        apiFetch(`${apiBaseUrl}/financeiro/grafico`, { headers: getAuthHeaders() }),
       ]);
 
       if (resClientes.ok) {

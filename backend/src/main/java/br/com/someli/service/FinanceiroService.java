@@ -47,7 +47,7 @@ public class FinanceiroService {
         List<DespesaMensal> despesasMensais = despesaMensalRepository.findByMesAndAno(mes, ano);
 
         BigDecimal receitaTotal = clientes.stream()
-                .map(Cliente::getHonorario)
+                .map(c -> c.getHonorario() != null ? c.getHonorario() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         List<ClientePagamentoDTO> clientesDto = clientes.stream().map(c -> {
@@ -56,7 +56,7 @@ public class FinanceiroService {
             ClientePagamentoDTO dto = new ClientePagamentoDTO();
             dto.setId(c.getId());
             dto.setNomeFantasia(c.getNomeFantasia() != null ? c.getNomeFantasia() : c.getRazaoSocial());
-            dto.setHonorario(c.getHonorario());
+            dto.setHonorario(c.getHonorario() != null ? c.getHonorario() : BigDecimal.ZERO);
             dto.setDiaVencimento(c.getDiaVencimento());
             dto.setPago(pago);
             return dto;
@@ -71,7 +71,7 @@ public class FinanceiroService {
 
         List<Despesa> despesasDoMes = filtrarDespesasDoMes(todasDespesas, mes, ano);
         BigDecimal despesaTotal = despesasDoMes.stream()
-                .map(Despesa::getValorMensal)
+                .map(d -> d.getValorMensal() != null ? d.getValorMensal() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         List<DespesaMensalDTO> despesasDto = despesasDoMes.stream().map(d -> {
@@ -80,13 +80,13 @@ public class FinanceiroService {
             DespesaMensalDTO dto = new DespesaMensalDTO();
             dto.setId(d.getId());
             dto.setDescricao(d.getDescricao());
-            dto.setValorMensal(d.getValorMensal());
+            dto.setValorMensal(d.getValorMensal() != null ? d.getValorMensal() : BigDecimal.ZERO);
             dto.setDiaPagamento(d.getDiaPagamento());
             dto.setPaga(paga);
             dto.setParcelas(d.getParcelas());
             int parcelaDoMes = 1;
             if (d.getParcelas() != null && d.getParcelas() > 0) {
-                YearMonth inicio = YearMonth.from(d.getDataInicio());
+                YearMonth inicio = resolveInicioMes(d, YearMonth.of(ano, mes));
                 YearMonth viewing = YearMonth.of(ano, mes);
                 parcelaDoMes = (int) java.time.temporal.ChronoUnit.MONTHS.between(inicio, viewing) + 1;
                 parcelaDoMes = Math.min(parcelaDoMes, d.getParcelas());
@@ -126,7 +126,7 @@ public class FinanceiroService {
     private List<Despesa> filtrarDespesasDoMes(List<Despesa> todas, int mes, int ano) {
         YearMonth ym = YearMonth.of(ano, mes);
         return todas.stream().filter(d -> {
-            YearMonth inicio = YearMonth.from(d.getDataInicio());
+            YearMonth inicio = resolveInicioMes(d, ym);
             if (ym.isBefore(inicio)) return false;
             if (d.getParcelas() != null && d.getParcelas() > 0) {
                 int mesesDesdeInicio = (int) java.time.temporal.ChronoUnit.MONTHS.between(inicio, ym) + 1;
@@ -134,6 +134,13 @@ public class FinanceiroService {
             }
             return Boolean.TRUE.equals(d.getAtivo());
         }).collect(Collectors.toList());
+    }
+
+    private YearMonth resolveInicioMes(Despesa despesa, YearMonth fallback) {
+        if (despesa == null || despesa.getDataInicio() == null) {
+            return fallback;
+        }
+        return YearMonth.from(despesa.getDataInicio());
     }
 
     public List<GraficoMensalDTO> obterDadosGrafico(int ano) {

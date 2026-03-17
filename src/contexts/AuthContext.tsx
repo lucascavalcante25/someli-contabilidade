@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { API_BASE_URL } from '@/lib/api';
+import { apiFetch } from '@/lib/http';
 
 interface User {
   nome: string;
@@ -33,7 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (cpf: string, senha: string) => {
     try {
       const cpfApenasNumeros = cpf.replace(/\D/g, '');
-      const response = await fetch(`${apiBaseUrl}/auth/login`, {
+      const response = await apiFetch(`${apiBaseUrl}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

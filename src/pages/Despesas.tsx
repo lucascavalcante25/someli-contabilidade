@@ -4,6 +4,7 @@ import { Plus, Pencil, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL } from '@/lib/api';
+import { apiFetch } from '@/lib/http';
 
 const TIPOS_DESPESA = [
   { value: 'fixa', label: 'Fixa' },
@@ -37,10 +38,8 @@ function parseCurrencyInput(value: string): number {
 }
 
 function getAuthHeaders() {
-  const token = localStorage.getItem('someli_token');
   return {
     'Content-Type': 'application/json',
-    Authorization: `Bearer ${token || ''}`,
   };
 }
 
@@ -66,7 +65,7 @@ export default function Despesas() {
   const carregarDespesas = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${apiBaseUrl}/despesas`, { headers: getAuthHeaders() });
+      const res = await apiFetch(`${apiBaseUrl}/despesas`, { headers: getAuthHeaders() });
       if (!res.ok) throw new Error('Erro ao carregar despesas');
       const data = await res.json();
       setDespesas(
@@ -96,7 +95,7 @@ export default function Despesas() {
   const handleDelete = async (id: number) => {
     if (!window.confirm('Deseja realmente remover esta despesa?')) return;
     try {
-      const res = await fetch(`${apiBaseUrl}/despesas/${id}`, {
+      const res = await apiFetch(`${apiBaseUrl}/despesas/${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
       });
@@ -111,7 +110,7 @@ export default function Despesas() {
   const handleSave = async (form: Partial<Despesa>) => {
     try {
       if (editing) {
-        const res = await fetch(`${apiBaseUrl}/despesas/${editing.id}`, {
+        const res = await apiFetch(`${apiBaseUrl}/despesas/${editing.id}`, {
           method: 'PUT',
           headers: getAuthHeaders(),
           body: JSON.stringify({
@@ -130,7 +129,7 @@ export default function Despesas() {
         setDespesas((prev) => prev.map((d) => (d.id === editing.id ? { ...d, ...data } : d)));
         toast.success('Despesa atualizada');
       } else {
-        const res = await fetch(`${apiBaseUrl}/despesas`, {
+        const res = await apiFetch(`${apiBaseUrl}/despesas`, {
           method: 'POST',
           headers: getAuthHeaders(),
           body: JSON.stringify({

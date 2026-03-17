@@ -3,6 +3,7 @@ import { Plus, Pencil, Trash2, X, Eye, EyeOff, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL } from '@/lib/api';
+import { apiFetch } from '@/lib/http';
 
 type Perfil = 'ADMIN' | 'CONTADOR' | 'OPERADOR';
 
@@ -42,10 +43,8 @@ export default function Usuarios() {
   const [editing, setEditing] = useState<Usuario | null>(null);
 
   const getAuthHeaders = () => {
-    const token = localStorage.getItem('someli_token');
     return {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token || ''}`,
     };
   };
 
@@ -75,7 +74,7 @@ export default function Usuarios() {
   const fetchUsuarios = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${apiBaseUrl}/usuarios`, {
+      const response = await apiFetch(`${apiBaseUrl}/usuarios`, {
         headers: getAuthHeaders(),
       });
       if (!response.ok) {
@@ -97,7 +96,7 @@ export default function Usuarios() {
   const handleDelete = async (id: number) => {
     if (!window.confirm('Deseja realmente remover este usuário?')) return;
     try {
-      const response = await fetch(`${apiBaseUrl}/usuarios/${id}`, {
+      const response = await apiFetch(`${apiBaseUrl}/usuarios/${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
       });
@@ -142,7 +141,7 @@ export default function Usuarios() {
         ...(form.senha ? { senha: form.senha } : {}),
       };
 
-      const response = await fetch(
+      const response = await apiFetch(
         usuarioId ? `${apiBaseUrl}/usuarios/${usuarioId}` : `${apiBaseUrl}/usuarios`,
         {
           method: usuarioId ? 'PUT' : 'POST',
