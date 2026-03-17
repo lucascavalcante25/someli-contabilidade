@@ -19,6 +19,14 @@ spring:
   flyway:
     enabled: true
 
+management:
+  endpoints:
+    web:
+      base-path: /management
+  endpoint:
+    health:
+      show-details: always
+
 logging:
   level:
     org.springframework.security: DEBUG
