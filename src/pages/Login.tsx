@@ -3,11 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { User, Lock } from 'lucide-react';
+
+import './Login.css';
 
 export default function Login() {
   const [cpf, setCpf] = useState('');
   const [senha, setSenha] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -21,70 +25,155 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!cpf || !senha) { toast.error('Preencha todos os campos'); return; }
+    setError(null);
+
+    if (!cpf || !senha) {
+      setError('Preencha todos os campos');
+      toast.error('Preencha todos os campos');
+      return;
+    }
+
     setLoading(true);
     const ok = await login(cpf, senha);
     setLoading(false);
+
     if (ok) {
       toast.success('Login realizado com sucesso');
       navigate('/dashboard');
     } else {
+      setError('CPF ou senha inválidos. Verifique suas credenciais.');
       toast.error('CPF ou senha inválidos');
     }
   };
 
+  const hasError = !!error;
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="w-full max-w-sm"
-      >
-        <div className="card-surface p-8">
-          <div className="text-center mb-8">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
-              <span className="text-primary-foreground font-bold text-lg">S</span>
-            </div>
-            <h1 className="text-xl font-semibold tracking-tight">SOMELI</h1>
-            <p className="text-sm text-muted-foreground mt-1">Assessoria Contábil</p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="label-text">CPF</label>
-              <input
-                type="text"
-                value={cpf}
-                onChange={e => setCpf(maskCpf(e.target.value))}
-                placeholder="000.000.000-00"
-                className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-all"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="label-text">Senha</label>
-              <input
-                type="password"
-                value={senha}
-                onChange={e => setSenha(e.target.value)}
-                placeholder="••••••••"
-                className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-all"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-md bg-primary py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
-              {loading ? 'Entrando...' : 'Entrar'}
-            </button>
-          </form>
-
-          <p className="text-xs text-muted-foreground text-center mt-6">
-            Use um usuário cadastrado no backend para acessar
+    <div className="login-page">
+      {/* LADO ESQUERDO - BRANDING */}
+      <div className="login-left">
+        <div className="login-background" />
+        <div className="login-shapes">
+          <div className="login-shape-circle" />
+          <div className="login-shape-circle" />
+          <div className="login-shape-circle" />
+        </div>
+        <svg className="login-wave" viewBox="0 0 1440 200" preserveAspectRatio="none">
+          <path
+            fill="rgba(255,255,255,0.1)"
+            d="M0,100 C360,180 720,20 1080,100 C1260,140 1380,120 1440,100 L1440,200 L0,200 Z"
+          />
+          <path
+            fill="rgba(255,255,255,0.05)"
+            d="M0,120 C240,180 480,60 720,120 C960,180 1200,80 1440,120 L1440,200 L0,200 Z"
+          />
+        </svg>
+        <div className="login-logo-watermark">
+          <span>SOMELI</span>
+        </div>
+        <div className="login-welcome-content">
+          <h1 className="login-welcome-title">Bem-vindo</h1>
+          <p className="login-welcome-subtitle">
+            Gerencie sua contabilidade com inteligência
           </p>
         </div>
-      </motion.div>
+      </div>
+
+      {/* LADO DIREITO - FORMULÁRIO */}
+      <div className="login-right">
+        <motion.div
+          className="login-card-wrapper"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+        >
+          <div className="login-card">
+            <div className="login-card-header">
+              <div className="login-card-logo">
+                <span>S</span>
+              </div>
+              <h2 className="login-card-title">SOMELI</h2>
+              <p className="login-card-subtitle">Assessoria Contábil</p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="login-form">
+              <div className="login-field">
+                <label htmlFor="cpf" className="login-label">
+                  CPF
+                </label>
+                <div className="login-input-wrapper">
+                  <User className="login-input-icon" size={18} strokeWidth={2} />
+                  <input
+                    id="cpf"
+                    type="text"
+                    value={cpf}
+                    onChange={(e) => {
+                      setCpf(maskCpf(e.target.value));
+                      setError(null);
+                    }}
+                    placeholder="000.000.000-00"
+                    className={`login-input ${hasError ? 'error' : ''}`}
+                    autoComplete="username"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+
+              <div className="login-field">
+                <label htmlFor="senha" className="login-label">
+                  Senha
+                </label>
+                <div className="login-input-wrapper">
+                  <Lock className="login-input-icon" size={18} strokeWidth={2} />
+                  <input
+                    id="senha"
+                    type="password"
+                    value={senha}
+                    onChange={(e) => {
+                      setSenha(e.target.value);
+                      setError(null);
+                    }}
+                    placeholder="••••••••"
+                    className={`login-input ${hasError ? 'error' : ''}`}
+                    autoComplete="current-password"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+
+              {error && (
+                <motion.div
+                  className="login-error-message"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                >
+                  {error}
+                </motion.div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="login-button"
+              >
+                {loading ? (
+                  <>
+                    <span className="login-button-loader" />
+                    Entrando...
+                  </>
+                ) : (
+                  'Entrar'
+                )}
+              </button>
+            </form>
+
+            <p className="login-help-text">
+              Use um usuário cadastrado no backend para acessar
+            </p>
+          </div>
+        </motion.div>
+      </div>
     </div>
   );
 }

@@ -1,0 +1,470 @@
+/* ============================================
+   SOMELI - Tela de Login - Estilos Premium
+   ============================================ */
+
+/* Variáveis da identidade SOMELI - Paleta oficial */
+.login-page {
+  --someli-rosa: #ea5db9;
+  --someli-roxo-profundo: #58196a;
+  --someli-roxo-escuro: #4e0a5f;
+  --someli-primary: #58196a;
+  --someli-primary-light: #ea5db9;
+  --someli-primary-dark: #4e0a5f;
+  --someli-gradient-start: #ea5db9;
+  --someli-gradient-mid: #58196a;
+  --someli-gradient-end: #4e0a5f;
+  --someli-white: #ffffff;
+  --someli-gray-100: #f3f4f6;
+  --someli-gray-200: #e5e7eb;
+  --someli-gray-500: #6b7280;
+}
+
+/* Layout principal - duas colunas */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ========== LADO ESQUERDO - BRANDING ========== */
+.login-left {
+  flex: 1;
+  position: relative;
+  display: flex;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .login-left {
+    display: none;
+  }
+}
+
+/* ========== MOBILE - Ajustes para celular ========== */
+@media (max-width: 768px) {
+  .login-page {
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .login-right {
+    flex: 1;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 1rem;
+    padding-top: max(1rem, env(safe-area-inset-top));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+    align-items: flex-start;
+    justify-content: center;
+    background: linear-gradient(
+      180deg,
+      var(--someli-gradient-start) 0%,
+      var(--someli-gradient-mid) 30%,
+      var(--someli-gray-100) 100%
+    );
+  }
+
+  .login-card-wrapper {
+    width: 100%;
+    max-width: 100%;
+    margin: auto 0;
+  }
+
+  .login-card {
+    padding: 1.5rem 1.25rem;
+    margin: 0;
+  }
+
+  .login-card-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .login-form {
+    gap: 1rem;
+  }
+
+  .login-input {
+    padding: 0.875rem 1rem 0.875rem 2.75rem;
+    font-size: 16px; /* Evita zoom no iOS ao focar */
+    min-height: 48px;
+  }
+
+  .login-button {
+    padding: 1rem 1.5rem;
+    min-height: 48px;
+    font-size: 1rem;
+  }
+
+  .login-help-text {
+    margin-top: 1rem;
+    font-size: 0.6875rem;
+  }
+}
+
+/* Telas muito pequenas (ex: iPhone SE) */
+@media (max-width: 380px) {
+  .login-right {
+    padding: 0.75rem;
+  }
+
+  .login-card {
+    padding: 1.25rem 1rem;
+  }
+
+  .login-card-title {
+    font-size: 1.25rem;
+  }
+}
+
+/* Background com gradiente - cores da empresa */
+.login-background {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    var(--someli-gradient-start) 0%,
+    var(--someli-gradient-mid) 50%,
+    var(--someli-gradient-end) 100%
+  );
+}
+
+/* Formas abstratas decorativas */
+.login-shapes {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.login-shape-circle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  animation: login-float 8s ease-in-out infinite;
+}
+
+.login-shape-circle:nth-child(1) {
+  width: 300px;
+  height: 300px;
+  top: -100px;
+  right: -50px;
+  animation-delay: 0s;
+}
+
+.login-shape-circle:nth-child(2) {
+  width: 200px;
+  height: 200px;
+  bottom: 20%;
+  left: -50px;
+  animation-delay: -2s;
+}
+
+.login-shape-circle:nth-child(3) {
+  width: 150px;
+  height: 150px;
+  top: 50%;
+  right: 10%;
+  animation-delay: -4s;
+}
+
+/* Ondas SVG */
+.login-wave {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 200px;
+  opacity: 0.15;
+}
+
+/* Logo watermark - SOMELI em destaque */
+.login-logo-watermark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.05;
+  pointer-events: none;
+}
+
+.login-logo-watermark span {
+  font-family: 'Montserrat', sans-serif;
+  font-size: clamp(8rem, 20vw, 16rem);
+  font-weight: 800;
+  color: white;
+  letter-spacing: -0.02em;
+}
+
+/* Conteúdo de boas-vindas */
+.login-welcome-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 3rem 4rem;
+  max-width: 480px;
+}
+
+.login-welcome-title {
+  font-family: 'Montserrat', sans-serif;
+  font-size: clamp(2.5rem, 4vw, 3.5rem);
+  font-weight: 700;
+  color: white;
+  line-height: 1.1;
+  margin-bottom: 1rem;
+  animation: login-fade-in 0.8s ease-out;
+}
+
+.login-welcome-subtitle {
+  font-family: 'Roboto', sans-serif;
+  font-size: clamp(1rem, 1.5vw, 1.25rem);
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.6;
+  animation: login-fade-in 0.8s ease-out 0.2s both;
+}
+
+/* ========== LADO DIREITO - FORMULÁRIO ========== */
+.login-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: var(--someli-gray-100);
+}
+
+/* Card do formulário */
+.login-card-wrapper {
+  width: 100%;
+  max-width: 420px;
+}
+
+.login-card {
+  background: var(--someli-white);
+  border-radius: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05),
+              0 10px 15px -3px rgba(0, 0, 0, 0.08),
+              0 20px 40px -10px rgba(88, 25, 106, 0.15);
+  padding: 2.5rem;
+  transition: box-shadow 0.3s ease;
+}
+
+.login-card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05),
+              0 10px 15px -3px rgba(0, 0, 0, 0.08),
+              0 25px 50px -12px rgba(88, 25, 106, 0.2);
+}
+
+/* Logo e nome no card */
+.login-card-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.login-card-logo {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 1rem;
+  background: linear-gradient(135deg, var(--someli-rosa), var(--someli-roxo-profundo));
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(88, 25, 106, 0.4);
+}
+
+.login-card-logo span {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+}
+
+.login-card-title {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  letter-spacing: 0.02em;
+}
+
+.login-card-subtitle {
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.875rem;
+  color: var(--someli-gray-500);
+  margin-top: 0.25rem;
+}
+
+/* Formulário */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.login-label {
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.login-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.login-input-icon {
+  position: absolute;
+  left: 1rem;
+  color: var(--someli-gray-500);
+  transition: color 0.2s ease;
+  pointer-events: none;
+}
+
+.login-input-wrapper:focus-within .login-input-icon {
+  color: var(--someli-primary);
+}
+
+.login-input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.75rem;
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.9375rem;
+  border: 1px solid var(--someli-gray-200);
+  border-radius: 10px;
+  background: white;
+  color: #1f2937;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.login-input::placeholder {
+  color: var(--someli-gray-500);
+}
+
+.login-input:hover {
+  border-color: #d1d5db;
+}
+
+.login-input:focus {
+  border-color: var(--someli-primary);
+  box-shadow: 0 0 0 3px rgba(88, 25, 106, 0.15);
+}
+
+.login-input.error {
+  border-color: #ef4444;
+}
+
+.login-input.error:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+/* Botão */
+.login-button {
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, var(--someli-rosa), var(--someli-roxo-profundo));
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  box-shadow: 0 4px 14px rgba(88, 25, 106, 0.4);
+}
+
+.login-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--someli-roxo-profundo), var(--someli-roxo-escuro));
+  box-shadow: 0 6px 20px rgba(88, 25, 106, 0.5);
+  transform: translateY(-1px);
+}
+
+.login-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.login-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Loader no botão */
+.login-button-loader {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: login-spin 0.8s linear infinite;
+}
+
+/* Mensagem de erro elegante */
+.login-error-message {
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.8125rem;
+  color: #ef4444;
+  padding: 0.5rem 0.75rem;
+  background: #fef2f2;
+  border-radius: 8px;
+  border: 1px solid #fecaca;
+  margin-top: 0.25rem;
+  animation: login-fade-in 0.3s ease-out;
+}
+
+/* Texto de ajuda */
+.login-help-text {
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.75rem;
+  color: var(--someli-gray-500);
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+/* ========== ANIMAÇÕES ========== */
+@keyframes login-float {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(10px, -10px) scale(1.02);
+  }
+}
+
+@keyframes login-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes login-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
