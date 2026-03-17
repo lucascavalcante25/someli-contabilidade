@@ -27,7 +27,7 @@ public class DespesaMensalService {
         Despesa despesa = despesaRepository.findById(despesaId)
                 .orElseThrow(() -> new IllegalArgumentException("Despesa não encontrada"));
         DespesaMensal dm = despesaMensalRepository.findByDespesaIdAndMesAndAno(despesaId, mes, ano)
-                .orElseGet(() -> {
+                .orElseGet(() -> { 
                     DespesaMensal novo = new DespesaMensal();
                     novo.setDespesaId(despesaId);
                     novo.setMes(mes);

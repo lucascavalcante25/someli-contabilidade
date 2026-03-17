@@ -76,7 +76,7 @@ export default function Consultas() {
       const body = await response.json();
       return body?.message || 'Falha ao consultar serviço externo';
     } catch {
-      return 'Falha ao consultar serviço externo';
+      return 'Falha ao consultar serviço externo ';
     }
   };
 
