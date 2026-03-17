@@ -46,6 +46,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        console.warn('Login falhou:', response.status, err?.message || response.statusText);
         return false;
       }
 
