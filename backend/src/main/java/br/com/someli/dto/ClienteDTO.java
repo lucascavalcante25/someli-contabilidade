@@ -1,6 +1,7 @@
 package br.com.someli.dto;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 public class ClienteDTO {
     private Long id;
@@ -14,6 +15,7 @@ public class ClienteDTO {
     private Integer diaVencimento;
     private String tipoPagamento;
     private String status;
+    private LocalDate dataInicioCobranca;
 
     public Long getId() {
         return id;
@@ -101,5 +103,13 @@ public class ClienteDTO {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public LocalDate getDataInicioCobranca() {
+        return dataInicioCobranca;
+    }
+
+    public void setDataInicioCobranca(LocalDate dataInicioCobranca) {
+        this.dataInicioCobranca = dataInicioCobranca;
     }
 }

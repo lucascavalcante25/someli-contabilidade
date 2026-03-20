@@ -1,17 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { User, Lock } from 'lucide-react';
+import { API_BASE_URL } from '@/lib/api';
 
 import './Login.css';
+
+const DEBOUNCE_MS = 350;
 
 export default function Login() {
   const [cpf, setCpf] = useState('');
   const [senha, setSenha] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [avatarSrc, setAvatarSrc] = useState<string | null>(null);
+  const [avatarNome, setAvatarNome] = useState<string | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const avatarUrlRef = useRef<string | null>(null);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -22,6 +29,57 @@ export default function Login() {
       .replace(/(\d{3})(\d)/, '$1.$2')
       .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
   };
+
+  useEffect(() => {
+    const cpfNumeros = cpf.replace(/\D/g, '');
+    if (cpfNumeros.length !== 11) {
+      if (avatarUrlRef.current) { URL.revokeObjectURL(avatarUrlRef.current); avatarUrlRef.current = null; }
+      setAvatarSrc(null);
+      setAvatarNome(null);
+      return;
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/auth/preview?cpf=${encodeURIComponent(cpfNumeros)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data?.existe) {
+          if (avatarUrlRef.current) { URL.revokeObjectURL(avatarUrlRef.current); avatarUrlRef.current = null; }
+          setAvatarSrc(null);
+          setAvatarNome(null);
+          return;
+        }
+        setAvatarNome(data.nome || null);
+        if (data.hasFoto) {
+          const imgRes = await fetch(`${API_BASE_URL}/auth/avatar?cpf=${encodeURIComponent(cpfNumeros)}`);
+          if (imgRes.ok) {
+            const blob = await imgRes.blob();
+            if (avatarUrlRef.current) URL.revokeObjectURL(avatarUrlRef.current);
+            avatarUrlRef.current = URL.createObjectURL(blob);
+            setAvatarSrc(avatarUrlRef.current);
+          } else {
+            if (avatarUrlRef.current) { URL.revokeObjectURL(avatarUrlRef.current); avatarUrlRef.current = null; }
+            setAvatarSrc(null);
+          }
+        } else {
+          if (avatarUrlRef.current) { URL.revokeObjectURL(avatarUrlRef.current); avatarUrlRef.current = null; }
+          setAvatarSrc(null);
+        }
+      } catch {
+        if (avatarUrlRef.current) { URL.revokeObjectURL(avatarUrlRef.current); avatarUrlRef.current = null; }
+        setAvatarSrc(null);
+        setAvatarNome(null);
+      }
+    }, DEBOUNCE_MS);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [cpf]);
+
+  useEffect(() => () => {
+    if (avatarUrlRef.current) URL.revokeObjectURL(avatarUrlRef.current);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,10 +146,20 @@ export default function Login() {
           transition={{ duration: 0.5, ease: 'easeOut' }}
         >
           <div className="login-card">
-            <div className="login-card-header">
-              <div className="login-card-logo">
-                <span>S</span>
+            {(avatarSrc || avatarNome) && (
+              <div className="login-avatar-wrapper">
+                <div className="login-avatar-ring">
+                  {avatarSrc ? (
+                    <img src={avatarSrc} alt="" className="login-avatar-img" />
+                  ) : (
+                    <span className="login-avatar-fallback">{avatarNome?.charAt(0) || '?'}</span>
+                  )}
+                </div>
+                {avatarNome && <p className="login-avatar-nome">{avatarNome}</p>}
               </div>
+            )}
+
+            <div className="login-card-header">
               <h2 className="login-card-title">SOMELI</h2>
               <p className="login-card-subtitle">Assessoria Contábil</p>
             </div>

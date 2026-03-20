@@ -15,6 +15,7 @@ import br.com.someli.repository.PagamentoMensalRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,10 +39,27 @@ public class FinanceiroService {
         this.despesaMensalRepository = despesaMensalRepository;
     }
 
+    public static boolean isCobravel(Cliente cliente) {
+        if (cliente == null) return false;
+        LocalDate data = cliente.getDataInicioCobranca();
+        if (data == null) return true;
+        return !data.isAfter(LocalDate.now());
+    }
+
+    public static boolean isDespesaAtiva(Despesa despesa) {
+        if (despesa == null) return false;
+        LocalDate data = despesa.getDataInicioCobranca();
+        if (data == null) return true;
+        return !data.isAfter(LocalDate.now());
+    }
+
     public ResumoFinanceiroDTO obterResumo(int mes, int ano) {
-        List<Cliente> clientes = clienteRepository.findAll();
+        List<Cliente> clientes = clienteRepository.findAll().stream()
+                .filter(FinanceiroService::isCobravel)
+                .collect(Collectors.toList());
         List<PagamentoMensal> pagamentos = pagamentoMensalRepository.findByMesAndAno(mes, ano);
         List<Despesa> todasDespesas = despesaRepository.findAll().stream()
+                .filter(FinanceiroService::isDespesaAtiva)
                 .sorted((a, b) -> (a.getDescricao() != null ? a.getDescricao() : "").compareToIgnoreCase(b.getDescricao() != null ? b.getDescricao() : ""))
                 .collect(Collectors.toList());
         List<DespesaMensal> despesasMensais = despesaMensalRepository.findByMesAndAno(mes, ano);
@@ -119,7 +137,7 @@ public class FinanceiroService {
     }
 
     /**
-     * Inclui despesas que devem aparecer no mês:
+     * Inclui despesas que devem aparecer no mês (já filtradas por isDespesaAtiva):
      * - Parcelada/Cartão: sempre inclui nos meses do período (ex: 2 parcelas = mês 1 e 2), mesmo após finalizada (ativo=false)
      * - Fixa/Recorrente: inclui apenas se ativo=true
      */

@@ -1,5 +1,6 @@
 package br.com.someli.dto;
 
+import java.time.LocalDate;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Max;
@@ -43,6 +44,8 @@ public class CreateClienteRequestDTO {
     @NotBlank(message = "Status é obrigatório")
     @Size(max = 20, message = "Status inválido")
     private String status;
+
+    private LocalDate dataInicioCobranca;
 
     public String getCnpj() {
         return cnpj;
@@ -122,5 +125,13 @@ public class CreateClienteRequestDTO {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public LocalDate getDataInicioCobranca() {
+        return dataInicioCobranca;
+    }
+
+    public void setDataInicioCobranca(LocalDate dataInicioCobranca) {
+        this.dataInicioCobranca = dataInicioCobranca;
     }
 }

@@ -13,6 +13,7 @@ public class DespesaDTO {
     private Integer parcelas;
     private Integer parcelaAtual;
     private Boolean ativo;
+    private LocalDate dataInicioCobranca;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -32,4 +33,6 @@ public class DespesaDTO {
     public void setParcelaAtual(Integer parcelaAtual) { this.parcelaAtual = parcelaAtual; }
     public Boolean getAtivo() { return ativo; }
     public void setAtivo(Boolean ativo) { this.ativo = ativo; }
+    public LocalDate getDataInicioCobranca() { return dataInicioCobranca; }
+    public void setDataInicioCobranca(LocalDate dataInicioCobranca) { this.dataInicioCobranca = dataInicioCobranca; }
 }

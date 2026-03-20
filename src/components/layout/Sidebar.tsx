@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Search, Users, DollarSign, Receipt, UserCog, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Search, Users, DollarSign, Receipt, UserCog, ChevronLeft, ChevronRight, ClipboardList } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
@@ -10,6 +10,7 @@ const menuItems = [
   { label: 'Clientes', icon: Users, path: '/clientes' },
   { label: 'Financeiro', icon: DollarSign, path: '/financeiro' },
   { label: 'Despesas', icon: Receipt, path: '/despesas' },
+  { label: 'Tipos de Obrigação', icon: ClipboardList, path: '/obrigacoes-tipos' },
   { label: 'Usuários', icon: UserCog, path: '/usuarios' },
 ];
 

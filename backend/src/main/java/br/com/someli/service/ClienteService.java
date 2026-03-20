@@ -100,6 +100,7 @@ public class ClienteService {
         cliente.setDiaVencimento(request.getDiaVencimento());
         cliente.setTipoPagamento(request.getTipoPagamento());
         cliente.setStatus(request.getStatus());
+        cliente.setDataInicioCobranca(request.getDataInicioCobranca());
     }
 
     private String trimOrNull(String value) {

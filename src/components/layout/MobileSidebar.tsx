@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Search, Users, DollarSign, Receipt, UserCog } from 'lucide-react';
+import { LayoutDashboard, Search, Users, DollarSign, Receipt, UserCog, ClipboardList } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 
@@ -9,6 +9,7 @@ const menuItems = [
   { label: 'Clientes', icon: Users, path: '/clientes' },
   { label: 'Financeiro', icon: DollarSign, path: '/financeiro' },
   { label: 'Despesas', icon: Receipt, path: '/despesas' },
+  { label: 'Tipos de Obrigação', icon: ClipboardList, path: '/obrigacoes-tipos' },
   { label: 'Usuários', icon: UserCog, path: '/usuarios' },
 ];
 

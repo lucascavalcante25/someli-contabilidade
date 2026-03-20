@@ -9,6 +9,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -51,6 +52,9 @@ public class Cliente {
 
     @Column(name = "data_criacao", nullable = false)
     private LocalDateTime dataCriacao;
+
+    @Column(name = "data_inicio_cobranca")
+    private LocalDate dataInicioCobranca;
 
     @PrePersist
     public void prePersist() {
@@ -159,5 +163,13 @@ public class Cliente {
 
     public void setDataCriacao(LocalDateTime dataCriacao) {
         this.dataCriacao = dataCriacao;
+    }
+
+    public LocalDate getDataInicioCobranca() {
+        return dataInicioCobranca;
+    }
+
+    public void setDataInicioCobranca(LocalDate dataInicioCobranca) {
+        this.dataInicioCobranca = dataInicioCobranca;
     }
 }

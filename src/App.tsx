@@ -7,8 +7,10 @@ import AppLayout from "@/components/layout/AppLayout";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Clientes from "./pages/Clientes";
+import ClienteDetalhe from "./pages/ClienteDetalhe";
 import Financeiro from "./pages/Financeiro";
 import Despesas from "./pages/Despesas";
+import ObrigacoesTipos from "./pages/ObrigacoesTipos";
 import Usuarios from "./pages/Usuarios";
 import Consultas from "./pages/Consultas";
 import NotFound from "./pages/NotFound";
@@ -28,8 +30,10 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/consultas" element={<Consultas />} />
               <Route path="/clientes" element={<Clientes />} />
+              <Route path="/clientes/:id" element={<ClienteDetalhe />} />
               <Route path="/financeiro" element={<Financeiro />} />
               <Route path="/despesas" element={<Despesas />} />
+              <Route path="/obrigacoes-tipos" element={<ObrigacoesTipos />} />
               <Route path="/usuarios" element={<Usuarios />} />
             </Route>
             <Route path="*" element={<NotFound />} />

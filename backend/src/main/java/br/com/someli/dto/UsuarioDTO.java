@@ -10,6 +10,7 @@ public class UsuarioDTO {
     private String telefone;
     private Perfil perfil;
     private Boolean ativo;
+    private String fotoUrl;
 
     public Long getId() {
         return id;
@@ -65,5 +66,13 @@ public class UsuarioDTO {
 
     public void setAtivo(Boolean ativo) {
         this.ativo = ativo;
+    }
+
+    public String getFotoUrl() {
+        return fotoUrl;
+    }
+
+    public void setFotoUrl(String fotoUrl) {
+        this.fotoUrl = fotoUrl;
     }
 }

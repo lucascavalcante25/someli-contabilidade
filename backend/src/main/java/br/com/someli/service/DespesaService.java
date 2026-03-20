@@ -47,6 +47,7 @@ public class DespesaService {
         d.setTipo(request.getTipo());
         d.setDiaPagamento(request.getDiaPagamento() != null ? request.getDiaPagamento() : 10);
         d.setDataInicio(request.getDataInicio());
+        d.setDataInicioCobranca(request.getDataInicioCobranca());
         d.setParcelas(request.getParcelas());
         d.setParcelaAtual(request.getParcelaAtual() != null ? request.getParcelaAtual() : 1);
         d.setAtivo(true);
@@ -62,6 +63,7 @@ public class DespesaService {
         if (request.getTipo() != null) d.setTipo(request.getTipo());
         if (request.getDiaPagamento() != null) d.setDiaPagamento(request.getDiaPagamento());
         if (request.getDataInicio() != null) d.setDataInicio(request.getDataInicio());
+        if (request.getDataInicioCobranca() != null) d.setDataInicioCobranca(request.getDataInicioCobranca());
         if (request.getParcelas() != null) d.setParcelas(request.getParcelas());
         if (request.getParcelaAtual() != null) d.setParcelaAtual(request.getParcelaAtual());
         if (request.getAtivo() != null) d.setAtivo(request.getAtivo());
@@ -84,6 +86,7 @@ public class DespesaService {
         dto.setParcelas(d.getParcelas());
         dto.setParcelaAtual(d.getParcelaAtual());
         dto.setAtivo(d.getAtivo());
+        dto.setDataInicioCobranca(d.getDataInicioCobranca());
         return dto;
     }
 }

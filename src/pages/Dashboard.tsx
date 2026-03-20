@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Users, DollarSign, Clock, Receipt, TrendingUp } from 'lucide-react';
+import { Users, DollarSign, Clock, Receipt, TrendingUp, AlertTriangle, Calendar, AlertCircle } from 'lucide-react';
 import StatCard from '@/components/shared/StatCard';
 import { formatCurrency, getGreeting } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
@@ -38,23 +39,32 @@ interface GraficoItem {
   despesa: number;
 }
 
+interface ObrigacoesDashboard {
+  vencendoHoje: { id: number; obrigacaoNome: string; dataVencimento: string; clienteId: number }[];
+  vencendoEmBreve: { id: number; obrigacaoNome: string; dataVencimento: string; clienteId: number }[];
+  atrasadas: { id: number; obrigacaoNome: string; dataVencimento: string; clienteId: number }[];
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const apiBaseUrl = useMemo(() => API_BASE_URL, []);
+  const navigate = useNavigate();
 
   const [clientes, setClientes] = useState<ClienteResumo[]>([]);
   const [resumo, setResumo] = useState<ResumoFinanceiro | null>(null);
   const [chartData, setChartData] = useState<GraficoItem[]>([]);
+  const [obrigacoesDashboard, setObrigacoesDashboard] = useState<ObrigacoesDashboard | null>(null);
   const [loading, setLoading] = useState(true);
 
   const carregarDados = useCallback(async () => {
     setLoading(true);
     try {
-      const [resClientes, resResumo, resGrafico] = await Promise.all([
+      const [resClientes, resResumo, resGrafico, resObrigacoes] = await Promise.all([
         apiFetch(`${apiBaseUrl}/clientes`, { headers: getAuthHeaders() }),
         apiFetch(`${apiBaseUrl}/financeiro/resumo`, { headers: getAuthHeaders() }),
         apiFetch(`${apiBaseUrl}/financeiro/grafico`, { headers: getAuthHeaders() }),
+        apiFetch(`${apiBaseUrl}/obrigacoes/dashboard`, { headers: getAuthHeaders() }),
       ]);
 
       if (resClientes.ok) {
@@ -90,10 +100,22 @@ export default function Dashboard() {
           }))
         );
       }
+
+      if (resObrigacoes.ok) {
+        const data = await resObrigacoes.json();
+        setObrigacoesDashboard({
+          vencendoHoje: Array.isArray(data.vencendoHoje) ? data.vencendoHoje : [],
+          vencendoEmBreve: Array.isArray(data.vencendoEmBreve) ? data.vencendoEmBreve : [],
+          atrasadas: Array.isArray(data.atrasadas) ? data.atrasadas : [],
+        });
+      } else {
+        setObrigacoesDashboard({ vencendoHoje: [], vencendoEmBreve: [], atrasadas: [] });
+      }
     } catch {
       setClientes([]);
       setResumo(null);
       setChartData([]);
+      setObrigacoesDashboard(null);
     } finally {
       setLoading(false);
     }
@@ -160,6 +182,62 @@ export default function Dashboard() {
         <StatCard label="Despesas do Mês" value={formatCurrency(despesaTotal)} icon={Receipt} accent="destructive" />
         <StatCard label="Saldo do Mês" value={formatCurrency(saldo)} icon={TrendingUp} accent={saldo >= 0 ? 'success' : 'destructive'} />
       </div>
+
+      {obrigacoesDashboard && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="card-surface p-5 cursor-pointer hover:ring-2 hover:ring-warning/30 transition-all"
+            onClick={() => navigate('/clientes')}
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="label-text">Obrigações vencendo hoje</p>
+                <p className="text-xl font-semibold tabular-nums">{obrigacoesDashboard.vencendoHoje.length}</p>
+              </div>
+              <div className="rounded-lg bg-warning/10 p-2.5">
+                <Calendar size={18} className="text-warning" />
+              </div>
+            </div>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="card-surface p-5 cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all"
+            onClick={() => navigate('/clientes')}
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="label-text">Obrigações vencendo em breve</p>
+                <p className="text-xl font-semibold tabular-nums">{obrigacoesDashboard.vencendoEmBreve.length}</p>
+              </div>
+              <div className="rounded-lg bg-primary/10 p-2.5">
+                <AlertTriangle size={18} className="text-primary" />
+              </div>
+            </div>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="card-surface p-5 cursor-pointer hover:ring-2 hover:ring-destructive/30 transition-all"
+            onClick={() => navigate('/clientes')}
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="label-text">Obrigações atrasadas</p>
+                <p className="text-xl font-semibold tabular-nums">{obrigacoesDashboard.atrasadas.length}</p>
+              </div>
+              <div className="rounded-lg bg-destructive/10 p-2.5">
+                <AlertCircle size={18} className="text-destructive" />
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <motion.div

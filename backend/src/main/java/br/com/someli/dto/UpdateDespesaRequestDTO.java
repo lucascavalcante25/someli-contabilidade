@@ -27,6 +27,7 @@ public class UpdateDespesaRequestDTO {
     private Integer parcelas;
     private Integer parcelaAtual;
     private Boolean ativo;
+    private LocalDate dataInicioCobranca;
 
     public String getDescricao() { return descricao; }
     public void setDescricao(String descricao) { this.descricao = descricao; }
@@ -44,4 +45,6 @@ public class UpdateDespesaRequestDTO {
     public void setParcelaAtual(Integer parcelaAtual) { this.parcelaAtual = parcelaAtual; }
     public Boolean getAtivo() { return ativo; }
     public void setAtivo(Boolean ativo) { this.ativo = ativo; }
+    public LocalDate getDataInicioCobranca() { return dataInicioCobranca; }
+    public void setDataInicioCobranca(LocalDate dataInicioCobranca) { this.dataInicioCobranca = dataInicioCobranca; }
 }

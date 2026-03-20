@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import StatusBadge from '@/components/shared/StatusBadge';
-import { Plus, Pencil, Trash2, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const TIPOS_DESPESA = [
   { value: 'fixa', label: 'Fixa' },
@@ -50,9 +51,15 @@ interface Despesa {
   tipo: string;
   diaPagamento: number;
   dataInicio: string;
+  dataInicioCobranca?: string;
   parcelas?: number;
   parcelaAtual?: number;
   ativo: boolean;
+}
+
+function isDespesaAtiva(dataInicioCobranca?: string): boolean {
+  if (!dataInicioCobranca) return true;
+  return new Date(dataInicioCobranca) <= new Date();
 }
 
 export default function Despesas() {
@@ -76,6 +83,7 @@ export default function Despesas() {
           tipo: d.tipo ?? 'fixa',
           diaPagamento: d.diaPagamento ?? 10,
           dataInicio: d.dataInicio ?? new Date().toISOString().split('T')[0],
+          dataInicioCobranca: d.dataInicioCobranca ? String(d.dataInicioCobranca).slice(0, 10) : undefined,
           parcelas: d.parcelas,
           parcelaAtual: d.parcelaAtual,
           ativo: d.ativo !== false,
@@ -119,6 +127,7 @@ export default function Despesas() {
             tipo: form.tipo,
             diaPagamento: form.diaPagamento,
             dataInicio: form.dataInicio,
+            dataInicioCobranca: form.dataInicioCobranca || null,
             parcelas: form.parcelas,
             parcelaAtual: form.parcelaAtual,
             ativo: form.ativo,
@@ -138,6 +147,7 @@ export default function Despesas() {
             tipo: form.tipo ?? 'fixa',
             diaPagamento: form.diaPagamento ?? 10,
             dataInicio: form.dataInicio ?? new Date().toISOString().split('T')[0],
+            dataInicioCobranca: form.dataInicioCobranca || new Date().toISOString().split('T')[0],
             parcelas: form.parcelas,
             parcelaAtual: form.parcelaAtual ?? 1,
           }),
@@ -214,7 +224,18 @@ export default function Despesas() {
                   {d.dataInicio ? new Date(d.dataInicio).toLocaleDateString('pt-BR') : '—'}
                 </td>
                 <td className="px-3 sm:px-4 py-3 text-center whitespace-nowrap">
-                  <StatusBadge status={d.ativo ? 'ativo' : 'inativo'} />
+                  <div className="flex flex-col items-center gap-0.5">
+                    {!isDespesaAtiva(d.dataInicioCobranca) ? (
+                      <>
+                        <StatusBadge status="futura" />
+                        {d.dataInicioCobranca && (
+                          <span className="text-[10px] text-muted-foreground">Cobrança inicia em: {new Date(d.dataInicioCobranca + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
+                        )}
+                      </>
+                    ) : (
+                      <StatusBadge status={d.ativo ? 'ativo' : 'inativo'} />
+                    )}
+                  </div>
                 </td>
                 <td className="px-3 sm:px-4 py-3 whitespace-nowrap">
                   <div className="flex items-center justify-center gap-1">
@@ -275,18 +296,18 @@ function DespesaFormModal({
   onClose: () => void;
   onSave: (d: Partial<Despesa>) => void;
 }) {
-  const [form, setForm] = useState<Partial<Despesa>>(
-    despesa || {
-      descricao: '',
-      valorMensal: 0,
-      tipo: 'fixa',
-      diaPagamento: 10,
-      dataInicio: new Date().toISOString().split('T')[0],
-      parcelas: undefined,
-      parcelaAtual: 1,
-      ativo: true,
-    }
-  );
+  const defaultForm: Partial<Despesa> = {
+    descricao: '',
+    valorMensal: 0,
+    tipo: 'fixa',
+    diaPagamento: 10,
+    dataInicio: new Date().toISOString().split('T')[0],
+    dataInicioCobranca: new Date().toISOString().split('T')[0],
+    parcelas: undefined,
+    parcelaAtual: 1,
+    ativo: true,
+  };
+  const [form, setForm] = useState<Partial<Despesa>>(despesa ? { ...defaultForm, ...despesa, dataInicioCobranca: despesa.dataInicioCobranca ?? defaultForm.dataInicioCobranca } : defaultForm);
 
   const showParcelas = form.tipo === 'parcelada' || form.tipo === 'cartao';
 
@@ -403,6 +424,23 @@ function DespesaFormModal({
               type="date"
               value={form.dataInicio || ''}
               onChange={(e) => update('dataInicio', e.target.value)}
+              className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="label-text flex items-center gap-1.5">
+              Data início cobrança
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex cursor-help text-muted-foreground hover:text-foreground"><Info size={14} /></span>
+                </TooltipTrigger>
+                <TooltipContent>Define a partir de quando essa despesa será considerada nos cálculos</TooltipContent>
+              </Tooltip>
+            </label>
+            <input
+              type="date"
+              value={form.dataInicioCobranca || ''}
+              onChange={(e) => update('dataInicioCobranca', e.target.value)}
               className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all"
             />
           </div>

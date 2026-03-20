@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Plus, Pencil, Trash2, X, Eye, EyeOff, Check } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Plus, Pencil, Trash2, X, Eye, EyeOff, Check, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
+import { useAuth } from '@/contexts/AuthContext';
 
 type Perfil = 'ADMIN' | 'CONTADOR' | 'OPERADOR';
 
@@ -15,6 +16,7 @@ interface Usuario {
   telefone: string;
   perfil: Perfil;
   ativo: boolean;
+  fotoUrl?: string;
 }
 
 interface UsuarioFormData {
@@ -26,6 +28,8 @@ interface UsuarioFormData {
   ativo: boolean;
   senha: string;
   confirmarSenha: string;
+  foto?: File;
+  fotoPreview?: string;
 }
 
 const perfilColors: Record<Perfil, string> = {
@@ -36,6 +40,7 @@ const perfilColors: Record<Perfil, string> = {
 
 export default function Usuarios() {
   const apiBaseUrl = useMemo(() => API_BASE_URL, []);
+  const { user: currentUser, updateUser } = useAuth();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -154,9 +159,33 @@ export default function Usuarios() {
         throw new Error(await parseApiError(response));
       }
 
-      const usuarioSalvo = (await response.json()) as Usuario;
+      let usuarioSalvo = (await response.json()) as Usuario;
+
+      if (form.foto && usuarioSalvo.id) {
+        try {
+          const token = localStorage.getItem('someli_token');
+          const formData = new FormData();
+          formData.append('file', form.foto);
+          const fotoRes = await fetch(`${apiBaseUrl}/usuarios/${usuarioSalvo.id}/foto`, {
+            method: 'POST',
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            body: formData,
+          });
+          if (fotoRes.ok) {
+            usuarioSalvo = (await fotoRes.json()) as Usuario;
+          }
+        } catch {
+          toast.warning('Usuário salvo, mas falha ao enviar foto');
+        }
+      }
+
       if (usuarioId) {
         setUsuarios(prev => prev.map(u => (u.id === usuarioSalvo.id ? usuarioSalvo : u)));
+        if (currentUser?.id === usuarioSalvo.id) {
+          const updates: { nome: string; fotoUrl?: string } = { nome: usuarioSalvo.nome };
+          if (usuarioSalvo.fotoUrl != null) updates.fotoUrl = usuarioSalvo.fotoUrl;
+          updateUser(updates);
+        }
         toast.success('Usuário atualizado');
       } else {
         setUsuarios(prev => [...prev, usuarioSalvo]);
@@ -253,6 +282,33 @@ export default function Usuarios() {
   );
 }
 
+function UsuarioFotoPreview({ usuarioId }: { usuarioId: number }) {
+  const [src, setSrc] = useState<string | null>(null);
+  const urlRef = useRef<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    apiFetch(`${API_BASE_URL}/usuarios/${usuarioId}/foto`, { headers: {} })
+      .then(r => cancelled || (r.ok ? r.blob() : null))
+      .then(blob => {
+        if (cancelled || !blob) return;
+        if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+        const url = URL.createObjectURL(blob);
+        urlRef.current = url;
+        setSrc(url);
+      });
+    return () => {
+      cancelled = true;
+      if (urlRef.current) {
+        URL.revokeObjectURL(urlRef.current);
+        urlRef.current = null;
+      }
+      setSrc(null);
+    };
+  }, [usuarioId]);
+  if (!src) return <User size={32} className="text-muted-foreground" />;
+  return <img src={src} alt="" className="h-full w-full object-cover" />;
+}
+
 function UsuarioFormModal({
   usuario,
   onClose,
@@ -290,6 +346,8 @@ function UsuarioFormModal({
         }
   );
   const [showPass, setShowPass] = useState(false);
+  const [fotoPreview, setFotoPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const update = <K extends keyof UsuarioFormData>(k: K, v: UsuarioFormData[K]) =>
     setForm(prev => ({ ...prev, [k]: v }));
@@ -320,6 +378,41 @@ function UsuarioFormModal({
           <button onClick={onClose} className="p-1 rounded hover:bg-muted transition-colors"><X size={18} /></button>
         </div>
         <div className="space-y-4">
+          <div className="flex flex-col items-center gap-3">
+            <label className="label-text">Foto do perfil</label>
+            <div className="relative">
+              <div className="h-20 w-20 rounded-full ring-2 ring-primary ring-offset-2 ring-offset-background overflow-hidden bg-muted flex items-center justify-center">
+                {fotoPreview ? (
+                  <img src={fotoPreview} alt="Preview" className="h-full w-full object-cover" />
+                ) : usuario?.fotoUrl && usuario?.id ? (
+                  <UsuarioFotoPreview usuarioId={usuario.id} />
+                ) : (
+                  <User size={32} className="text-muted-foreground" />
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                className="hidden"
+                onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    update('foto', file);
+                    setFotoPreview(URL.createObjectURL(file));
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute bottom-0 right-0 p-1.5 rounded-full bg-primary text-primary-foreground hover:opacity-90"
+              >
+                <Pencil size={12} />
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground">JPG, PNG ou GIF (opcional)</p>
+          </div>
           <div className="space-y-1.5">
             <label className="label-text">Nome</label>
             <input value={form.nome || ''} onChange={e => update('nome', e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all" />

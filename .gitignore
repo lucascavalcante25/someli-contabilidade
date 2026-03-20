@@ -26,3 +26,6 @@ dist-ssr
 # Backend
 backend/target
 backend/*.log
+
+# Uploads
+data/

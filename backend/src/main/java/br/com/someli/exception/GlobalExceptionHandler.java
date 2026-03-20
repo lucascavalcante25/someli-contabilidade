@@ -32,6 +32,30 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI());
     }
 
+    @ExceptionHandler(ObrigacaoNaoEncontradaException.class)
+    public ResponseEntity<ApiErrorDTO> handleObrigacaoNaoEncontrada(
+            ObrigacaoNaoEncontradaException ex,
+            HttpServletRequest request
+    ) {
+        return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(ClienteObrigacaoNaoEncontradaException.class)
+    public ResponseEntity<ApiErrorDTO> handleClienteObrigacaoNaoEncontrada(
+            ClienteObrigacaoNaoEncontradaException ex,
+            HttpServletRequest request
+    ) {
+        return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(ClienteDocumentoNaoEncontradoException.class)
+    public ResponseEntity<ApiErrorDTO> handleClienteDocumentoNaoEncontrado(
+            ClienteDocumentoNaoEncontradoException ex,
+            HttpServletRequest request
+    ) {
+        return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI());
+    }
+
     @ExceptionHandler(SenhaInvalidaException.class)
     public ResponseEntity<ApiErrorDTO> handleSenhaInvalida(
             SenhaInvalidaException ex,

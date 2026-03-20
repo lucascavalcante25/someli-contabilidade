@@ -2,6 +2,10 @@ server:
   port: ${PORT:8080}
 
 spring:
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/someliContab}
     username: ${DB_USERNAME:postgres}
@@ -32,6 +36,8 @@ logging:
     org.springframework.security: DEBUG
 
 app:
+  upload:
+    base-path: ${UPLOAD_PATH:./data/uploads}
   jwt:
     secret: ${JWT_SECRET:ZmFrZV9zdXBlcl9zZWNyZXRfZmFrZV9zdXBlcl9zZWNyZXRfZmFrZV9zdXBlcl9zZWNyZXQ=}
     expiration-hours: 8

@@ -42,6 +42,9 @@ public class Usuario {
     @Column(nullable = false)
     private Boolean ativo = Boolean.TRUE;
 
+    @Column(name = "foto_url", length = 500)
+    private String fotoUrl;
+
     @Column(name = "data_criacao", nullable = false)
     private LocalDateTime dataCriacao;
 
@@ -117,6 +120,14 @@ public class Usuario {
 
     public void setAtivo(Boolean ativo) {
         this.ativo = ativo;
+    }
+
+    public String getFotoUrl() {
+        return fotoUrl;
+    }
+
+    public void setFotoUrl(String fotoUrl) {
+        this.fotoUrl = fotoUrl;
     }
 
     public LocalDateTime getDataCriacao() {

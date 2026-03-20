@@ -40,6 +40,9 @@ public class Despesa {
     @Column(name = "data_criacao", nullable = false)
     private LocalDateTime dataCriacao;
 
+    @Column(name = "data_inicio_cobranca")
+    private LocalDate dataInicioCobranca;
+
     @PrePersist
     public void prePersist() {
         if (dataCriacao == null) dataCriacao = LocalDateTime.now();
@@ -66,4 +69,6 @@ public class Despesa {
     public void setAtivo(Boolean ativo) { this.ativo = ativo; }
     public LocalDateTime getDataCriacao() { return dataCriacao; }
     public void setDataCriacao(LocalDateTime dataCriacao) { this.dataCriacao = dataCriacao; }
+    public LocalDate getDataInicioCobranca() { return dataInicioCobranca; }
+    public void setDataInicioCobranca(LocalDate dataInicioCobranca) { this.dataInicioCobranca = dataInicioCobranca; }
 }

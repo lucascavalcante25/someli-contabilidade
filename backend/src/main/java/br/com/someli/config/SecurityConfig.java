@@ -29,6 +29,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/auth/preview").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/auth/avatar").permitAll()
                         .requestMatchers(HttpMethod.GET, "/someli/api/consultaCNPJ/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/someli/api/sintegra/consulta").permitAll()
                         .requestMatchers("/actuator/**", "/management/**").permitAll()

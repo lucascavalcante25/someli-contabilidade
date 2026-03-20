@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
-import { LogOut, Bell, ChevronRight, Menu } from 'lucide-react';
+import UserAvatar from '@/components/UserAvatar';
+import { LogOut, Bell, ChevronRight, Menu, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -12,16 +13,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-interface ClienteAtrasado {
+interface Notificacao {
   id: number;
-  razaoSocial: string;
-  nomeFantasia: string;
-  honorario: number;
-  status: string;
-}
-
-function formatCurrency(value: number): string {
-  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2 });
+  clienteObrigacaoId: number;
+  clienteId: number;
+  titulo: string;
+  descricao: string;
+  prioridade: string;
+  dataCriacao: string;
+  lida: boolean;
 }
 
 function getAuthHeaders() {
@@ -37,40 +37,40 @@ interface ToolbarProps {
 export default function Toolbar({ onMenuClick }: ToolbarProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [atrasados, setAtrasados] = useState<ClienteAtrasado[]>([]);
+  const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
+  const [count, setCount] = useState(0);
 
   const apiBaseUrl = API_BASE_URL;
 
-  const carregarAtrasados = useCallback(async () => {
+  const carregarNotificacoes = useCallback(async () => {
     try {
-      const res = await apiFetch(`${apiBaseUrl}/clientes`, { headers: getAuthHeaders() });
-      if (!res.ok) return;
-      const data = await res.json();
-      const lista = Array.isArray(data) ? data : [];
-      const atrasadosList = lista
-        .filter((c: any) => (c.status || '').toLowerCase() === 'atrasado')
-        .map((c: any) => ({
-          id: c.id,
-          razaoSocial: c.razaoSocial ?? '',
-          nomeFantasia: c.nomeFantasia ?? '',
-          honorario: Number(c.honorario ?? 0),
-          status: c.status ?? '',
-        }));
-      setAtrasados(atrasadosList);
+      const [listRes, countRes] = await Promise.all([
+        apiFetch(`${apiBaseUrl}/notifications`, { headers: getAuthHeaders() }),
+        apiFetch(`${apiBaseUrl}/notifications/count`, { headers: getAuthHeaders() }),
+      ]);
+      if (listRes.ok) {
+        const data = await listRes.json();
+        setNotificacoes(Array.isArray(data) ? data : []);
+      }
+      if (countRes.ok) {
+        const countData = await countRes.json();
+        setCount(Number(countData?.count ?? 0));
+      }
     } catch {
-      setAtrasados([]);
+      setNotificacoes([]);
+      setCount(0);
     }
   }, [apiBaseUrl]);
 
   useEffect(() => {
-    void carregarAtrasados();
-  }, [carregarAtrasados]);
+    void carregarNotificacoes();
+  }, [carregarNotificacoes]);
 
   const handleOpenChange = useCallback(
     (open: boolean) => {
-      if (open) void carregarAtrasados();
+      if (open) void carregarNotificacoes();
     },
-    [carregarAtrasados]
+    [carregarNotificacoes]
   );
 
   const handleLogout = () => {
@@ -78,11 +78,25 @@ export default function Toolbar({ onMenuClick }: ToolbarProps) {
     navigate('/login');
   };
 
-  const handleVerCobrancas = () => {
-    navigate('/financeiro');
+  const handleIrParaCliente = (clienteId: number) => {
+    navigate(`/clientes/${clienteId}`);
   };
 
-  const temAtrasados = atrasados.length > 0;
+  const handleMarcarLida = async (id: number, clienteId: number) => {
+    try {
+      await apiFetch(`${apiBaseUrl}/notifications/${id}/lida`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+      });
+      setNotificacoes(prev => prev.filter(n => n.id !== id));
+      setCount(prev => Math.max(0, prev - 1));
+      navigate(`/clientes/${clienteId}`);
+    } catch {
+      navigate(`/clientes/${clienteId}`);
+    }
+  };
+
+  const temNotificacoes = notificacoes.length > 0;
 
   return (
     <header className="sticky top-0 z-20 flex h-14 sm:h-16 items-center justify-between border-b border-border bg-card/80 backdrop-blur-sm px-4 sm:px-6">
@@ -104,57 +118,63 @@ export default function Toolbar({ onMenuClick }: ToolbarProps) {
               title="Notificações"
             >
               <Bell size={18} />
-              {temAtrasados && (
-                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground px-1">
-                  {atrasados.length > 9 ? '9+' : atrasados.length}
+              {count > 0 && (
+                <span className={`absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full text-[10px] font-medium px-1 ${
+                  notificacoes.some(n => n.prioridade === 'critica') ? 'bg-destructive text-destructive-foreground' : 'bg-primary text-primary-foreground'
+                }`}>
+                  {count > 9 ? '9+' : count}
                 </span>
               )}
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-[min(20rem,calc(100vw-2rem))]">
+          <DropdownMenuContent align="end" className="w-[min(22rem,calc(100vw-2rem))]">
             <div className="px-2 py-2">
-              <p className="text-sm font-semibold text-foreground">
-                {temAtrasados ? 'Clientes em atraso' : 'Notificações'}
-              </p>
+              <p className="text-sm font-semibold text-foreground">Notificações</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {temAtrasados
-                  ? `${atrasados.length} cliente(s) com pagamento em atraso`
-                  : 'Nenhum cliente em atraso'}
+                {temNotificacoes
+                  ? `${count} obrigação(ões) vencendo ou em atraso`
+                  : 'Nenhuma notificação pendente'}
               </p>
             </div>
-            {temAtrasados && (
-              <div className="max-h-48 overflow-y-auto">
-                {atrasados.map((c) => (
+            {temNotificacoes && (
+              <div className="max-h-64 overflow-y-auto">
+                {notificacoes.map((n) => (
                   <DropdownMenuItem
-                    key={c.id}
+                    key={n.id}
                     className="flex flex-col items-start gap-0.5 py-2.5 cursor-pointer"
-                    onClick={handleVerCobrancas}
+                    onClick={() => void handleMarcarLida(n.id, n.clienteId)}
                   >
-                    <span className="font-medium text-sm truncate w-full">
-                      {c.nomeFantasia || c.razaoSocial || 'Cliente'}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {formatCurrency(c.honorario)} em atraso
-                    </span>
+                    <div className="flex items-start gap-2 w-full">
+                      {n.prioridade === 'critica' && (
+                        <AlertCircle size={14} className="text-destructive shrink-0 mt-0.5" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <span className="font-medium text-sm block truncate">{n.titulo}</span>
+                        <span className="text-xs text-muted-foreground block truncate">{n.descricao}</span>
+                        <span className="text-xs text-primary mt-1 block">Ver detalhes do cliente →</span>
+                      </div>
+                    </div>
                   </DropdownMenuItem>
                 ))}
               </div>
             )}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="flex items-center justify-between cursor-pointer mt-1"
-              onClick={handleVerCobrancas}
-            >
-              <span className="text-sm font-medium">Ver financeiro</span>
-              <ChevronRight size={16} className="text-muted-foreground" />
-            </DropdownMenuItem>
+            {temNotificacoes && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="flex items-center justify-between cursor-pointer"
+                  onClick={() => navigate('/clientes')}
+                >
+                  <span className="text-sm font-medium">Ver todos os clientes</span>
+                  <ChevronRight size={16} className="text-muted-foreground" />
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
         <div className="h-6 w-px bg-border" />
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-semibold">
-            {user?.nome?.charAt(0) || 'U'}
-          </div>
+          <UserAvatar userId={user?.id} fotoUrl={user?.fotoUrl} nome={user?.nome} avatarVersion={user?._avatarVersion} />
           <div className="hidden sm:block">
             <p className="text-sm font-medium leading-none">{user?.nome}</p>
             <p className="text-xs text-muted-foreground">{user?.perfil}</p>

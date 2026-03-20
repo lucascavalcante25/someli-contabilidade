@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from './Sidebar';
 import MobileSidebar from './MobileSidebar';
 import Toolbar from './Toolbar';
+import NotificationsLoginModal from '@/components/NotificationsLoginModal';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { motion } from 'framer-motion';
 
@@ -38,6 +39,7 @@ export default function AppLayout() {
           <Outlet />
         </main>
       </motion.div>
+      <NotificationsLoginModal />
     </div>
   );
 }
