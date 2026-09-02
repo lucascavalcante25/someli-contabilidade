@@ -40,7 +40,7 @@ app:
     base-path: ${UPLOAD_PATH:./data/uploads}
   jwt:
     secret: ${JWT_SECRET:ZmFrZV9zdXBlcl9zZWNyZXRfZmFrZV9zdXBlcl9zZWNyZXRfZmFrZV9zdXBlcl9zZWNyZXQ=}
-    expiration-hours: 8
+    expiration-hours: ${JWT_EXPIRATION_HOURS:72}
 
 receitaws:
   api:

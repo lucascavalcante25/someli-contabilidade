@@ -26,12 +26,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const apiBaseUrl = API_BASE_URL;
 
   const [user, setUser] = useState<User | null>(() => {
+    const token = localStorage.getItem('someli_token');
     const stored = localStorage.getItem('someli_user');
-    if (!stored) return null;
+    // Sem token válido não considera autenticado (evita 403 em todas as APIs)
+    if (!token || !stored) {
+      localStorage.removeItem('someli_user');
+      localStorage.removeItem('someli_token');
+      return null;
+    }
     try {
       return JSON.parse(stored) as User;
     } catch {
       localStorage.removeItem('someli_user');
+      localStorage.removeItem('someli_token');
       return null;
     }
   });

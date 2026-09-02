@@ -36,6 +36,7 @@ services:
       DB_USERNAME: someli
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS:-72}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://someli-contabilidade.vercel.app}
       UPLOAD_PATH: /app/data/uploads
       JAVA_OPTS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=60.0 -Xms256m -Xmx512m"
