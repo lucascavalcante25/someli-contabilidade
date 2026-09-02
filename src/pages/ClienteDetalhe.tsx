@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Pencil, Trash2, X, FileText, ClipboardList, File, Download, Loader2, Image, FileSpreadsheet, PowerOff, Power } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,21 +13,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 type TipoObrigacao = 'FISCAL' | 'LICENCA' | 'OUTROS';
 type StatusObrigacao = 'em_dia' | 'a_vencer' | 'atrasado' | 'proximo_vencimento';
-
-interface Cliente {
-  id: number;
-  cnpj: string;
-  razaoSocial: string;
-  nomeFantasia: string;
-  proprietario: string;
-  telefone: string;
-  email: string;
-  honorario: number;
-  diaVencimento: number;
-  tipoPagamento: string;
-  status: string;
-  mesesPendentes?: number;
-}
 
 interface Obrigacao {
   id: number;
@@ -90,8 +75,42 @@ const statusObrigacaoConfig: Record<StatusObrigacao, { label: string; variant: '
   atrasado: { label: 'Atrasado', variant: 'atrasado' },
 };
 
-export default function ClienteDetalhe() {
-  const { id } = useParams<{ id: string }>();
+interface Cliente {
+  id: number;
+  cnpj: string;
+  razaoSocial: string;
+  nomeFantasia: string;
+  proprietario: string;
+  telefone: string;
+  email: string;
+  honorario: number;
+  diaVencimento: number;
+  tipoPagamento: string;
+  status: string;
+  mesesPendentes?: number;
+  dataInicioCobranca?: string;
+  responsavelNome?: string;
+  indicacao?: string;
+  formaPagamento?: string;
+  ativo?: boolean;
+}
+
+export type ClienteDetalhePanelProps = {
+  clienteId: number;
+  variant?: 'page' | 'modal';
+  initialTab?: 'dados' | 'obrigacoes' | 'documentos';
+  onClose?: () => void;
+  onEdit?: () => void;
+};
+
+export function ClienteDetalhePanel({
+  clienteId,
+  variant = 'page',
+  initialTab = 'dados',
+  onClose,
+  onEdit,
+}: ClienteDetalhePanelProps) {
+  const id = String(clienteId);
   const navigate = useNavigate();
   const apiBaseUrl = useMemo(() => API_BASE_URL, []);
 
@@ -105,6 +124,7 @@ export default function ClienteDetalhe() {
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingObrigacao, setEditingObrigacao] = useState<ClienteObrigacao | null>(null);
+  const [tab, setTab] = useState(initialTab);
 
   const getAuthHeaders = () => ({ 'Content-Type': 'application/json' });
 
@@ -139,14 +159,20 @@ export default function ClienteDetalhe() {
         tipoPagamento: data.tipoPagamento || '',
         status: data.status || 'em_dia',
         mesesPendentes: data.mesesPendentes != null ? Number(data.mesesPendentes) : undefined,
+        dataInicioCobranca: data.dataInicioCobranca ? String(data.dataInicioCobranca).slice(0, 10) : undefined,
+        responsavelNome: data.responsavelNome || undefined,
+        indicacao: data.indicacao || undefined,
+        formaPagamento: data.formaPagamento || undefined,
+        ativo: data.ativo !== false,
       });
     } catch {
       toast.error('Cliente não encontrado');
-      navigate('/clientes');
+      if (variant === 'modal') onClose?.();
+      else navigate('/clientes');
     } finally {
       setLoading(false);
     }
-  }, [apiBaseUrl, id, navigate]);
+  }, [apiBaseUrl, id, navigate, variant, onClose]);
 
   const carregarObrigacoes = useCallback(async () => {
     if (!id) return;
@@ -432,29 +458,87 @@ export default function ClienteDetalhe() {
 
   if (loading || !cliente) {
     return (
-      <div className="flex items-center justify-center min-h-[300px]">
+      <div className="flex items-center justify-center min-h-[200px]">
         <p className="text-muted-foreground">Carregando...</p>
       </div>
     );
   }
 
-  return (
-    <div className="page-shell">
-      <div className="flex items-start gap-3 min-w-0">
-        <button
-          onClick={() => navigate('/clientes')}
-          className="p-2 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground shrink-0"
-        >
-          <ArrowLeft size={20} />
-        </button>
-        <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight truncate">{cliente.razaoSocial}</h1>
-          <p className="text-sm text-muted-foreground truncate">{cliente.nomeFantasia || maskCnpj(cliente.cnpj)}</p>
-        </div>
-      </div>
+  const tipoPagamentoLabel: Record<string, string> = {
+    pessoa_fisica: 'Pessoa Física',
+    pessoa_juridica: 'Pessoa Jurídica',
+    terceiros: 'Terceiros',
+  };
+  const formaPagamentoLabel: Record<string, string> = {
+    boleto: 'Boleto',
+    pix: 'PIX',
+  };
 
-      <Tabs defaultValue="dados" className="w-full min-w-0 max-w-full">
-        <TabsList className="grid w-full max-w-2xl grid-cols-3 h-auto">
+  const dadosFields: { label: string; value: ReactNode }[] = [
+    { label: 'CNPJ', value: cliente.cnpj ? maskCnpj(cliente.cnpj) : '—' },
+    { label: 'Razão Social', value: cliente.razaoSocial || '—' },
+    { label: 'Nome Fantasia', value: cliente.nomeFantasia || '—' },
+    { label: 'Proprietário', value: cliente.proprietario || '—' },
+    { label: 'Telefone', value: cliente.telefone || '—' },
+    { label: 'E-mail', value: cliente.email || '—' },
+    { label: 'Honorário', value: formatCurrency(cliente.honorario) },
+    { label: 'Dia Vencimento', value: String(cliente.diaVencimento || '—') },
+    {
+      label: 'Data início cobrança',
+      value: cliente.dataInicioCobranca
+        ? new Date(cliente.dataInicioCobranca + 'T12:00:00').toLocaleDateString('pt-BR')
+        : '—',
+    },
+    { label: 'Tipo Pagamento', value: tipoPagamentoLabel[cliente.tipoPagamento] || cliente.tipoPagamento || '—' },
+    {
+      label: 'Forma de pagamento',
+      value: cliente.formaPagamento
+        ? formaPagamentoLabel[cliente.formaPagamento] || cliente.formaPagamento
+        : '—',
+    },
+    { label: 'Responsável', value: cliente.responsavelNome || '—' },
+    { label: 'Indicação', value: cliente.indicacao || '—' },
+    { label: 'Cliente ativo', value: cliente.ativo === false ? 'Não' : 'Sim' },
+    {
+      label: 'Status Pagamento',
+      value: (
+        <StatusBadge
+          status={cliente.status as 'em_dia' | 'pendente' | 'atrasado'}
+          mesesPendentes={cliente.mesesPendentes}
+        />
+      ),
+    },
+  ];
+
+  return (
+    <div className={variant === 'page' ? 'page-shell' : 'min-w-0'}>
+      {variant === 'page' ? (
+        <div className="flex items-start gap-3 min-w-0">
+          <button
+            onClick={() => navigate('/clientes')}
+            className="p-2 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground shrink-0"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight truncate">{cliente.razaoSocial}</h1>
+            <p className="text-sm text-muted-foreground truncate">{cliente.nomeFantasia || maskCnpj(cliente.cnpj)}</p>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between mb-4 gap-3">
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold truncate">Detalhes do Cliente</h2>
+            <p className="text-sm text-muted-foreground truncate">{cliente.razaoSocial}</p>
+          </div>
+          <button onClick={onClose} className="p-1 rounded hover:bg-muted transition-colors shrink-0" aria-label="Fechar">
+            <X size={18} />
+          </button>
+        </div>
+      )}
+
+      <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="w-full min-w-0 max-w-full">
+        <TabsList className="grid w-full grid-cols-3 h-auto">
           <TabsTrigger value="dados" className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 py-2">
             <FileText size={16} className="shrink-0" /> <span className="truncate">Dados</span>
           </TabsTrigger>
@@ -467,46 +551,38 @@ export default function ClienteDetalhe() {
         </TabsList>
 
         <TabsContent value="dados" className="mt-4">
-          <div className="card-surface p-6 max-w-2xl space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <p className="label-text">CNPJ</p>
-                <p className="text-sm">{maskCnpj(cliente.cnpj)}</p>
-              </div>
-              <div>
-                <p className="label-text">Razão Social</p>
-                <p className="text-sm">{cliente.razaoSocial}</p>
-              </div>
-              <div>
-                <p className="label-text">Proprietário</p>
-                <p className="text-sm">{cliente.proprietario || '-'}</p>
-              </div>
-              <div>
-                <p className="label-text">Telefone</p>
-                <p className="text-sm">{cliente.telefone || '-'}</p>
-              </div>
-              <div>
-                <p className="label-text">E-mail</p>
-                <p className="text-sm">{cliente.email || '-'}</p>
-              </div>
-              <div>
-                <p className="label-text">Honorário</p>
-                <p className="text-sm">{formatCurrency(cliente.honorario)}</p>
-              </div>
-              <div>
-                <p className="label-text">Status</p>
-                <StatusBadge
-                  status={cliente.status as 'em_dia' | 'pendente' | 'atrasado'}
-                  mesesPendentes={cliente.mesesPendentes}
-                />
-              </div>
+          <div className={variant === 'page' ? 'card-surface p-6 max-w-3xl space-y-4' : 'space-y-4'}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+              {dadosFields.map((f) => (
+                <div key={f.label} className="min-w-0 border-b border-border/60 pb-2">
+                  <p className="label-text mb-1">{f.label}</p>
+                  <div className="text-sm font-medium break-words">{f.value}</div>
+                </div>
+              ))}
             </div>
-            <button
-              onClick={() => navigate('/clientes', { state: { editClienteId: cliente.id } })}
-              className="text-sm text-primary hover:underline"
-            >
-              Editar dados do cliente
-            </button>
+            <div className={`flex ${variant === 'modal' ? 'flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 pt-2' : ''}`}>
+              {variant === 'modal' && (
+                <button
+                  onClick={onClose}
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
+                >
+                  Fechar
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  if (onEdit) onEdit();
+                  else navigate('/clientes', { state: { editClienteId: cliente.id } });
+                }}
+                className={
+                  variant === 'modal'
+                    ? 'w-full sm:w-auto px-4 py-2.5 rounded-md bg-primary text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity'
+                    : 'text-sm text-primary hover:underline'
+                }
+              >
+                {variant === 'modal' ? 'Editar' : 'Editar dados do cliente'}
+              </button>
+            </div>
           </div>
         </TabsContent>
 
@@ -944,4 +1020,14 @@ function ObrigacaoFormModal({
       </div>
     </ModalShell>
   );
+}
+
+/** Rota legada /clientes/:id → abre o modal na listagem. */
+export default function ClienteDetalhePage() {
+  const { id } = useParams<{ id: string }>();
+  const clienteId = id ? Number(id) : NaN;
+  if (!Number.isFinite(clienteId)) {
+    return <Navigate to="/clientes" replace />;
+  }
+  return <Navigate to="/clientes" replace state={{ viewClienteId: clienteId }} />;
 }

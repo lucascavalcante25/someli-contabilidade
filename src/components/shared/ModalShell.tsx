@@ -3,19 +3,20 @@ import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
-interface ModalShellProps {
-  onClose: () => void;
-  children: React.ReactNode;
-  className?: string;
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl';
-}
-
 const maxWidthClass = {
   sm: 'max-w-md',
   md: 'max-w-lg',
   lg: 'max-w-2xl',
   xl: 'max-w-3xl',
+  '2xl': 'max-w-5xl',
 };
+
+interface ModalShellProps {
+  onClose: () => void;
+  children: React.ReactNode;
+  className?: string;
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+}
 
 export default function ModalShell({
   onClose,
