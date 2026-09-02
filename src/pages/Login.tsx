@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { User, Lock } from 'lucide-react';
+import { User, Lock, Eye, EyeOff } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api';
 import BrandLogo from '@/components/BrandLogo';
 import TypewriterText from '@/components/shared/TypewriterText';
@@ -24,6 +24,7 @@ export default function Login() {
   const isMobile = useIsMobile();
   const [cpf, setCpf] = useState('');
   const [senha, setSenha] = useState('');
+  const [showSenha, setShowSenha] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [avatarSrc, setAvatarSrc] = useState<string | null>(null);
@@ -256,17 +257,26 @@ export default function Login() {
                   <Lock className="login-input-icon" size={18} strokeWidth={2} />
                   <input
                     id="senha"
-                    type="password"
+                    type={showSenha ? 'text' : 'password'}
                     value={senha}
                     onChange={(e) => {
                       setSenha(e.target.value);
                       setError(null);
                     }}
                     placeholder="••••••••"
-                    className={`login-input ${hasError ? 'error' : ''}`}
+                    className={`login-input login-input-with-toggle ${hasError ? 'error' : ''}`}
                     autoComplete="current-password"
                     disabled={loading}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowSenha((v) => !v)}
+                    className="login-input-toggle"
+                    aria-label={showSenha ? 'Ocultar senha' : 'Mostrar senha'}
+                    disabled={loading}
+                  >
+                    {showSenha ? <EyeOff size={18} strokeWidth={2} /> : <Eye size={18} strokeWidth={2} />}
+                  </button>
                 </div>
               </div>
 
