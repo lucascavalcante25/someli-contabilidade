@@ -1,15 +1,23 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { User, Lock } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api';
 import BrandLogo from '@/components/BrandLogo';
+import TypewriterText from '@/components/shared/TypewriterText';
+import {
+  formatarMensagemLogin,
+  indiceMensagemLogin,
+  mensagemLoginPorIndice,
+} from '@/lib/mensagens-login';
 
 import './Login.css';
 
 const DEBOUNCE_MS = 350;
+/** Troca a mensagem do painel após digitar + pausa. */
+const ROTATE_AFTER_MS = 14_000;
 
 export default function Login() {
   const [cpf, setCpf] = useState('');
@@ -18,10 +26,15 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const [avatarSrc, setAvatarSrc] = useState<string | null>(null);
   const [avatarNome, setAvatarNome] = useState<string | null>(null);
+  const [msgIndex, setMsgIndex] = useState(() => indiceMensagemLogin());
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const avatarUrlRef = useRef<string | null>(null);
+  const rotateRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  const mensagemAtual = mensagemLoginPorIndice(msgIndex);
+  const mensagemTexto = formatarMensagemLogin(mensagemAtual);
 
   const maskCpf = (v: string) => {
     const nums = v.replace(/\D/g, '').slice(0, 11);
@@ -80,7 +93,15 @@ export default function Login() {
 
   useEffect(() => () => {
     if (avatarUrlRef.current) URL.revokeObjectURL(avatarUrlRef.current);
+    if (rotateRef.current) clearTimeout(rotateRef.current);
   }, []);
+
+  const agendarProximaMensagem = () => {
+    if (rotateRef.current) clearTimeout(rotateRef.current);
+    rotateRef.current = setTimeout(() => {
+      setMsgIndex((i) => i + 1);
+    }, ROTATE_AFTER_MS);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,9 +128,34 @@ export default function Login() {
 
   const hasError = !!error;
 
+  const painelMensagem = (
+    <div className="login-welcome-content">
+      <p className="login-welcome-eyebrow">SOMELI Assessoria Contábil</p>
+      <h1 className="login-welcome-title">Bem-vindo</h1>
+      <div className="login-message-block" aria-live="polite">
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={msgIndex}
+            className="login-welcome-message"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.35 }}
+          >
+            <TypewriterText
+              text={mensagemTexto}
+              speedMs={32}
+              onDone={agendarProximaMensagem}
+            />
+          </motion.p>
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+
   return (
     <div className="login-page">
-      {/* LADO ESQUERDO - BRANDING */}
+      {/* LADO ESQUERDO / TOPO MOBILE — branding + mensagem */}
       <div className="login-left">
         <div className="login-background" />
         <div className="login-shapes">
@@ -117,7 +163,7 @@ export default function Login() {
           <div className="login-shape-circle" />
           <div className="login-shape-circle" />
         </div>
-        <svg className="login-wave" viewBox="0 0 1440 200" preserveAspectRatio="none">
+        <svg className="login-wave" viewBox="0 0 1440 200" preserveAspectRatio="none" aria-hidden>
           <path
             fill="rgba(255,255,255,0.1)"
             d="M0,100 C360,180 720,20 1080,100 C1260,140 1380,120 1440,100 L1440,200 L0,200 Z"
@@ -130,21 +176,16 @@ export default function Login() {
         <div className="login-logo-watermark">
           <span>SOMELI</span>
         </div>
-        <div className="login-welcome-content">
-          <h1 className="login-welcome-title">Bem-vindo</h1>
-          <p className="login-welcome-subtitle">
-            Gerencie sua contabilidade com inteligência
-          </p>
-        </div>
+        {painelMensagem}
       </div>
 
-      {/* LADO DIREITO - FORMULÁRIO */}
+      {/* LADO DIREITO — formulário */}
       <div className="login-right">
         <motion.div
           className="login-card-wrapper"
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: 'easeOut' }}
         >
           <div className="login-card">
             {(avatarSrc || avatarNome) && (
@@ -236,10 +277,6 @@ export default function Login() {
                 )}
               </button>
             </form>
-
-            <p className="login-help-text">
-              Use um usuário cadastrado no backend para acessar
-            </p>
           </div>
         </motion.div>
       </div>
