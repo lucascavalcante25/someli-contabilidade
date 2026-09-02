@@ -39,7 +39,8 @@ export default function BrandLogo({
         alt="SOMELI Assessoria Contábil"
         className={cn(
           'object-contain object-left',
-          symbolOnly ? 'h-9 w-9' : 'h-8 w-auto max-w-[140px] sm:h-9 sm:max-w-[160px]',
+          // Logo full é 2:1 — dimensionar por largura; símbolo é 1:1
+          symbolOnly ? 'h-11 w-11' : 'w-[200px] max-w-full h-auto',
           imgClassName
         )}
       />

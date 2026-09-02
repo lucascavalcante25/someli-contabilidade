@@ -26,8 +26,8 @@ export default function MobileSidebar({ open, onOpenChange }: MobileSidebarProps
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="left" className="w-[280px] max-w-[85vw] p-0 bg-sidebar border-sidebar-border pt-[env(safe-area-inset-top)] [&>button]:top-[max(1rem,env(safe-area-inset-top))] [&>button]:text-sidebar-foreground [&>button]:hover:text-sidebar-primary">
         <div className="flex flex-col h-full">
-          <div className="flex h-16 items-center px-4 border-b border-sidebar-border shrink-0">
-            <BrandLogo variant="white" imgClassName="h-9 max-w-[168px]" />
+          <div className="flex items-center px-4 py-5 border-b border-sidebar-border shrink-0">
+            <BrandLogo variant="white" imgClassName="w-full max-w-[220px] h-auto" />
           </div>
           <nav className="flex-1 px-3 py-4 space-y-1">
             {menuItems.map((item) => {
