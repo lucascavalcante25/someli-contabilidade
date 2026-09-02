@@ -175,8 +175,12 @@ export function ClienteDetalhePanel({
       });
     } catch {
       toast.error('Cliente não encontrado');
-      if (variant === 'modal') onClose?.();
-      else navigate('/clientes');
+      // Só fecha se ainda não carregou dados (evita fechar o modal ao trocar de aba)
+      setCliente((prev) => {
+        if (!prev && variant === 'modal') onClose?.();
+        if (!prev && variant !== 'modal') navigate('/clientes');
+        return prev;
+      });
     } finally {
       setLoading(false);
     }

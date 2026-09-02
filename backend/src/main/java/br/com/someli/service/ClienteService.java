@@ -45,9 +45,16 @@ public class ClienteService {
         YearMonth atual = YearMonth.now();
         LocalDate hoje = LocalDate.now();
         Map<Long, Set<YearMonth>> pagosPorCliente = indexarPagamentosPagos();
+        Map<Long, Set<YearMonth>> naoCobraveis = indexarMesesNaoCobraveis();
 
         for (Cliente c : clientes) {
-            enriquecerStatusPagamento(c, atual, hoje, pagosPorCliente.getOrDefault(c.getId(), Set.of()));
+            enriquecerStatusPagamento(
+                    c,
+                    atual,
+                    hoje,
+                    pagosPorCliente.getOrDefault(c.getId(), Set.of()),
+                    naoCobraveis.getOrDefault(c.getId(), Set.of())
+            );
         }
         return clientes;
     }
@@ -64,20 +71,29 @@ public class ClienteService {
         return map;
     }
 
-    private void enriquecerStatusPagamento(Cliente c, YearMonth atual, LocalDate hoje, Set<YearMonth> pagos) {
+    /** Meses marcados como sem cobrança (traço na planilha). */
+    private Map<Long, Set<YearMonth>> indexarMesesNaoCobraveis() {
+        Map<Long, Set<YearMonth>> map = new HashMap<>();
+        for (PagamentoMensal p : pagamentoMensalRepository.findAll()) {
+            if (Boolean.FALSE.equals(p.getCobravel()) && p.getClienteId() != null) {
+                map.computeIfAbsent(p.getClienteId(), id -> new HashSet<>())
+                        .add(YearMonth.of(p.getAno(), p.getMes()));
+            }
+        }
+        return map;
+    }
+
+    private void enriquecerStatusPagamento(Cliente c, YearMonth atual, LocalDate hoje,
+                                           Set<YearMonth> pagos, Set<YearMonth> naoCobraveis) {
         YearMonth inicio = resolverInicioCobranca(c, atual);
         YearMonth fim = resolverFimCobranca(c, atual);
-        List<YearMonth> pendentes = listarMesesPendentes(inicio, fim, pagos);
+        List<YearMonth> pendentes = listarMesesPendentes(inicio, fim, pagos, naoCobraveis);
         int mesesPendentes = pendentes.size();
-        boolean pagoMesAtual = Boolean.FALSE.equals(c.getAtivo())
-                ? mesesPendentes == 0
-                : pagos.contains(atual) && mesesPendentes == 0;
 
         if (Boolean.FALSE.equals(c.getAtivo())) {
-            // Status base de pagamento na saída; o front prefixa "Inativo / ..."
             c.setStatus(mesesPendentes == 0 ? "em_dia" : "atrasado");
         } else {
-            boolean pagoEsteMes = pagos.contains(atual);
+            boolean pagoEsteMes = pagos.contains(atual) || naoCobraveis.contains(atual);
             c.setStatus(calcularStatus(c.getDiaVencimento(), hoje, pagoEsteMes, mesesPendentes));
         }
 
@@ -87,12 +103,16 @@ public class ClienteService {
         c.setValorPendente(honorario.multiply(BigDecimal.valueOf(mesesPendentes)));
     }
 
-    private List<YearMonth> listarMesesPendentes(YearMonth inicio, YearMonth fim, Set<YearMonth> pagos) {
+    private List<YearMonth> listarMesesPendentes(YearMonth inicio, YearMonth fim,
+                                                 Set<YearMonth> pagos, Set<YearMonth> naoCobraveis) {
         List<YearMonth> pendentes = new ArrayList<>();
         if (inicio == null || fim == null || inicio.isAfter(fim)) {
             return pendentes;
         }
         for (YearMonth cursor = inicio; !cursor.isAfter(fim); cursor = cursor.plusMonths(1)) {
+            if (naoCobraveis.contains(cursor)) {
+                continue;
+            }
             if (!pagos.contains(cursor)) {
                 pendentes.add(cursor);
             }
@@ -115,9 +135,7 @@ public class ClienteService {
         if (c.getDataInicioCobranca() != null) {
             return YearMonth.from(c.getDataInicioCobranca());
         }
-        if (c.getDataCriacao() != null) {
-            return YearMonth.from(c.getDataCriacao());
-        }
+        // Não usar dataCriacao: no import ela é a data do cadastro, não o início da cobrança.
         return YearMonth.of(2026, 1);
     }
 
@@ -167,12 +185,16 @@ public class ClienteService {
                 .orElseThrow(() -> new ClienteNaoEncontradoException("Cliente não encontrado para o ID informado"));
         YearMonth atual = YearMonth.now();
         Set<YearMonth> pagos = new HashSet<>();
+        Set<YearMonth> naoCobraveis = new HashSet<>();
         for (PagamentoMensal p : pagamentoMensalRepository.findByClienteId(c.getId())) {
-            if (Boolean.TRUE.equals(p.getPago())) {
-                pagos.add(YearMonth.of(p.getAno(), p.getMes()));
+            YearMonth ym = YearMonth.of(p.getAno(), p.getMes());
+            if (Boolean.FALSE.equals(p.getCobravel())) {
+                naoCobraveis.add(ym);
+            } else if (Boolean.TRUE.equals(p.getPago())) {
+                pagos.add(ym);
             }
         }
-        enriquecerStatusPagamento(c, atual, LocalDate.now(), pagos);
+        enriquecerStatusPagamento(c, atual, LocalDate.now(), pagos, naoCobraveis);
         return c;
     }
 

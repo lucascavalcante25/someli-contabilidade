@@ -25,6 +25,10 @@ public class DespesaMensal {
     @Column(nullable = false)
     private Boolean paga = Boolean.FALSE;
 
+    /** Valor efetivo neste mês; se null, usa despesa.valorMensal. */
+    @Column(precision = 12, scale = 2)
+    private java.math.BigDecimal valor;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public Long getDespesaId() { return despesaId; }
@@ -35,6 +39,8 @@ public class DespesaMensal {
     public void setAno(Integer ano) { this.ano = ano; }
     public Boolean getPaga() { return paga; }
     public void setPaga(Boolean paga) { this.paga = paga; }
+    public java.math.BigDecimal getValor() { return valor; }
+    public void setValor(java.math.BigDecimal valor) { this.valor = valor; }
 
     @Override
     public boolean equals(Object o) {

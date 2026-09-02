@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -24,6 +24,8 @@ export default function ModalShell({
   className,
   maxWidth = 'md',
 }: ModalShellProps) {
+  const closeOnBackdropRef = useRef(false);
+
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -46,7 +48,13 @@ export default function ModalShell({
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/45 backdrop-blur-[2px] p-0 sm:p-4"
       style={{ top: 0, left: 0, right: 0, bottom: 0 }}
-      onClick={onClose}
+      onPointerDown={(e) => {
+        closeOnBackdropRef.current = e.target === e.currentTarget;
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && closeOnBackdropRef.current) onClose();
+        closeOnBackdropRef.current = false;
+      }}
       role="dialog"
       aria-modal="true"
     >
@@ -55,6 +63,10 @@ export default function ModalShell({
         animate={{ y: 0, scale: 1, opacity: 1 }}
         exit={{ y: 24, scale: 0.98, opacity: 0 }}
         onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => {
+          closeOnBackdropRef.current = false;
+          e.stopPropagation();
+        }}
         className={cn(
           'card-surface w-full max-h-[92vh] sm:max-h-[90vh] overflow-y-auto',
           'rounded-t-2xl sm:rounded-xl p-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom))]',

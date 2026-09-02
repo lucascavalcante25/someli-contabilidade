@@ -25,6 +25,10 @@ public class PagamentoMensal {
     @Column(nullable = false)
     private Boolean pago = Boolean.FALSE;
 
+    /** Se false, o mês não entra na cobrança (ex.: traço na planilha). */
+    @Column(nullable = false)
+    private Boolean cobravel = Boolean.TRUE;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public Long getClienteId() { return clienteId; }
@@ -35,6 +39,8 @@ public class PagamentoMensal {
     public void setAno(Integer ano) { this.ano = ano; }
     public Boolean getPago() { return pago; }
     public void setPago(Boolean pago) { this.pago = pago; }
+    public Boolean getCobravel() { return cobravel; }
+    public void setCobravel(Boolean cobravel) { this.cobravel = cobravel; }
 
     @Override
     public boolean equals(Object o) {

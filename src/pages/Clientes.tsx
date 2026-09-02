@@ -262,12 +262,18 @@ export default function Clientes() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return clientes.filter(c =>
+    const list = clientes.filter(c =>
       c.razaoSocial.toLowerCase().includes(q) ||
       c.cnpj.includes(q) ||
       c.proprietario.toLowerCase().includes(q) ||
       c.email.toLowerCase().includes(q)
     );
+    return [...list].sort((a, b) => {
+      const aInativo = a.ativo === false ? 1 : 0;
+      const bInativo = b.ativo === false ? 1 : 0;
+      if (aInativo !== bInativo) return aInativo - bInativo;
+      return a.razaoSocial.localeCompare(b.razaoSocial, 'pt-BR', { sensitivity: 'base' });
+    });
   }, [clientes, search]);
 
   const paginated = filtered.slice((currentPage - 1) * perPage, currentPage * perPage);
