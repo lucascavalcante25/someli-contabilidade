@@ -12,11 +12,15 @@ import br.com.someli.repository.PagamentoMensalRepository;
 import br.com.someli.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.format.TextStyle;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -43,11 +47,7 @@ public class ClienteService {
         Map<Long, Set<YearMonth>> pagosPorCliente = indexarPagamentosPagos();
 
         for (Cliente c : clientes) {
-            Set<YearMonth> pagos = pagosPorCliente.getOrDefault(c.getId(), Set.of());
-            boolean pagoMesAtual = pagos.contains(atual);
-            int mesesPendentes = contarMesesPendentes(c, atual, pagos);
-            c.setStatus(calcularStatus(c.getDiaVencimento(), hoje, pagoMesAtual, mesesPendentes));
-            c.setMesesPendentes(mesesPendentes);
+            enriquecerStatusPagamento(c, atual, hoje, pagosPorCliente.getOrDefault(c.getId(), Set.of()));
         }
         return clientes;
     }
@@ -64,18 +64,51 @@ public class ClienteService {
         return map;
     }
 
-    private int contarMesesPendentes(Cliente c, YearMonth atual, Set<YearMonth> pagos) {
+    private void enriquecerStatusPagamento(Cliente c, YearMonth atual, LocalDate hoje, Set<YearMonth> pagos) {
         YearMonth inicio = resolverInicioCobranca(c, atual);
-        if (inicio.isAfter(atual)) {
-            return 0;
+        YearMonth fim = resolverFimCobranca(c, atual);
+        List<YearMonth> pendentes = listarMesesPendentes(inicio, fim, pagos);
+        int mesesPendentes = pendentes.size();
+        boolean pagoMesAtual = Boolean.FALSE.equals(c.getAtivo())
+                ? mesesPendentes == 0
+                : pagos.contains(atual) && mesesPendentes == 0;
+
+        if (Boolean.FALSE.equals(c.getAtivo())) {
+            // Status base de pagamento na saída; o front prefixa "Inativo / ..."
+            c.setStatus(mesesPendentes == 0 ? "em_dia" : "atrasado");
+        } else {
+            boolean pagoEsteMes = pagos.contains(atual);
+            c.setStatus(calcularStatus(c.getDiaVencimento(), hoje, pagoEsteMes, mesesPendentes));
         }
-        int pendentes = 0;
-        for (YearMonth cursor = inicio; !cursor.isAfter(atual); cursor = cursor.plusMonths(1)) {
+
+        c.setMesesPendentes(mesesPendentes);
+        c.setMesesPendentesDetalhe(rotulosMeses(pendentes));
+        BigDecimal honorario = c.getHonorario() != null ? c.getHonorario() : BigDecimal.ZERO;
+        c.setValorPendente(honorario.multiply(BigDecimal.valueOf(mesesPendentes)));
+    }
+
+    private List<YearMonth> listarMesesPendentes(YearMonth inicio, YearMonth fim, Set<YearMonth> pagos) {
+        List<YearMonth> pendentes = new ArrayList<>();
+        if (inicio == null || fim == null || inicio.isAfter(fim)) {
+            return pendentes;
+        }
+        for (YearMonth cursor = inicio; !cursor.isAfter(fim); cursor = cursor.plusMonths(1)) {
             if (!pagos.contains(cursor)) {
-                pendentes++;
+                pendentes.add(cursor);
             }
         }
         return pendentes;
+    }
+
+    private List<String> rotulosMeses(List<YearMonth> meses) {
+        Locale pt = Locale.forLanguageTag("pt-BR");
+        List<String> labels = new ArrayList<>();
+        for (YearMonth ym : meses) {
+            String mes = ym.getMonth().getDisplayName(TextStyle.SHORT, pt);
+            mes = mes.substring(0, 1).toUpperCase(pt) + mes.substring(1);
+            labels.add(mes + "/" + ym.getYear());
+        }
+        return labels;
     }
 
     private YearMonth resolverInicioCobranca(Cliente c, YearMonth atual) {
@@ -84,6 +117,24 @@ public class ClienteService {
         }
         if (c.getDataCriacao() != null) {
             return YearMonth.from(c.getDataCriacao());
+        }
+        return YearMonth.of(2026, 1);
+    }
+
+    /**
+     * Último mês cobrado: para inativos, o mês anterior a data_fim_cobranca;
+     * para ativos, o mês atual.
+     */
+    private YearMonth resolverFimCobranca(Cliente c, YearMonth atual) {
+        if (Boolean.FALSE.equals(c.getAtivo()) && c.getDataFimCobranca() != null) {
+            YearMonth fim = YearMonth.from(c.getDataFimCobranca()).minusMonths(1);
+            return fim.isAfter(atual) ? atual : fim;
+        }
+        if (Boolean.FALSE.equals(c.getAtivo()) && c.getDataFimCobranca() == null) {
+            // Inativo sem data de saída conhecida: não cobra mês atual se nunca houve movimento recente
+            return atual.minusMonths(1).isBefore(YearMonth.of(2026, 1))
+                    ? YearMonth.of(2026, 1)
+                    : atual.minusMonths(1);
         }
         return atual;
     }
@@ -98,7 +149,6 @@ public class ClienteService {
             return "em_dia";
         }
         if (pagoMesAtual) {
-            // Mês atual ok, mas há honorários de meses anteriores
             return "atrasado";
         }
         if (mesesPendentes > 1) {
@@ -122,10 +172,7 @@ public class ClienteService {
                 pagos.add(YearMonth.of(p.getAno(), p.getMes()));
             }
         }
-        boolean pagoMesAtual = pagos.contains(atual);
-        int mesesPendentes = contarMesesPendentes(c, atual, pagos);
-        c.setStatus(calcularStatus(c.getDiaVencimento(), LocalDate.now(), pagoMesAtual, mesesPendentes));
-        c.setMesesPendentes(mesesPendentes);
+        enriquecerStatusPagamento(c, atual, LocalDate.now(), pagos);
         return c;
     }
 

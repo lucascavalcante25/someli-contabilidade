@@ -60,6 +60,9 @@ public class Cliente {
     @Column(name = "data_inicio_cobranca")
     private LocalDate dataInicioCobranca;
 
+    @Column(name = "data_fim_cobranca")
+    private LocalDate dataFimCobranca;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "responsavel_id")
     private Usuario responsavel;
@@ -76,6 +79,14 @@ public class Cliente {
     /** Quantidade de meses sem pagamento desde o início da cobrança até o mês atual (não persistido). */
     @Transient
     private Integer mesesPendentes;
+
+    /** Rótulos dos meses pendentes, ex.: "Jan/2026" (não persistido). */
+    @Transient
+    private java.util.List<String> mesesPendentesDetalhe;
+
+    /** Valor total em aberto = honorário × meses pendentes (não persistido). */
+    @Transient
+    private java.math.BigDecimal valorPendente;
 
     @PrePersist
     public void prePersist() {
@@ -197,6 +208,14 @@ public class Cliente {
         this.dataInicioCobranca = dataInicioCobranca;
     }
 
+    public LocalDate getDataFimCobranca() {
+        return dataFimCobranca;
+    }
+
+    public void setDataFimCobranca(LocalDate dataFimCobranca) {
+        this.dataFimCobranca = dataFimCobranca;
+    }
+
     public Usuario getResponsavel() {
         return responsavel;
     }
@@ -235,5 +254,21 @@ public class Cliente {
 
     public void setMesesPendentes(Integer mesesPendentes) {
         this.mesesPendentes = mesesPendentes;
+    }
+
+    public java.util.List<String> getMesesPendentesDetalhe() {
+        return mesesPendentesDetalhe;
+    }
+
+    public void setMesesPendentesDetalhe(java.util.List<String> mesesPendentesDetalhe) {
+        this.mesesPendentesDetalhe = mesesPendentesDetalhe;
+    }
+
+    public java.math.BigDecimal getValorPendente() {
+        return valorPendente;
+    }
+
+    public void setValorPendente(java.math.BigDecimal valorPendente) {
+        this.valorPendente = valorPendente;
     }
 }

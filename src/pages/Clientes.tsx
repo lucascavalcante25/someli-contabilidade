@@ -38,6 +38,9 @@ interface Cliente {
   formaPagamento?: string;
   ativo?: boolean;
   mesesPendentes?: number;
+  mesesPendentesDetalhe?: string[];
+  valorPendente?: number;
+  dataFimCobranca?: string;
 }
 
 interface UsuarioResumo {
@@ -150,6 +153,11 @@ function normalizeClienteFromApi(raw: any): Cliente {
     formaPagamento: raw.formaPagamento ? String(raw.formaPagamento) : undefined,
     ativo: raw.ativo !== false,
     mesesPendentes: raw.mesesPendentes != null ? Number(raw.mesesPendentes) : undefined,
+    mesesPendentesDetalhe: Array.isArray(raw.mesesPendentesDetalhe)
+      ? raw.mesesPendentesDetalhe.map(String)
+      : undefined,
+    valorPendente: raw.valorPendente != null ? Number(raw.valorPendente) : undefined,
+    dataFimCobranca: raw.dataFimCobranca ? String(raw.dataFimCobranca).slice(0, 10) : undefined,
   };
 }
 
@@ -537,7 +545,13 @@ export default function Clientes() {
                           )}
                         </>
                       ) : (
-                        <StatusBadge status={c.status} mesesPendentes={c.mesesPendentes} />
+                        <StatusBadge
+                          status={c.status}
+                          mesesPendentes={c.mesesPendentes}
+                          mesesPendentesDetalhe={c.mesesPendentesDetalhe}
+                          valorPendente={c.valorPendente}
+                          ativo={c.ativo !== false}
+                        />
                       )}
                     </div>
                   </td>

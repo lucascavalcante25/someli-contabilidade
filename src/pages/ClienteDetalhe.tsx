@@ -88,11 +88,14 @@ interface Cliente {
   tipoPagamento: string;
   status: string;
   mesesPendentes?: number;
+  mesesPendentesDetalhe?: string[];
+  valorPendente?: number;
   dataInicioCobranca?: string;
   responsavelNome?: string;
   indicacao?: string;
   formaPagamento?: string;
   ativo?: boolean;
+  dataFimCobranca?: string;
 }
 
 export type ClienteDetalhePanelProps = {
@@ -159,11 +162,16 @@ export function ClienteDetalhePanel({
         tipoPagamento: data.tipoPagamento || '',
         status: data.status || 'em_dia',
         mesesPendentes: data.mesesPendentes != null ? Number(data.mesesPendentes) : undefined,
+        mesesPendentesDetalhe: Array.isArray(data.mesesPendentesDetalhe)
+          ? data.mesesPendentesDetalhe.map(String)
+          : undefined,
+        valorPendente: data.valorPendente != null ? Number(data.valorPendente) : undefined,
         dataInicioCobranca: data.dataInicioCobranca ? String(data.dataInicioCobranca).slice(0, 10) : undefined,
         responsavelNome: data.responsavelNome || undefined,
         indicacao: data.indicacao || undefined,
         formaPagamento: data.formaPagamento || undefined,
         ativo: data.ativo !== false,
+        dataFimCobranca: data.dataFimCobranca ? String(data.dataFimCobranca).slice(0, 10) : undefined,
       });
     } catch {
       toast.error('Cliente não encontrado');
@@ -505,6 +513,9 @@ export function ClienteDetalhePanel({
         <StatusBadge
           status={cliente.status as 'em_dia' | 'pendente' | 'atrasado'}
           mesesPendentes={cliente.mesesPendentes}
+          mesesPendentesDetalhe={cliente.mesesPendentesDetalhe}
+          valorPendente={cliente.valorPendente}
+          ativo={cliente.ativo}
         />
       ),
     },

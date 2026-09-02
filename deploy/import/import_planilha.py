@@ -96,13 +96,104 @@ def parse_honorario(row_vals) -> Decimal:
 
 
 def is_ativo(flag, honorario, pays: dict) -> bool:
-    f = (flag or "").strip().upper()
-    if f == "P":
+    """Ativo/inativo NÃO vem da coluna S/P/K (tipo de pessoa).
+
+    Inativo quando a planilha encerrou o cliente: honorário zerado com
+    meses seguintes marcados com '-' ou valor residual, ou só traços/sem OK.
+    """
+    meses = list(MESES_2026.keys())
+    last_ok_i = None
+    for i, m in enumerate(meses):
+        if str(pays.get(m, "")).upper() == "OK":
+            last_ok_i = i
+
+    def is_number(v) -> bool:
+        try:
+            float(str(v).replace(",", "."))
+            return True
+        except Exception:
+            return False
+
+    if last_ok_i is None:
+        return honorario > 0
+
+    after = meses[last_ok_i + 1 :]
+    closed = 0
+    for m in after:
+        v = pays.get(m)
+        if v is None:
+            continue
+        vs = str(v).strip()
+        if vs == "-" or (is_number(vs) and vs.upper() != "OK"):
+            closed += 1
+
+    if closed >= 1 and honorario <= 0:
         return False
-    ok = sum(1 for v in pays.values() if str(v).upper() == "OK")
-    if honorario == 0 and ok == 0:
+    if closed >= 3:
         return False
+
+    trailing = 0
+    for m in reversed(meses):
+        v = pays.get(m)
+        if v is None:
+            continue
+        if str(v).strip() == "-":
+            trailing += 1
+        else:
+            break
+    if trailing >= 2 and last_ok_i <= (11 - trailing):
+        return False
+
     return True
+
+
+def mes_fim_cobranca(pays: dict) -> tuple[int, int] | None:
+    """Primeiro mês sem cobrança após a última atividade (OK ou residual numérico).
+
+    Traços ('-') não estendem a cobrança — só indicam encerramento.
+    """
+    meses = list(MESES_2026.keys())
+    last_ok_i = None
+    last_activity_i = None
+    for i, m in enumerate(meses):
+        v = pays.get(m)
+        if v is None:
+            continue
+        vs = str(v).strip()
+        if vs == "-":
+            continue
+        last_activity_i = i
+        if vs.upper() == "OK":
+            last_ok_i = i
+
+    if last_ok_i is None and last_activity_i is None:
+        return None
+
+    def is_number(v) -> bool:
+        try:
+            float(str(v).replace(",", "."))
+            return True
+        except Exception:
+            return False
+
+    after_ok = meses[(last_ok_i + 1) :] if last_ok_i is not None else meses
+    closed = 0
+    for m in after_ok:
+        v = pays.get(m)
+        if v is None:
+            continue
+        vs = str(v).strip()
+        if vs == "-" or (is_number(vs) and vs.upper() != "OK"):
+            closed += 1
+
+    if closed < 1 and not (last_activity_i is not None and last_ok_i is not None and last_activity_i > last_ok_i):
+        return None
+
+    ref = last_activity_i if last_activity_i is not None else last_ok_i
+    nxt = ref + 1
+    if nxt >= 12:
+        return ANO + 1, 1
+    return ANO, MESES_2026[meses[nxt]]
 
 
 def parse_receitas(ws) -> list[dict]:
@@ -138,6 +229,8 @@ def parse_receitas(ws) -> list[dict]:
 
         seq += 1
         cnpj = f"99{seq:012d}"
+        ativo = is_ativo(flag, honorario, pays)
+        fim = mes_fim_cobranca(pays) if not ativo else None
         clients.append({
             "cnpj": cnpj,
             "razao_social": nome,
@@ -148,7 +241,8 @@ def parse_receitas(ws) -> list[dict]:
             "forma_pagamento": map_forma(forma),
             "indicacao": last_ind,
             "responsavel_codigo": last_resp,
-            "ativo": is_ativo(flag, honorario, pays),
+            "ativo": ativo,
+            "data_fim_cobranca": f"{fim[0]}-{fim[1]:02d}-01" if fim else None,
             "pagamentos": pays,
         })
     return clients
@@ -244,7 +338,7 @@ def build_sql(clients: list[dict], despesas: list[dict]) -> str:
         lines.append(f"""
 INSERT INTO cliente (
   cnpj, razao_social, nome_fantasia, honorario, dia_vencimento, tipo_pagamento,
-  status, data_criacao, indicacao, forma_pagamento, ativo, responsavel_id
+  status, data_criacao, indicacao, forma_pagamento, ativo, responsavel_id, data_fim_cobranca
 ) VALUES (
   {sql_literal(c['cnpj'])},
   {sql_literal(c['razao_social'])},
@@ -257,7 +351,8 @@ INSERT INTO cliente (
   {sql_literal(c['indicacao'])},
   {sql_literal(c['forma_pagamento'])},
   {sql_literal(c['ativo'])},
-  {resp_sql}
+  {resp_sql},
+  {sql_literal(c.get('data_fim_cobranca'))}
 );
 """)
 

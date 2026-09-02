@@ -16,12 +16,15 @@ public class ClienteDTO {
     private String tipoPagamento;
     private String status;
     private LocalDate dataInicioCobranca;
+    private LocalDate dataFimCobranca;
     private Long responsavelId;
     private String responsavelNome;
     private String indicacao;
     private String formaPagamento;
     private Boolean ativo;
     private Integer mesesPendentes;
+    private java.util.List<String> mesesPendentesDetalhe;
+    private java.math.BigDecimal valorPendente;
 
     public Long getId() {
         return id;
@@ -119,6 +122,14 @@ public class ClienteDTO {
         this.dataInicioCobranca = dataInicioCobranca;
     }
 
+    public LocalDate getDataFimCobranca() {
+        return dataFimCobranca;
+    }
+
+    public void setDataFimCobranca(LocalDate dataFimCobranca) {
+        this.dataFimCobranca = dataFimCobranca;
+    }
+
     public Long getResponsavelId() {
         return responsavelId;
     }
@@ -165,5 +176,21 @@ public class ClienteDTO {
 
     public void setMesesPendentes(Integer mesesPendentes) {
         this.mesesPendentes = mesesPendentes;
+    }
+
+    public java.util.List<String> getMesesPendentesDetalhe() {
+        return mesesPendentesDetalhe;
+    }
+
+    public void setMesesPendentesDetalhe(java.util.List<String> mesesPendentesDetalhe) {
+        this.mesesPendentesDetalhe = mesesPendentesDetalhe;
+    }
+
+    public java.math.BigDecimal getValorPendente() {
+        return valorPendente;
+    }
+
+    public void setValorPendente(java.math.BigDecimal valorPendente) {
+        this.valorPendente = valorPendente;
     }
 }
