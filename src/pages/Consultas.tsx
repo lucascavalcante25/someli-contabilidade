@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
+import AppSelect from '@/components/shared/AppSelect';
 
 interface CnpjResult {
   razaoSocial: string;
@@ -232,15 +233,15 @@ export default function Consultas() {
               className="w-full min-w-0 rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all tabular-nums"
             />
             <div className="flex flex-col sm:flex-row gap-2">
-              <select
+              <AppSelect
                 value={uf}
-                onChange={e => setUf(e.target.value)}
-                className="rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all w-full sm:w-20 shrink-0"
-              >
-                {['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'].map(s => (
-                  <option key={s}>{s}</option>
-                ))}
-              </select>
+                onChange={setUf}
+                className="w-full sm:w-24 shrink-0"
+                options={['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'].map((s) => ({
+                  value: s,
+                  label: s,
+                }))}
+              />
               <button
                 onClick={consultarSintegra}
                 disabled={loading}

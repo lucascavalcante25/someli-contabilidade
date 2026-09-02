@@ -5,9 +5,11 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import StatusBadge from '@/components/shared/StatusBadge';
+import DateField from '@/components/shared/DateField';
 import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
 import ModalShell from '@/components/shared/ModalShell';
+import { Checkbox } from '@/components/ui/checkbox';
 
 type TipoObrigacao = 'FISCAL' | 'LICENCA' | 'OUTROS';
 type StatusObrigacao = 'em_dia' | 'a_vencer' | 'atrasado' | 'proximo_vencimento';
@@ -873,11 +875,10 @@ function ObrigacaoFormModal({
                       checked ? 'bg-primary/5' : 'hover:bg-muted/40'
                     }`}
                   >
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={checked}
-                      onChange={() => toggleId(o.id)}
-                      className="h-4 w-4 rounded border-input accent-primary shrink-0"
+                      onCheckedChange={() => toggleId(o.id)}
+                      className="h-4 w-4 rounded-md shrink-0"
                     />
                     <span className="text-sm font-medium flex-1 min-w-0 truncate">{o.nome}</span>
                     <span className="text-[10px] uppercase tracking-wide text-muted-foreground shrink-0 rounded-full bg-muted px-2 py-0.5">
@@ -896,12 +897,12 @@ function ObrigacaoFormModal({
         </div>
         <div>
           <label className="label-text">Data de Vencimento</label>
-          <input
-            type="date"
-            value={dataVencimento}
-            onChange={e => setDataVencimento(e.target.value)}
-            className="w-full mt-1.5 rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20"
-          />
+          <div className="mt-1.5">
+            <DateField
+              value={dataVencimento}
+              onChange={setDataVencimento}
+            />
+          </div>
           {!editing && selectedIds.length > 1 && (
             <p className="text-[11px] text-muted-foreground mt-1">
               A mesma data será aplicada a todas as obrigações selecionadas

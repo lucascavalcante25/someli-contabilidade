@@ -6,6 +6,7 @@ import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
 import TableScroll from '@/components/shared/TableScroll';
 import ModalShell from '@/components/shared/ModalShell';
+import AppSelect from '@/components/shared/AppSelect';
 
 interface ObrigacaoTipo {
   id: number;
@@ -204,9 +205,12 @@ function ObrigacaoTipoFormModal({
           </div>
           <div>
             <label className="label-text">Tipo</label>
-            <select value={form.tipo} onChange={e => setForm(p => ({ ...p, tipo: e.target.value }))} className="w-full mt-1.5 rounded-md border border-input px-3 py-2.5 text-sm">
-              {TIPOS.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
+            <AppSelect
+              value={form.tipo}
+              onChange={(v) => setForm((p) => ({ ...p, tipo: v }))}
+              className="mt-1.5"
+              options={TIPOS.map((t) => ({ value: t, label: t }))}
+            />
           </div>
           <div>
             <label className="label-text">Descrição</label>

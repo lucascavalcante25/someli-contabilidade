@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import StatusBadge from '@/components/shared/StatusBadge';
+import AppSelect from '@/components/shared/AppSelect';
+import DateField from '@/components/shared/DateField';
 import { Plus, Pencil, Trash2, X, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Checkbox } from '@/components/ui/checkbox';
 import TableScroll from '@/components/shared/TableScroll';
 import ModalShell from '@/components/shared/ModalShell';
 
@@ -352,24 +355,17 @@ function DespesaFormModal({
           </div>
           <div className="space-y-1.5">
             <label className="label-text">Tipo</label>
-            <select
+            <AppSelect
               value={form.tipo || 'fixa'}
-              onChange={(e) => {
-                const v = e.target.value;
+              onChange={(v) => {
                 update('tipo', v);
                 if (v !== 'parcelada' && v !== 'cartao') {
                   update('parcelas', undefined);
                   update('parcelaAtual', 1);
                 }
               }}
-              className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all"
-            >
-              {tipos.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
+              options={tipos.map((t) => ({ value: t.value, label: t.label }))}
+            />
           </div>
           {showParcelas && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -402,11 +398,9 @@ function DespesaFormModal({
           )}
           <div className="space-y-1.5">
             <label className="label-text">Data Início</label>
-            <input
-              type="date"
+            <DateField
               value={form.dataInicio || ''}
-              onChange={(e) => update('dataInicio', e.target.value)}
-              className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all"
+              onChange={(v) => update('dataInicio', v)}
             />
           </div>
           <div className="space-y-1.5">
@@ -419,20 +413,17 @@ function DespesaFormModal({
                 <TooltipContent>Define a partir de quando essa despesa será considerada nos cálculos</TooltipContent>
               </Tooltip>
             </label>
-            <input
-              type="date"
+            <DateField
               value={form.dataInicioCobranca || ''}
-              onChange={(e) => update('dataInicioCobranca', e.target.value)}
-              className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all"
+              onChange={(v) => update('dataInicioCobranca', v)}
             />
           </div>
           {despesa && (
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
+            <label className="flex items-center gap-2.5 cursor-pointer">
+              <Checkbox
                 checked={form.ativo ?? true}
-                onChange={(e) => update('ativo', e.target.checked)}
-                className="h-4 w-4 rounded border-input accent-primary"
+                onCheckedChange={(checked) => update('ativo', checked === true)}
+                className="h-5 w-5 rounded-md"
               />
               <span className="text-sm">Ativo</span>
             </label>

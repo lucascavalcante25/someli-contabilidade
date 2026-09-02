@@ -7,6 +7,8 @@ import { apiFetch } from '@/lib/http';
 import { useAuth } from '@/contexts/AuthContext';
 import TableScroll from '@/components/shared/TableScroll';
 import ModalShell from '@/components/shared/ModalShell';
+import AppSelect from '@/components/shared/AppSelect';
+import { Checkbox } from '@/components/ui/checkbox';
 
 type Perfil = 'ADMIN' | 'CONTADOR' | 'OPERADOR';
 
@@ -435,14 +437,22 @@ function UsuarioFormModal({
           </div>
           <div className="space-y-1.5">
             <label className="label-text">Perfil</label>
-            <select value={form.perfil || 'OPERADOR'} onChange={e => update('perfil', e.target.value as Perfil)} className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all">
-              <option value="ADMIN">Admin</option>
-              <option value="CONTADOR">Contador</option>
-              <option value="OPERADOR">Operador</option>
-            </select>
+            <AppSelect
+              value={form.perfil || 'OPERADOR'}
+              onChange={(v) => update('perfil', v as Perfil)}
+              options={[
+                { value: 'ADMIN', label: 'Admin' },
+                { value: 'CONTADOR', label: 'Contador' },
+                { value: 'OPERADOR', label: 'Operador' },
+              ]}
+            />
           </div>
-          <div className="flex items-center gap-2">
-            <input type="checkbox" checked={form.ativo} onChange={e => update('ativo', e.target.checked)} className="h-4 w-4 rounded border-input accent-primary cursor-pointer" />
+          <div className="flex items-center gap-2.5">
+            <Checkbox
+              checked={form.ativo}
+              onCheckedChange={(checked) => update('ativo', checked === true)}
+              className="h-5 w-5 rounded-md"
+            />
             <label className="text-sm text-muted-foreground">Usuário ativo</label>
           </div>
           <div className="space-y-1.5">

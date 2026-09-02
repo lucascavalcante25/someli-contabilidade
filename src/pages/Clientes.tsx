@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import StatusBadge from '@/components/shared/StatusBadge';
+import AppSelect from '@/components/shared/AppSelect';
+import DateField from '@/components/shared/DateField';
 import { Search, Plus, Pencil, Trash2, X, Eye, Info, ChevronDown, ChevronRight, Download, File, FileText, Image } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -7,6 +9,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Checkbox } from '@/components/ui/checkbox';
 import ListPagination from '@/components/shared/ListPagination';
 import TableScroll from '@/components/shared/TableScroll';
 import ModalShell from '@/components/shared/ModalShell';
@@ -751,7 +754,8 @@ function ClienteFormModal({
   const [usuarios, setUsuarios] = useState<UsuarioResumo[]>([]);
 
   const [obrigacoesCatalogo, setObrigacoesCatalogo] = useState<{ id: number; nome: string; tipo: string }[]>([]);
-  const [obrigacaoSelectValue, setObrigacaoSelectValue] = useState<string>('');
+  const [pendingObrigacaoIds, setPendingObrigacaoIds] = useState<number[]>([]);
+  const [batchDataVencimento, setBatchDataVencimento] = useState('');
   const [loadingObrigacoes, setLoadingObrigacoes] = useState(false);
   const nextObrKeyRef = { current: 0 };
 
@@ -814,15 +818,62 @@ function ClienteFormModal({
   const update = <K extends keyof ClienteFormData>(k: K, v: ClienteFormData[K]) =>
     setForm(prev => ({ ...prev, [k]: v }));
 
-  const addObrigacao = (obrigacaoId: number) => {
+  const addObrigacao = (obrigacaoId: number, dataVencimento = '') => {
     const obr = obrigacoesCatalogo.find(o => o.id === obrigacaoId);
     if (!obr) return;
     nextObrKeyRef.current += 1;
-    setForm(prev => ({
-      ...prev,
-      clienteObrigacoes: [...prev.clienteObrigacoes, { _key: nextObrKeyRef.current, obrigacaoId, obrigacaoNome: obr.nome, dataVencimento: '', observacao: '' }],
-    }));
-    setObrigacaoSelectValue('');
+    setForm(prev => {
+      if (prev.clienteObrigacoes.some(o => o.obrigacaoId === obrigacaoId)) return prev;
+      return {
+        ...prev,
+        clienteObrigacoes: [
+          ...prev.clienteObrigacoes,
+          {
+            _key: nextObrKeyRef.current,
+            obrigacaoId,
+            obrigacaoNome: obr.nome,
+            dataVencimento,
+            observacao: '',
+          },
+        ],
+      };
+    });
+  };
+
+  const addObrigacoesSelecionadas = () => {
+    if (pendingObrigacaoIds.length === 0) {
+      toast.warning('Selecione ao menos uma obrigação');
+      return;
+    }
+    const ids = [...pendingObrigacaoIds];
+    const data = batchDataVencimento;
+    setForm(prev => {
+      const existentes = new Set(prev.clienteObrigacoes.map(o => o.obrigacaoId));
+      const novas = ids
+        .filter(id => !existentes.has(id))
+        .map(id => {
+          nextObrKeyRef.current += 1;
+          const obr = obrigacoesCatalogo.find(o => o.id === id);
+          return {
+            _key: nextObrKeyRef.current,
+            obrigacaoId: id,
+            obrigacaoNome: obr?.nome,
+            dataVencimento: data,
+            observacao: '',
+          };
+        });
+      return { ...prev, clienteObrigacoes: [...prev.clienteObrigacoes, ...novas] };
+    });
+    setPendingObrigacaoIds([]);
+    toast.success(
+      ids.length === 1 ? 'Obrigação adicionada' : `${ids.length} obrigações adicionadas`
+    );
+  };
+
+  const togglePendingObrigacao = (id: number) => {
+    setPendingObrigacaoIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
   };
 
   const updateObrigacao = (index: number, field: keyof ClienteObrigacaoFormItem, value: string) => {
@@ -850,6 +901,14 @@ function ClienteFormModal({
       return new Date(a.dataVencimento).getTime() - new Date(b.dataVencimento).getTime();
     });
   }, [form.clienteObrigacoes]);
+
+  const obrigacoesDisponiveis = useMemo(
+    () =>
+      obrigacoesCatalogo.filter(
+        (o) => !form.clienteObrigacoes.some((c) => c.obrigacaoId === o.id)
+      ),
+    [obrigacoesCatalogo, form.clienteObrigacoes]
+  );
 
   return (
     <ModalShell onClose={onClose} maxWidth="xl">
@@ -927,49 +986,49 @@ function ClienteFormModal({
                 <TooltipContent>Define a partir de quando o cliente começará a ser cobrado</TooltipContent>
               </Tooltip>
             </label>
-              <input
-                type="date"
+              <DateField
                 value={form.dataInicioCobranca || ''}
-                onChange={e => update('dataInicioCobranca', e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all"
+                onChange={(v) => update('dataInicioCobranca', v)}
               />
             </div>
             <div className="space-y-1.5">
               <label className="label-text">Tipo Pagamento</label>
-              <select
+              <AppSelect
                 value={form.tipoPagamento || 'pessoa_juridica'}
-                onChange={e => update('tipoPagamento', e.target.value as TipoPagamento)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all"
-              >
-                <option value="pessoa_fisica">Pessoa Física</option>
-                <option value="pessoa_juridica">Pessoa Jurídica</option>
-                <option value="terceiros">Terceiros</option>
-              </select>
+                onChange={(v) => update('tipoPagamento', v as TipoPagamento)}
+                options={[
+                  { value: 'pessoa_fisica', label: 'Pessoa Física' },
+                  { value: 'pessoa_juridica', label: 'Pessoa Jurídica' },
+                  { value: 'terceiros', label: 'Terceiros' },
+                ]}
+              />
             </div>
             <div className="space-y-1.5">
               <label className="label-text">Forma de pagamento</label>
-              <select
+              <AppSelect
                 value={form.formaPagamento || ''}
-                onChange={e => update('formaPagamento', e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all"
-              >
-                <option value="">Não informado</option>
-                <option value="boleto">Boleto</option>
-                <option value="pix">PIX</option>
-              </select>
+                onChange={(v) => update('formaPagamento', v)}
+                allowEmpty
+                placeholder="Não informado"
+                options={[
+                  { value: '', label: 'Não informado' },
+                  { value: 'boleto', label: 'Boleto' },
+                  { value: 'pix', label: 'PIX' },
+                ]}
+              />
             </div>
             <div className="space-y-1.5">
               <label className="label-text">Responsável</label>
-              <select
-                value={form.responsavelId ?? ''}
-                onChange={e => update('responsavelId', e.target.value ? Number(e.target.value) : undefined)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all"
-              >
-                <option value="">Não atribuído</option>
-                {usuarios.map(u => (
-                  <option key={u.id} value={u.id}>{u.nome}</option>
-                ))}
-              </select>
+              <AppSelect
+                value={form.responsavelId != null ? String(form.responsavelId) : ''}
+                onChange={(v) => update('responsavelId', v ? Number(v) : undefined)}
+                allowEmpty
+                placeholder="Não atribuído"
+                options={[
+                  { value: '', label: 'Não atribuído' },
+                  ...usuarios.map((u) => ({ value: String(u.id), label: u.nome })),
+                ]}
+              />
             </div>
             <div className="space-y-1.5">
               <label className="label-text">Indicação</label>
@@ -981,53 +1040,109 @@ function ClienteFormModal({
                 className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all"
               />
             </div>
-            <div className="space-y-1.5 flex items-end">
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
+            <div className="space-y-1.5 flex items-end pb-1">
+              <label className="flex items-center gap-2.5 text-sm cursor-pointer">
+                <Checkbox
                   checked={form.ativo !== false}
-                  onChange={e => update('ativo', e.target.checked)}
-                  className="rounded border-input"
+                  onCheckedChange={(checked) => update('ativo', checked === true)}
+                  className="h-5 w-5 rounded-md"
                 />
                 Cliente ativo
               </label>
             </div>
             <div className="space-y-1.5">
               <label className="label-text">Status Pagamento</label>
-              <select
+              <AppSelect
                 value={form.status}
-                onChange={e => update('status', e.target.value as StatusCliente)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all"
-              >
-                <option value="em_dia">Em dia</option>
-                <option value="pendente">Pendente</option>
-                <option value="atrasado">Atrasado</option>
-              </select>
+                onChange={(v) => update('status', v as StatusCliente)}
+                options={[
+                  { value: 'em_dia', label: 'Em dia' },
+                  { value: 'pendente', label: 'Pendente' },
+                  { value: 'atrasado', label: 'Atrasado' },
+                ]}
+              />
             </div>
           </div>
 
           <div className="border-t border-border pt-4 mt-4">
             <h3 className="label-text font-medium mb-3">Obrigações do Cliente</h3>
             <div className="space-y-3">
-              <div className="flex gap-2">
-                <select
-                  value={obrigacaoSelectValue}
-                  onChange={e => {
-                    const v = e.target.value;
-                    setObrigacaoSelectValue(v);
-                    if (v) addObrigacao(Number(v));
-                  }}
-                  className="flex-1 rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20"
-                >
-                  <option value="">Selecione uma obrigação para adicionar</option>
-                  {obrigacoesCatalogo.map(o => (
-                    <option key={o.id} value={o.id}>{o.nome} ({o.tipo})</option>
-                  ))}
-                </select>
-              </div>
-
               {loadingObrigacoes && (
                 <p className="text-xs text-muted-foreground">Carregando obrigações...</p>
+              )}
+
+              {obrigacoesDisponiveis.length > 0 ? (
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs text-muted-foreground">
+                      Selecione uma ou mais e adicione de uma vez
+                    </p>
+                    <button
+                      type="button"
+                      className="text-xs font-medium text-primary hover:underline"
+                      onClick={() => {
+                        if (pendingObrigacaoIds.length === obrigacoesDisponiveis.length) {
+                          setPendingObrigacaoIds([]);
+                        } else {
+                          setPendingObrigacaoIds(obrigacoesDisponiveis.map((o) => o.id));
+                        }
+                      }}
+                    >
+                      {pendingObrigacaoIds.length === obrigacoesDisponiveis.length
+                        ? 'Limpar seleção'
+                        : 'Selecionar todas'}
+                    </button>
+                  </div>
+                  <div className="rounded-lg border border-input bg-background max-h-44 overflow-y-auto divide-y divide-border">
+                    {obrigacoesDisponiveis.map((o) => {
+                      const checked = pendingObrigacaoIds.includes(o.id);
+                      return (
+                        <label
+                          key={o.id}
+                          className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors ${
+                            checked ? 'bg-primary/5' : 'hover:bg-muted/40'
+                          }`}
+                        >
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={() => togglePendingObrigacao(o.id)}
+                            className="h-4 w-4 rounded-md shrink-0"
+                          />
+                          <span className="text-sm font-medium flex-1 min-w-0 truncate">{o.nome}</span>
+                          <span className="text-[10px] uppercase tracking-wide text-muted-foreground shrink-0 rounded-full bg-muted px-2 py-0.5">
+                            {o.tipo}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
+                    <div className="flex-1 space-y-1">
+                      <label className="text-xs text-muted-foreground">Data vencimento (opcional, para todas)</label>
+                      <DateField
+                        value={batchDataVencimento}
+                        onChange={setBatchDataVencimento}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addObrigacoesSelecionadas}
+                      disabled={pendingObrigacaoIds.length === 0}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 shrink-0"
+                    >
+                      <Plus size={16} />
+                      Adicionar{pendingObrigacaoIds.length > 0 ? ` (${pendingObrigacaoIds.length})` : ''}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                !loadingObrigacoes && (
+                  <p className="text-xs text-muted-foreground rounded-md border border-dashed border-border px-3 py-3 text-center">
+                    {obrigacoesCatalogo.length === 0
+                      ? 'Nenhuma obrigação cadastrada no catálogo'
+                      : 'Todas as obrigações do catálogo já foram adicionadas'}
+                  </p>
+                )
               )}
 
               <div className="space-y-2 max-h-[200px] overflow-y-auto">
@@ -1046,11 +1161,9 @@ function ClienteFormModal({
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <div>
                           <label className="text-xs text-muted-foreground">Data Vencimento</label>
-                          <input
-                            type="date"
+                          <DateField
                             value={obr.dataVencimento}
-                            onChange={e => updateObrigacao(idx, 'dataVencimento', e.target.value)}
-                            className="w-full rounded-md border border-input bg-background px-2.5 py-2 text-sm"
+                            onChange={(v) => updateObrigacao(idx, 'dataVencimento', v)}
                           />
                         </div>
                         <div className="sm:col-span-2">

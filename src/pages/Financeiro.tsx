@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import StatCard from '@/components/shared/StatCard';
+import AppSelect from '@/components/shared/AppSelect';
 import { DollarSign, Clock, TrendingUp, CheckCircle, Receipt, Banknote } from 'lucide-react';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -296,15 +297,15 @@ export default function Financeiro() {
             </button>
           ))}
         </div>
-        <select
-          value={selectedYear}
-          onChange={(e) => setSelectedYear(Number(e.target.value))}
-          className="rounded-md border border-input bg-background px-3 py-2 text-sm w-full sm:w-auto shrink-0"
-        >
-          {[selectedYear - 1, selectedYear, selectedYear + 1].map((y) => (
-            <option key={y} value={y}>{y}</option>
-          ))}
-        </select>
+        <AppSelect
+          value={String(selectedYear)}
+          onChange={(v) => setSelectedYear(Number(v))}
+          className="w-full sm:w-[110px] shrink-0"
+          options={[selectedYear - 1, selectedYear, selectedYear + 1].map((y) => ({
+            value: String(y),
+            label: String(y),
+          }))}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
