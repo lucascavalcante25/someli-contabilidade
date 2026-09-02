@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import StatusBadge from '@/components/shared/StatusBadge';
 import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
+import ModalShell from '@/components/shared/ModalShell';
 
 type TipoObrigacao = 'FISCAL' | 'LICENCA' | 'OUTROS';
 type StatusObrigacao = 'em_dia' | 'a_vencer' | 'atrasado' | 'proximo_vencimento';
@@ -771,20 +772,7 @@ function ObrigacaoFormModal({
   }, [editing, obrigacoes]);
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm p-4"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.96, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.96, opacity: 0 }}
-        onClick={e => e.stopPropagation()}
-        className="card-surface w-full max-w-md p-6"
-      >
+    <ModalShell onClose={onClose} maxWidth="sm">
         <div className="flex justify-between mb-6">
           <h2 className="text-lg font-semibold">{editing ? 'Editar Obrigação' : 'Nova Obrigação'}</h2>
           <button onClick={onClose} className="p-1 rounded hover:bg-muted"><X size={18} /></button>
@@ -833,7 +821,6 @@ function ObrigacaoFormModal({
             {loading ? 'Salvando...' : 'Salvar'}
           </button>
         </div>
-      </motion.div>
-    </motion.div>
+    </ModalShell>
   );
 }

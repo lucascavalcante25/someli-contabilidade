@@ -157,6 +157,7 @@ export default function Clientes() {
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
+  const [viewingCliente, setViewingCliente] = useState<Cliente | null>(null);
   const [prefillCliente, setPrefillCliente] = useState<Partial<ClienteFormData> | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const perPage = PAGE_SIZE;
@@ -248,8 +249,13 @@ export default function Clientes() {
   };
 
   const handleEdit = (c: Cliente) => {
+    setViewingCliente(null);
     setEditingCliente(c);
     setShowForm(true);
+  };
+
+  const handleView = (c: Cliente) => {
+    setViewingCliente(c);
   };
 
   const toggleExpand = async (clienteId: number) => {
@@ -504,8 +510,8 @@ export default function Clientes() {
                   </td>
                   <td className="px-3 sm:px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center justify-center gap-1">
-                      <button onClick={() => navigate(`/clientes/${c.id}`)} className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground" title="Ver detalhes"><Eye size={14} /></button>
-                      <button onClick={() => handleEdit(c)} className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"><Pencil size={14} /></button>
+                      <button onClick={() => handleView(c)} className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground" title="Ver detalhes"><Eye size={14} /></button>
+                      <button onClick={() => handleEdit(c)} className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground" title="Editar"><Pencil size={14} /></button>
                       <button onClick={() => void handleDelete(c.id)} className="p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
                     </div>
                   </td>
@@ -580,7 +586,125 @@ export default function Clientes() {
           />
         )}
       </AnimatePresence>
+
+      <AnimatePresence>
+        {viewingCliente && (
+          <ClienteViewModal
+            cliente={viewingCliente}
+            onClose={() => setViewingCliente(null)}
+            onEdit={() => {
+              const c = viewingCliente;
+              setViewingCliente(null);
+              handleEdit(c);
+            }}
+            onOpenFull={() => {
+              const id = viewingCliente.id;
+              setViewingCliente(null);
+              navigate(`/clientes/${id}`);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
+  );
+}
+
+function ClienteViewModal({
+  cliente,
+  onClose,
+  onEdit,
+  onOpenFull,
+}: {
+  cliente: Cliente;
+  onClose: () => void;
+  onEdit: () => void;
+  onOpenFull: () => void;
+}) {
+  const tipoLabel: Record<TipoPagamento, string> = {
+    pessoa_fisica: 'Pessoa Física',
+    pessoa_juridica: 'Pessoa Jurídica',
+    terceiros: 'Terceiros',
+  };
+  const formaLabel: Record<string, string> = {
+    boleto: 'Boleto',
+    pix: 'PIX',
+  };
+
+  const fields: { label: string; value: React.ReactNode }[] = [
+    { label: 'CNPJ', value: cliente.cnpj ? maskCnpj(cliente.cnpj) : '—' },
+    { label: 'Razão Social', value: cliente.razaoSocial || '—' },
+    { label: 'Nome Fantasia', value: cliente.nomeFantasia || '—' },
+    { label: 'Proprietário', value: cliente.proprietario || '—' },
+    { label: 'Telefone', value: cliente.telefone || '—' },
+    { label: 'E-mail', value: cliente.email || '—' },
+    { label: 'Honorário', value: formatCurrency(cliente.honorario) },
+    { label: 'Dia Vencimento', value: String(cliente.diaVencimento || '—') },
+    {
+      label: 'Data início cobrança',
+      value: cliente.dataInicioCobranca
+        ? new Date(cliente.dataInicioCobranca + 'T12:00:00').toLocaleDateString('pt-BR')
+        : '—',
+    },
+    { label: 'Tipo Pagamento', value: tipoLabel[cliente.tipoPagamento] || cliente.tipoPagamento },
+    {
+      label: 'Forma de pagamento',
+      value: cliente.formaPagamento ? (formaLabel[cliente.formaPagamento] || cliente.formaPagamento) : '—',
+    },
+    { label: 'Responsável', value: cliente.responsavelNome || '—' },
+    { label: 'Indicação', value: cliente.indicacao || '—' },
+    { label: 'Cliente ativo', value: cliente.ativo === false ? 'Não' : 'Sim' },
+    {
+      label: 'Status Pagamento',
+      value: !isCobravel(cliente.dataInicioCobranca) ? (
+        <StatusBadge status="nao_iniciado" />
+      ) : (
+        <StatusBadge status={cliente.status} />
+      ),
+    },
+  ];
+
+  return (
+    <ModalShell onClose={onClose} maxWidth="xl">
+      <div className="flex items-center justify-between mb-6 gap-3">
+        <div className="min-w-0">
+          <h2 className="text-lg font-semibold truncate">Detalhes do Cliente</h2>
+          <p className="text-sm text-muted-foreground truncate">{cliente.razaoSocial}</p>
+        </div>
+        <button onClick={onClose} className="p-1 rounded hover:bg-muted transition-colors shrink-0">
+          <X size={18} />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+        {fields.map((f) => (
+          <div key={f.label} className="min-w-0 border-b border-border/60 pb-2">
+            <p className="label-text mb-1">{f.label}</p>
+            <div className="text-sm font-medium break-words">{f.value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 mt-6">
+        <button
+          onClick={onClose}
+          className="w-full sm:w-auto px-4 py-2.5 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
+        >
+          Fechar
+        </button>
+        <button
+          onClick={onOpenFull}
+          className="w-full sm:w-auto px-4 py-2.5 rounded-md border border-input text-sm font-medium hover:bg-muted transition-colors"
+        >
+          Obrigações e documentos
+        </button>
+        <button
+          onClick={onEdit}
+          className="w-full sm:w-auto px-4 py-2.5 rounded-md bg-primary text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
+        >
+          Editar
+        </button>
+      </div>
+    </ModalShell>
   );
 }
 

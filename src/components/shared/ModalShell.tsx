@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
@@ -21,13 +23,31 @@ export default function ModalShell({
   className,
   maxWidth = 'md',
 }: ModalShellProps) {
-  return (
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [onClose]);
+
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-foreground/20 backdrop-blur-sm p-0 sm:p-4"
+      className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/45 backdrop-blur-[2px] p-0 sm:p-4"
+      style={{ top: 0, left: 0, right: 0, bottom: 0 }}
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
     >
       <motion.div
         initial={{ y: 24, scale: 0.98, opacity: 0 }}
@@ -43,6 +63,7 @@ export default function ModalShell({
       >
         {children}
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body
   );
 }
