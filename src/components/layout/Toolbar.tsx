@@ -99,7 +99,8 @@ export default function Toolbar({ onMenuClick }: ToolbarProps) {
   const temNotificacoes = notificacoes.length > 0;
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 sm:h-16 shrink-0 items-center justify-between border-b border-border bg-card/80 backdrop-blur-sm px-3 sm:px-6 pt-[env(safe-area-inset-top)] min-w-0">
+    <header className="sticky top-0 z-20 shrink-0 border-b border-border bg-card/80 backdrop-blur-sm pt-[env(safe-area-inset-top)] min-w-0">
+      <div className="flex h-14 sm:h-16 items-center justify-between px-3 sm:px-6">
       <div className="flex items-center gap-1 shrink-0">
         <button
           onClick={onMenuClick}
@@ -187,6 +188,7 @@ export default function Toolbar({ onMenuClick }: ToolbarProps) {
         >
           <LogOut size={18} />
         </button>
+      </div>
       </div>
     </header>
   );
