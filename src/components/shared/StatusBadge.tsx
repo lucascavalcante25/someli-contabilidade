@@ -94,8 +94,14 @@ export default function StatusBadge({
           {badge}
         </button>
       </TooltipTrigger>
-      <TooltipContent className="max-w-xs text-xs leading-relaxed">
-        <p>Pendente: {mesesTxt} — Valor total: {formatCurrency(valor)}</p>
+      <TooltipContent
+        side="top"
+        className="z-[80] max-w-sm overflow-visible whitespace-normal break-words px-3 py-2 text-xs leading-relaxed"
+      >
+        <div className="space-y-1">
+          <p className="font-medium">Pendente: {mesesTxt}</p>
+          <p>Valor total: {formatCurrency(valor)}</p>
+        </div>
       </TooltipContent>
     </Tooltip>
   );

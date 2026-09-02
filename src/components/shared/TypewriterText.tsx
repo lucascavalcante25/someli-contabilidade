@@ -13,7 +13,7 @@ interface TypewriterTextProps {
 export default function TypewriterText({
   text,
   className,
-  speedMs = 28,
+  speedMs = 34,
   onDone,
 }: TypewriterTextProps) {
   const [shown, setShown] = useState('');

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import StatusBadge from '@/components/shared/StatusBadge';
 import AppSelect from '@/components/shared/AppSelect';
 import DateField from '@/components/shared/DateField';
-import { Search, Plus, Pencil, Trash2, X, Eye, Info, ChevronDown, ChevronRight, Download, File, FileText, Image } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, X, Eye, Info, ChevronDown, ChevronRight, Download, File, FileText, Image, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -64,6 +64,62 @@ interface ClienteDocumento {
   tipoArquivo: string;
   dataUpload?: string;
   descricao?: string;
+}
+
+type SortKey = 'razaoSocial' | 'cnpj' | 'responsavel' | 'telefone' | 'honorario' | 'status' | 'ativo';
+type SortDir = 'asc' | 'desc';
+type SortRule = { key: SortKey; dir: SortDir };
+
+const STATUS_SORT_ORDER: Record<string, number> = {
+  em_dia: 0,
+  pendente: 1,
+  proximo_vencimento: 2,
+  atrasado: 3,
+  nao_iniciado: 4,
+  inativo: 5,
+};
+
+function compareClientes(a: Cliente, b: Cliente, key: SortKey, dir: SortDir): number {
+  const mul = dir === 'asc' ? 1 : -1;
+  let cmp = 0;
+  switch (key) {
+    case 'razaoSocial':
+      cmp = a.razaoSocial.localeCompare(b.razaoSocial, 'pt-BR', { sensitivity: 'base' });
+      break;
+    case 'cnpj':
+      cmp = (a.cnpj || '').localeCompare(b.cnpj || '', 'pt-BR');
+      break;
+    case 'responsavel':
+      cmp = (a.responsavelNome || '').localeCompare(b.responsavelNome || '', 'pt-BR', { sensitivity: 'base' });
+      break;
+    case 'telefone':
+      cmp = (a.telefone || '').localeCompare(b.telefone || '', 'pt-BR');
+      break;
+    case 'honorario':
+      cmp = (a.honorario || 0) - (b.honorario || 0);
+      break;
+    case 'ativo':
+      cmp = (a.ativo === false ? 1 : 0) - (b.ativo === false ? 1 : 0);
+      break;
+    case 'status': {
+      // Inativos depois dos ativos; depois pela gravidade do status e meses pendentes
+      const aIn = a.ativo === false ? 1 : 0;
+      const bIn = b.ativo === false ? 1 : 0;
+      if (aIn !== bIn) {
+        cmp = aIn - bIn;
+        break;
+      }
+      const aSt = STATUS_SORT_ORDER[a.status] ?? 9;
+      const bSt = STATUS_SORT_ORDER[b.status] ?? 9;
+      cmp = aSt - bSt;
+      if (cmp === 0) cmp = (a.mesesPendentes ?? 0) - (b.mesesPendentes ?? 0);
+      if (cmp === 0) cmp = (a.valorPendente ?? 0) - (b.valorPendente ?? 0);
+      break;
+    }
+    default:
+      cmp = 0;
+  }
+  return cmp * mul;
 }
 
 interface ClienteFormData {
@@ -161,6 +217,53 @@ function normalizeClienteFromApi(raw: any): Cliente {
   };
 }
 
+function SortableTh({
+  label,
+  sortKey,
+  sortRules,
+  onSort,
+  align = 'left',
+  className = '',
+}: {
+  label: string;
+  sortKey: SortKey;
+  sortRules: SortRule[];
+  onSort: (key: SortKey, multi: boolean) => void;
+  align?: 'left' | 'right' | 'center';
+  className?: string;
+}) {
+  const idx = sortRules.findIndex((r) => r.key === sortKey);
+  const active = idx >= 0;
+  const dir = active ? sortRules[idx].dir : null;
+  const alignClass = align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start';
+  const textAlign = align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left';
+
+  return (
+    <th className={`label-text px-3 sm:px-4 py-3 ${textAlign} whitespace-nowrap ${className}`}>
+      <button
+        type="button"
+        onClick={(e) => onSort(sortKey, e.shiftKey)}
+        className={`inline-flex items-center gap-1.5 max-w-full group transition-colors ${alignClass} ${
+          active ? 'text-foreground' : 'text-inherit hover:text-foreground'
+        }`}
+        title="Clique para ordenar · Shift+clique para combinar"
+      >
+        <span className="truncate">{label}</span>
+        {active ? (
+          <span className="inline-flex items-center gap-0.5 shrink-0 text-primary">
+            {dir === 'asc' ? <ArrowUp size={13} strokeWidth={2.5} /> : <ArrowDown size={13} strokeWidth={2.5} />}
+            {sortRules.length > 1 ? (
+              <span className="text-[9px] font-bold tabular-nums">{idx + 1}</span>
+            ) : null}
+          </span>
+        ) : (
+          <ArrowUpDown size={13} strokeWidth={2.25} className="opacity-55 group-hover:opacity-100 shrink-0 text-primary" />
+        )}
+      </button>
+    </th>
+  );
+}
+
 export default function Clientes() {
   const apiBaseUrl = useMemo(() => API_BASE_URL, []);
   const location = useLocation();
@@ -178,6 +281,32 @@ export default function Clientes() {
   const [expandedClienteId, setExpandedClienteId] = useState<number | null>(null);
   const [documentosPorCliente, setDocumentosPorCliente] = useState<Record<number, ClienteDocumento[]>>({});
   const [loadingDocumentos, setLoadingDocumentos] = useState<number | null>(null);
+  // Padrão: ativos primeiro, depois A–Z. Shift+clique adiciona critério.
+  const [sortRules, setSortRules] = useState<SortRule[]>([
+    { key: 'ativo', dir: 'asc' },
+    { key: 'razaoSocial', dir: 'asc' },
+  ]);
+
+  const toggleSort = useCallback((key: SortKey, multi: boolean) => {
+    setSortRules((prev) => {
+      const idx = prev.findIndex((r) => r.key === key);
+      if (!multi) {
+        if (idx === 0) {
+          const nextDir: SortDir = prev[0].dir === 'asc' ? 'desc' : 'asc';
+          return [{ key, dir: nextDir }];
+        }
+        return [{ key, dir: 'asc' }];
+      }
+      // Shift: adiciona/alterna sem remover os outros
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = { key, dir: copy[idx].dir === 'asc' ? 'desc' : 'asc' };
+        return copy;
+      }
+      return [...prev, { key, dir: 'asc' }];
+    });
+    setCurrentPage(1);
+  }, []);
 
   const getAuthHeaders = () => {
     return {
@@ -268,13 +397,17 @@ export default function Clientes() {
       c.proprietario.toLowerCase().includes(q) ||
       c.email.toLowerCase().includes(q)
     );
+    const rules = sortRules.length
+      ? sortRules
+      : ([{ key: 'ativo', dir: 'asc' }, { key: 'razaoSocial', dir: 'asc' }] as SortRule[]);
     return [...list].sort((a, b) => {
-      const aInativo = a.ativo === false ? 1 : 0;
-      const bInativo = b.ativo === false ? 1 : 0;
-      if (aInativo !== bInativo) return aInativo - bInativo;
+      for (const rule of rules) {
+        const cmp = compareClientes(a, b, rule.key, rule.dir);
+        if (cmp !== 0) return cmp;
+      }
       return a.razaoSocial.localeCompare(b.razaoSocial, 'pt-BR', { sensitivity: 'base' });
     });
-  }, [clientes, search]);
+  }, [clientes, search, sortRules]);
 
   const paginated = filtered.slice((currentPage - 1) * perPage, currentPage * perPage);
 
@@ -483,14 +616,19 @@ export default function Clientes() {
       </div>
 
       {/* Search */}
-      <div className="relative w-full sm:max-w-sm">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <input
-          value={search}
-          onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
-          placeholder="Buscar por nome, CNPJ, email..."
-          className="w-full rounded-md border border-input bg-card pl-9 pr-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-all"
-        />
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <div className="relative w-full sm:max-w-sm">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={search}
+            onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+            placeholder="Buscar por nome, CNPJ, email..."
+            className="w-full rounded-md border border-input bg-card pl-9 pr-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-all"
+          />
+        </div>
+        <p className="text-[11px] text-muted-foreground sm:text-right">
+          Clique no cabeçalho para ordenar · <kbd className="px-1 rounded border border-border text-[10px]">Shift</kbd>+clique para combinar critérios
+        </p>
       </div>
 
       {/* Table */}
@@ -500,24 +638,25 @@ export default function Clientes() {
             <thead>
               <tr className="bg-muted/50">
                 <th className="label-text px-2 py-3 text-center w-9"></th>
-                <th className="label-text px-3 sm:px-4 py-3 text-left whitespace-nowrap">Razão Social</th>
-                <th className="label-text px-3 sm:px-4 py-3 text-left whitespace-nowrap hidden sm:table-cell">CNPJ</th>
-                <th className="label-text px-3 sm:px-4 py-3 text-left hidden md:table-cell">Responsável</th>
-                <th className="label-text px-3 sm:px-4 py-3 text-left hidden lg:table-cell">Telefone</th>
-                <th className="label-text px-3 sm:px-4 py-3 text-right whitespace-nowrap">Honorário</th>
-                <th className="label-text px-3 sm:px-4 py-3 text-center whitespace-nowrap">Status Pagamento</th>
+                <SortableTh label="Razão Social" sortKey="razaoSocial" sortRules={sortRules} onSort={toggleSort} align="left" />
+                <SortableTh label="CNPJ" sortKey="cnpj" sortRules={sortRules} onSort={toggleSort} align="left" className="hidden sm:table-cell" />
+                <SortableTh label="Responsável" sortKey="responsavel" sortRules={sortRules} onSort={toggleSort} align="left" className="hidden md:table-cell" />
+                <SortableTh label="Telefone" sortKey="telefone" sortRules={sortRules} onSort={toggleSort} align="left" className="hidden lg:table-cell" />
+                <SortableTh label="Honorário" sortKey="honorario" sortRules={sortRules} onSort={toggleSort} align="right" />
+                <SortableTh label="Status Pagamento" sortKey="status" sortRules={sortRules} onSort={toggleSort} align="center" />
+                <SortableTh label="Situação" sortKey="ativo" sortRules={sortRules} onSort={toggleSort} align="center" />
                 <th className="label-text px-3 sm:px-4 py-3 text-center whitespace-nowrap">Ações</th>
               </tr>
             </thead>
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-6 text-center text-muted-foreground">Carregando clientes...</td>
+                  <td colSpan={9} className="px-4 py-6 text-center text-muted-foreground">Carregando clientes...</td>
                 </tr>
               )}
               {!loading && paginated.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-6 text-center text-muted-foreground">Nenhum cliente encontrado</td>
+                  <td colSpan={9} className="px-4 py-6 text-center text-muted-foreground">Nenhum cliente encontrado</td>
                 </tr>
               )}
               {paginated.map(c => (
@@ -561,6 +700,11 @@ export default function Clientes() {
                       )}
                     </div>
                   </td>
+                  <td className="px-3 sm:px-4 py-3 text-center whitespace-nowrap">
+                    <span className={`text-xs font-medium ${c.ativo === false ? 'text-muted-foreground' : 'text-success'}`}>
+                      {c.ativo === false ? 'Inativo' : 'Ativo'}
+                    </span>
+                  </td>
                   <td className="px-3 sm:px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center justify-center gap-1">
                       <button onClick={() => handleView(c)} className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground" title="Ver detalhes"><Eye size={14} /></button>
@@ -571,7 +715,7 @@ export default function Clientes() {
                 </tr>
                 {expandedClienteId === c.id && (
                   <tr key={`${c.id}-exp`} className="border-t border-border bg-muted/20">
-                    <td colSpan={8} className="px-4 py-3">
+                    <td colSpan={9} className="px-4 py-3">
                       <div className="pl-8">
                         <p className="label-text font-medium mb-2">Documentos do cliente</p>
                         {loadingDocumentos === c.id ? (
