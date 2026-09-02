@@ -33,3 +33,6 @@ data/
 # Deploy Contabo (segredos locais na VPS)
 deploy/contabo/.env
 deploy/import/*.xlsx
+
+# Originais das logos (com margens); versões em uso já estão aparadas
+public/logos/original/

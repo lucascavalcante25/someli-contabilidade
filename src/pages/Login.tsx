@@ -161,7 +161,7 @@ export default function Login() {
             )}
 
             <div className="login-card-header">
-              <BrandLogo variant="color" className="mx-auto justify-center" imgClassName="w-[240px] max-w-[80vw] h-auto" />
+              <BrandLogo variant="color" className="mx-auto justify-center" imgClassName="w-[200px] max-w-[80vw] h-auto" />
               <p className="login-card-subtitle">Acesse sua conta</p>
             </div>
 

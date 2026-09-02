@@ -16,7 +16,7 @@ export default function AppLayout() {
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
-  const contentMargin = isMobile ? 0 : collapsed ? 72 : 240;
+  const contentMargin = isMobile ? 0 : collapsed ? 72 : 208;
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
