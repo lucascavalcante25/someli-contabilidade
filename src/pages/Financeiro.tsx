@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import StatCard from '@/components/shared/StatCard';
 import ToggleValoresButton from '@/components/shared/ToggleValoresButton';
+import SortableTh from '@/components/shared/SortableTh';
 import AppSelect from '@/components/shared/AppSelect';
 import { DollarSign, Clock, TrendingUp, CheckCircle, Receipt, Banknote, Search } from 'lucide-react';
 import { toast } from 'sonner';
@@ -8,6 +9,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { useValoresVisibilidade } from '@/contexts/ValoresVisibilidadeContext';
 import StatusBadge from '@/components/shared/StatusBadge';
+import { comparePagamentoStatus, type SortDir } from '@/lib/pagamento-sort';
 import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -70,6 +72,31 @@ interface GraficoItem {
   despesa: number;
 }
 
+type SortClienteKey = 'cliente' | 'honorario' | 'vencimento' | 'situacao';
+type SortClienteRule = { key: SortClienteKey; dir: SortDir };
+
+function compareClienteFinanceiro(a: ClientePagamento, b: ClientePagamento, key: SortClienteKey, dir: SortDir): number {
+  if (key === 'situacao') {
+    return comparePagamentoStatus(a, b, dir);
+  }
+  const mul = dir === 'asc' ? 1 : -1;
+  let cmp = 0;
+  switch (key) {
+    case 'cliente':
+      cmp = (a.nomeFantasia || '').localeCompare(b.nomeFantasia || '', 'pt-BR', { sensitivity: 'base' });
+      break;
+    case 'honorario':
+      cmp = (a.honorario || 0) - (b.honorario || 0);
+      break;
+    case 'vencimento':
+      cmp = (a.diaVencimento || 0) - (b.diaVencimento || 0);
+      break;
+    default:
+      cmp = 0;
+  }
+  return cmp * mul;
+}
+
 export default function Financeiro() {
   const isMobile = useIsMobile();
   const { mascarar, visiveis } = useValoresVisibilidade();
@@ -81,6 +108,7 @@ export default function Financeiro() {
   const [loading, setLoading] = useState(true);
   const [buscaCliente, setBuscaCliente] = useState('');
   const [buscaDespesa, setBuscaDespesa] = useState('');
+  const [sortClienteRules, setSortClienteRules] = useState<SortClienteRule[]>([]);
 
   const mesAtual = selectedMonth + 1;
   const rotuloMesAno = `${mesesCompletos[selectedMonth]} / ${selectedYear}`;
@@ -176,14 +204,43 @@ export default function Financeiro() {
   useEffect(() => {
     setBuscaCliente('');
     setBuscaDespesa('');
+    setSortClienteRules([]);
   }, [selectedMonth, selectedYear]);
+
+  const toggleSortCliente = useCallback((key: SortClienteKey, multi: boolean) => {
+    setSortClienteRules((prev) => {
+      const idx = prev.findIndex((r) => r.key === key);
+      if (!multi) {
+        if (idx === 0) {
+          const nextDir: SortDir = prev[0].dir === 'asc' ? 'desc' : 'asc';
+          return [{ key, dir: nextDir }];
+        }
+        return [{ key, dir: 'asc' }];
+      }
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = { key, dir: copy[idx].dir === 'asc' ? 'desc' : 'asc' };
+        return copy;
+      }
+      return [...prev, { key, dir: 'asc' }];
+    });
+  }, []);
 
   const clientesFiltrados = useMemo(() => {
     const q = buscaCliente.trim().toLowerCase();
-    const lista = resumo?.clientes ?? [];
-    if (!q) return lista;
-    return lista.filter((c) => c.nomeFantasia.toLowerCase().includes(q));
-  }, [resumo?.clientes, buscaCliente]);
+    let lista = resumo?.clientes ?? [];
+    if (q) {
+      lista = lista.filter((c) => c.nomeFantasia.toLowerCase().includes(q));
+    }
+    if (!sortClienteRules.length) return lista;
+    return [...lista].sort((a, b) => {
+      for (const rule of sortClienteRules) {
+        const cmp = compareClienteFinanceiro(a, b, rule.key, rule.dir);
+        if (cmp !== 0) return cmp;
+      }
+      return (a.nomeFantasia || '').localeCompare(b.nomeFantasia || '', 'pt-BR', { sensitivity: 'base' });
+    });
+  }, [resumo?.clientes, buscaCliente, sortClienteRules]);
 
   const despesasFiltradas = useMemo(() => {
     const q = buscaDespesa.trim().toLowerCase();
@@ -437,10 +494,10 @@ export default function Financeiro() {
           <table className="w-full text-sm min-w-[360px]">
             <thead>
               <tr className="bg-muted/50">
-                <th className="label-text px-4 py-2.5 text-left">Cliente</th>
-                <th className="label-text px-4 py-2.5 text-right">Honorário</th>
-                <th className="label-text px-4 py-2.5 text-center">Venc.</th>
-                <th className="label-text px-4 py-2.5 text-center hidden sm:table-cell">Situação</th>
+                <SortableTh label="Cliente" sortKey="cliente" sortRules={sortClienteRules} onSort={toggleSortCliente} align="left" className="px-4" />
+                <SortableTh label="Honorário" sortKey="honorario" sortRules={sortClienteRules} onSort={toggleSortCliente} align="right" className="px-4" />
+                <SortableTh label="Venc." sortKey="vencimento" sortRules={sortClienteRules} onSort={toggleSortCliente} align="center" className="px-4" />
+                <SortableTh label="Situação" sortKey="situacao" sortRules={sortClienteRules} onSort={toggleSortCliente} align="center" className="px-4 hidden sm:table-cell" />
                 <th className="label-text px-4 py-2.5 text-center">Pago?</th>
               </tr>
             </thead>

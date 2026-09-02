@@ -2,7 +2,9 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import StatusBadge from '@/components/shared/StatusBadge';
 import AppSelect from '@/components/shared/AppSelect';
 import DateField from '@/components/shared/DateField';
-import { Search, Plus, Pencil, Trash2, X, Eye, Info, ChevronDown, ChevronRight, Download, File, FileText, Image, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, X, Eye, Info, ChevronDown, ChevronRight, Download, File, FileText, Image } from 'lucide-react';
+import SortableTh from '@/components/shared/SortableTh';
+import { comparePagamentoStatus, type SortDir } from '@/lib/pagamento-sort';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -69,19 +71,12 @@ interface ClienteDocumento {
 }
 
 type SortKey = 'razaoSocial' | 'cnpj' | 'responsavel' | 'telefone' | 'honorario' | 'status' | 'ativo';
-type SortDir = 'asc' | 'desc';
 type SortRule = { key: SortKey; dir: SortDir };
 
-const STATUS_SORT_ORDER: Record<string, number> = {
-  em_dia: 0,
-  pendente: 1,
-  proximo_vencimento: 2,
-  atrasado: 3,
-  nao_iniciado: 4,
-  inativo: 5,
-};
-
 function compareClientes(a: Cliente, b: Cliente, key: SortKey, dir: SortDir): number {
+  if (key === 'status') {
+    return comparePagamentoStatus(a, b, dir);
+  }
   const mul = dir === 'asc' ? 1 : -1;
   let cmp = 0;
   switch (key) {
@@ -103,21 +98,6 @@ function compareClientes(a: Cliente, b: Cliente, key: SortKey, dir: SortDir): nu
     case 'ativo':
       cmp = (a.ativo === false ? 1 : 0) - (b.ativo === false ? 1 : 0);
       break;
-    case 'status': {
-      // Inativos depois dos ativos; depois pela gravidade do status e meses pendentes
-      const aIn = a.ativo === false ? 1 : 0;
-      const bIn = b.ativo === false ? 1 : 0;
-      if (aIn !== bIn) {
-        cmp = aIn - bIn;
-        break;
-      }
-      const aSt = STATUS_SORT_ORDER[a.status] ?? 9;
-      const bSt = STATUS_SORT_ORDER[b.status] ?? 9;
-      cmp = aSt - bSt;
-      if (cmp === 0) cmp = (a.mesesPendentes ?? 0) - (b.mesesPendentes ?? 0);
-      if (cmp === 0) cmp = (a.valorPendente ?? 0) - (b.valorPendente ?? 0);
-      break;
-    }
     default:
       cmp = 0;
   }
@@ -217,53 +197,6 @@ function normalizeClienteFromApi(raw: any): Cliente {
     valorPendente: raw.valorPendente != null ? Number(raw.valorPendente) : undefined,
     dataFimCobranca: raw.dataFimCobranca ? String(raw.dataFimCobranca).slice(0, 10) : undefined,
   };
-}
-
-function SortableTh({
-  label,
-  sortKey,
-  sortRules,
-  onSort,
-  align = 'left',
-  className = '',
-}: {
-  label: string;
-  sortKey: SortKey;
-  sortRules: SortRule[];
-  onSort: (key: SortKey, multi: boolean) => void;
-  align?: 'left' | 'right' | 'center';
-  className?: string;
-}) {
-  const idx = sortRules.findIndex((r) => r.key === sortKey);
-  const active = idx >= 0;
-  const dir = active ? sortRules[idx].dir : null;
-  const alignClass = align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start';
-  const textAlign = align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left';
-
-  return (
-    <th className={`label-text px-3 sm:px-4 py-3 ${textAlign} whitespace-nowrap ${className}`}>
-      <button
-        type="button"
-        onClick={(e) => onSort(sortKey, e.shiftKey)}
-        className={`inline-flex items-center gap-1.5 max-w-full group transition-colors ${alignClass} ${
-          active ? 'text-foreground' : 'text-inherit hover:text-foreground'
-        }`}
-        title="Clique para ordenar · Shift+clique para combinar"
-      >
-        <span className="truncate">{label}</span>
-        {active ? (
-          <span className="inline-flex items-center gap-0.5 shrink-0 text-primary">
-            {dir === 'asc' ? <ArrowUp size={13} strokeWidth={2.5} /> : <ArrowDown size={13} strokeWidth={2.5} />}
-            {sortRules.length > 1 ? (
-              <span className="text-[9px] font-bold tabular-nums">{idx + 1}</span>
-            ) : null}
-          </span>
-        ) : (
-          <ArrowUpDown size={13} strokeWidth={2.25} className="opacity-55 group-hover:opacity-100 shrink-0 text-primary" />
-        )}
-      </button>
-    </th>
-  );
 }
 
 export default function Clientes() {
