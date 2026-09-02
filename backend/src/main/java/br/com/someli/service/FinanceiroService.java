@@ -12,6 +12,7 @@ import br.com.someli.repository.ClienteRepository;
 import br.com.someli.repository.DespesaMensalRepository;
 import br.com.someli.repository.DespesaRepository;
 import br.com.someli.repository.PagamentoMensalRepository;
+import br.com.someli.service.ClienteService;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -30,15 +31,18 @@ public class FinanceiroService {
     private final PagamentoMensalRepository pagamentoMensalRepository;
     private final DespesaRepository despesaRepository;
     private final DespesaMensalRepository despesaMensalRepository;
+    private final ClienteService clienteService;
 
     public FinanceiroService(ClienteRepository clienteRepository,
                              PagamentoMensalRepository pagamentoMensalRepository,
                              DespesaRepository despesaRepository,
-                             DespesaMensalRepository despesaMensalRepository) {
+                             DespesaMensalRepository despesaMensalRepository,
+                             ClienteService clienteService) {
         this.clienteRepository = clienteRepository;
         this.pagamentoMensalRepository = pagamentoMensalRepository;
         this.despesaRepository = despesaRepository;
         this.despesaMensalRepository = despesaMensalRepository;
+        this.clienteService = clienteService;
     }
 
     public static boolean isCobravel(Cliente cliente) {
@@ -92,6 +96,9 @@ public class FinanceiroService {
                 .map(c -> c.getHonorario() != null ? c.getHonorario() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+        Map<Long, Set<YearMonth>> pagosPorCliente = clienteService.indexarPagamentosPagos();
+        Map<Long, Set<YearMonth>> naoCobraveisPorCliente = clienteService.indexarMesesNaoCobraveis();
+
         List<ClientePagamentoDTO> clientesDto = clientes.stream().map(c -> {
             boolean pago = pagamentos.stream()
                     .anyMatch(p -> p.getClienteId().equals(c.getId()) && Boolean.TRUE.equals(p.getPago()));
@@ -101,6 +108,21 @@ public class FinanceiroService {
             dto.setHonorario(c.getHonorario() != null ? c.getHonorario() : BigDecimal.ZERO);
             dto.setDiaVencimento(c.getDiaVencimento());
             dto.setPago(pago);
+
+            LocalDate refDia = viewing.equals(YearMonth.now())
+                    ? LocalDate.now()
+                    : viewing.atEndOfMonth();
+            clienteService.enriquecerStatusPagamento(
+                    c,
+                    viewing,
+                    refDia,
+                    pagosPorCliente.getOrDefault(c.getId(), Set.of()),
+                    naoCobraveisPorCliente.getOrDefault(c.getId(), Set.of())
+            );
+            dto.setStatus(c.getStatus());
+            dto.setMesesPendentes(c.getMesesPendentes());
+            dto.setMesesPendentesDetalhe(c.getMesesPendentesDetalhe());
+            dto.setValorPendente(c.getValorPendente());
             return dto;
         }).collect(Collectors.toList());
 

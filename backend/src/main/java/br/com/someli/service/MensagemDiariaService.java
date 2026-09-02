@@ -42,8 +42,22 @@ public class MensagemDiariaService {
         dto.setId(m.getId());
         dto.setDiaAno(m.getDiaAno());
         dto.setTexto(m.getTexto());
-        dto.setReferencia(m.getReferencia());
+        dto.setReferencia(sanitizarReferencia(m.getReferencia()));
         dto.setTipo(m.getTipo());
         return dto;
+    }
+
+    /** Não envia rótulo genérico "Mensagem de ânimo" — só autor/versículo reais. */
+    private static String sanitizarReferencia(String referencia) {
+        if (referencia == null) return null;
+        String t = referencia.trim();
+        if (t.isEmpty()) return null;
+        String norm = java.text.Normalizer.normalize(t, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "")
+                .toLowerCase();
+        if (norm.equals("mensagem de animo") || norm.startsWith("mensagem de animo")) {
+            return null;
+        }
+        return t;
     }
 }

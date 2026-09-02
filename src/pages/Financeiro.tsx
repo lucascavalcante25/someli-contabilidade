@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import StatCard from '@/components/shared/StatCard';
+import ToggleValoresButton from '@/components/shared/ToggleValoresButton';
 import AppSelect from '@/components/shared/AppSelect';
-import { DollarSign, Clock, TrendingUp, CheckCircle, Receipt, Banknote } from 'lucide-react';
+import { DollarSign, Clock, TrendingUp, CheckCircle, Receipt, Banknote, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useIsMobile } from '@/hooks/useMediaQuery';
+import { useValoresVisibilidade } from '@/contexts/ValoresVisibilidadeContext';
+import StatusBadge from '@/components/shared/StatusBadge';
 import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -31,6 +34,10 @@ interface ClientePagamento {
   honorario: number;
   diaVencimento: number;
   pago: boolean;
+  status?: 'em_dia' | 'pendente' | 'atrasado';
+  mesesPendentes?: number;
+  mesesPendentesDetalhe?: string[];
+  valorPendente?: number;
 }
 
 interface DespesaMensalItem {
@@ -65,12 +72,15 @@ interface GraficoItem {
 
 export default function Financeiro() {
   const isMobile = useIsMobile();
+  const { mascarar, visiveis } = useValoresVisibilidade();
   const apiBaseUrl = useMemo(() => API_BASE_URL, []);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [resumo, setResumo] = useState<ResumoFinanceiro | null>(null);
   const [chartData, setChartData] = useState<GraficoItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [buscaCliente, setBuscaCliente] = useState('');
+  const [buscaDespesa, setBuscaDespesa] = useState('');
 
   const mesAtual = selectedMonth + 1;
   const rotuloMesAno = `${mesesCompletos[selectedMonth]} / ${selectedYear}`;
@@ -111,6 +121,12 @@ export default function Financeiro() {
           honorario: Number(c.honorario ?? 0),
           diaVencimento: c.diaVencimento ?? 10,
           pago: !!c.pago,
+          status: c.status ?? 'em_dia',
+          mesesPendentes: c.mesesPendentes != null ? Number(c.mesesPendentes) : undefined,
+          mesesPendentesDetalhe: Array.isArray(c.mesesPendentesDetalhe)
+            ? c.mesesPendentesDetalhe.map(String)
+            : undefined,
+          valorPendente: c.valorPendente != null ? Number(c.valorPendente) : undefined,
         })),
         despesas: (data.despesas ?? []).map((d: any) => ({
           id: d.id,
@@ -156,6 +172,25 @@ export default function Financeiro() {
   useEffect(() => {
     void carregarGrafico();
   }, [carregarGrafico]);
+
+  useEffect(() => {
+    setBuscaCliente('');
+    setBuscaDespesa('');
+  }, [selectedMonth, selectedYear]);
+
+  const clientesFiltrados = useMemo(() => {
+    const q = buscaCliente.trim().toLowerCase();
+    const lista = resumo?.clientes ?? [];
+    if (!q) return lista;
+    return lista.filter((c) => c.nomeFantasia.toLowerCase().includes(q));
+  }, [resumo?.clientes, buscaCliente]);
+
+  const despesasFiltradas = useMemo(() => {
+    const q = buscaDespesa.trim().toLowerCase();
+    const lista = resumo?.despesas ?? [];
+    if (!q) return lista;
+    return lista.filter((d) => d.descricao.toLowerCase().includes(q));
+  }, [resumo?.despesas, buscaDespesa]);
 
   const chartDataFull = chartData.length ? chartData : meses.map((m) => ({ mes: m, receita: 0, despesa: 0 }));
   const chartDataParaGrafico = useMemo(() => {
@@ -273,12 +308,15 @@ export default function Financeiro() {
           <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Financeiro</h1>
           <p className="text-sm text-muted-foreground mt-1">Controle financeiro mensal</p>
         </div>
-        <p className="text-sm font-medium text-foreground">
-          Exibindo: <span className="text-primary">{rotuloMesAno}</span>
-          {isMesCorrente ? (
-            <span className="ml-2 text-xs font-normal text-muted-foreground">(mês atual)</span>
-          ) : null}
-        </p>
+        <div className="flex flex-col sm:items-end gap-1">
+          <ToggleValoresButton />
+          <p className="text-sm font-medium text-foreground">
+            Exibindo: <span className="text-primary">{rotuloMesAno}</span>
+            {isMesCorrente ? (
+              <span className="ml-2 text-xs font-normal text-muted-foreground">(mês atual)</span>
+            ) : null}
+          </p>
+        </div>
       </div>
 
       {/* Stats do mês selecionado */}
@@ -287,12 +325,12 @@ export default function Financeiro() {
           Resumo de {rotuloMesAno}
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 min-w-0">
-          <StatCard label="Receita Total" value={formatCurrency(r.receitaTotal)} icon={DollarSign} accent="primary" subtitle={rotuloMesAno} />
-          <StatCard label="Receita Recebida" value={formatCurrency(r.receitaRecebida)} icon={CheckCircle} accent="success" subtitle={rotuloMesAno} />
-          <StatCard label="Receita Pendente" value={formatCurrency(r.receitaPendente)} icon={Clock} accent="warning" subtitle={rotuloMesAno} />
-          <StatCard label="Despesas" value={formatCurrency(r.despesaTotal)} icon={Receipt} accent="destructive" subtitle={rotuloMesAno} />
-          <StatCard label="Despesas Pagas" value={formatCurrency(r.despesasPagas)} icon={Banknote} accent="success" subtitle={rotuloMesAno} />
-          <StatCard label="Saldo" value={formatCurrency(r.saldo)} icon={TrendingUp} accent={r.saldo >= 0 ? 'success' : 'destructive'} subtitle="Recebida − despesas pagas" />
+          <StatCard label="Receita Total" value={formatCurrency(r.receitaTotal)} icon={DollarSign} accent="primary" subtitle={rotuloMesAno} sensitive />
+          <StatCard label="Receita Recebida" value={formatCurrency(r.receitaRecebida)} icon={CheckCircle} accent="success" subtitle={rotuloMesAno} sensitive />
+          <StatCard label="Receita Pendente" value={formatCurrency(r.receitaPendente)} icon={Clock} accent="warning" subtitle={rotuloMesAno} sensitive />
+          <StatCard label="Despesas" value={formatCurrency(r.despesaTotal)} icon={Receipt} accent="destructive" subtitle={rotuloMesAno} sensitive />
+          <StatCard label="Despesas Pagas" value={formatCurrency(r.despesasPagas)} icon={Banknote} accent="success" subtitle={rotuloMesAno} sensitive />
+          <StatCard label="Saldo" value={formatCurrency(r.saldo)} icon={TrendingUp} accent={r.saldo >= 0 ? 'success' : 'destructive'} subtitle="Recebida − despesas pagas" sensitive />
         </div>
       </div>
 
@@ -318,8 +356,8 @@ export default function Financeiro() {
           >
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 32%, 91%)" />
             <XAxis dataKey="mes" tick={{ fontSize: 12 }} stroke="hsl(215, 16%, 47%)" />
-            <YAxis tick={{ fontSize: 12 }} stroke="hsl(215, 16%, 47%)" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-            <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={{ borderRadius: 8, border: '1px solid hsl(214, 32%, 91%)', fontSize: 12 }} />
+            <YAxis tick={{ fontSize: 12 }} stroke="hsl(215, 16%, 47%)" tickFormatter={(v) => (visiveis ? `${(v / 1000).toFixed(0)}k` : '••')} />
+            <Tooltip formatter={(v: number) => mascarar(formatCurrency(v))} contentStyle={{ borderRadius: 8, border: '1px solid hsl(214, 32%, 91%)', fontSize: 12 }} />
             <Bar dataKey="receita" name="Receita" radius={[4, 4, 0, 0]} cursor="pointer">
               {chartDataParaGrafico.map((entry, index) => {
                 const mesIdx = meses.indexOf(entry.mes);
@@ -380,35 +418,65 @@ export default function Financeiro() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
         {/* Clientes Table */}
         <div className="card-surface overflow-hidden max-w-full min-w-0">
-          <div className="px-4 py-3 border-b border-border">
+          <div className="px-4 py-3 border-b border-border space-y-2">
             <h3 className="text-sm font-semibold truncate">Clientes — {rotuloMesAno}</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground">
               Marque &quot;Pago?&quot; para registrar o honorário deste mês. Se o cliente quitar atrasados, marque também nos meses anteriores no gráfico.
             </p>
+            <div className="relative">
+              <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={buscaCliente}
+                onChange={(e) => setBuscaCliente(e.target.value)}
+                placeholder="Buscar cliente..."
+                className="w-full rounded-md border border-input bg-card pl-8 pr-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-all"
+              />
+            </div>
           </div>
           <div className="overflow-x-auto max-w-full">
-          <table className="w-full text-sm min-w-[280px]">
+          <table className="w-full text-sm min-w-[360px]">
             <thead>
               <tr className="bg-muted/50">
                 <th className="label-text px-4 py-2.5 text-left">Cliente</th>
                 <th className="label-text px-4 py-2.5 text-right">Honorário</th>
                 <th className="label-text px-4 py-2.5 text-center">Venc.</th>
+                <th className="label-text px-4 py-2.5 text-center hidden sm:table-cell">Situação</th>
                 <th className="label-text px-4 py-2.5 text-center">Pago?</th>
               </tr>
             </thead>
             <tbody>
-              {r.clientes.length === 0 ? (
+              {clientesFiltrados.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
-                    Nenhum cliente cobrado neste mês
+                  <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
+                    {buscaCliente.trim()
+                      ? 'Nenhum cliente encontrado para esta busca'
+                      : 'Nenhum cliente cobrado neste mês'}
                   </td>
                 </tr>
               ) : (
-                r.clientes.map((c) => (
+                clientesFiltrados.map((c) => (
                   <tr key={c.id} className="border-t border-border hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-2.5 font-medium max-w-[140px] sm:max-w-none truncate" title={c.nomeFantasia || '—'}>{c.nomeFantasia || '—'}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums">{formatCurrency(c.honorario)}</td>
+                    <td className="px-4 py-2.5 font-medium max-w-[140px] sm:max-w-none">
+                      <span className="block truncate" title={c.nomeFantasia || '—'}>{c.nomeFantasia || '—'}</span>
+                      <span className="sm:hidden mt-1">
+                        <StatusBadge
+                          status={c.status ?? 'em_dia'}
+                          mesesPendentes={c.mesesPendentes}
+                          mesesPendentesDetalhe={c.mesesPendentesDetalhe}
+                          valorPendente={c.valorPendente}
+                        />
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-right tabular-nums">{mascarar(formatCurrency(c.honorario))}</td>
                     <td className="px-4 py-2.5 text-center tabular-nums text-muted-foreground">{c.diaVencimento}</td>
+                    <td className="px-4 py-2.5 text-center hidden sm:table-cell">
+                      <StatusBadge
+                        status={c.status ?? 'em_dia'}
+                        mesesPendentes={c.mesesPendentes}
+                        mesesPendentesDetalhe={c.mesesPendentesDetalhe}
+                        valorPendente={c.valorPendente}
+                      />
+                    </td>
                     <td className="px-4 py-2.5 text-center">
                       <div className="flex justify-center">
                         <Checkbox
@@ -430,8 +498,17 @@ export default function Financeiro() {
 
         {/* Despesas Table */}
         <div className="card-surface overflow-hidden max-w-full min-w-0">
-          <div className="px-4 py-3 border-b border-border">
+          <div className="px-4 py-3 border-b border-border space-y-2">
             <h3 className="text-sm font-semibold truncate">Despesas — {rotuloMesAno}</h3>
+            <div className="relative">
+              <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={buscaDespesa}
+                onChange={(e) => setBuscaDespesa(e.target.value)}
+                placeholder="Buscar despesa..."
+                className="w-full rounded-md border border-input bg-card pl-8 pr-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-all"
+              />
+            </div>
           </div>
           <div className="overflow-x-auto max-w-full">
           <table className="w-full text-sm min-w-[280px]">
@@ -444,14 +521,16 @@ export default function Financeiro() {
               </tr>
             </thead>
             <tbody>
-              {r.despesas.length === 0 ? (
+              {despesasFiltradas.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
-                    Nenhuma despesa neste mês
+                    {buscaDespesa.trim()
+                      ? 'Nenhuma despesa encontrada para esta busca'
+                      : 'Nenhuma despesa neste mês'}
                   </td>
                 </tr>
               ) : (
-                r.despesas.map((d) => (
+                despesasFiltradas.map((d) => (
                   <tr key={d.id} className="border-t border-border hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-2.5 font-medium max-w-[140px] sm:max-w-none">
                       <span className="block truncate" title={d.descricao}>{d.descricao}</span>
@@ -461,7 +540,7 @@ export default function Financeiro() {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-2.5 text-right tabular-nums">{formatCurrency(d.valorMensal)}</td>
+                    <td className="px-4 py-2.5 text-right tabular-nums">{mascarar(formatCurrency(d.valorMensal))}</td>
                     <td className="px-4 py-2.5 text-center tabular-nums text-muted-foreground">{d.diaPagamento}</td>
                     <td className="px-4 py-2.5 text-center">
                       <div className="flex justify-center">

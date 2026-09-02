@@ -283,7 +283,7 @@ export default function Login() {
         </motion.div>
 
         {/* Sempre no DOM no mobile; CSS controla visibilidade — evita sumir por ordem de estilo */}
-        <footer className="login-verse-footer" hidden={!isMobile}>
+        <footer className="login-verse-footer">
           {isMobile ? blocoMensagem : null}
         </footer>
       </div>

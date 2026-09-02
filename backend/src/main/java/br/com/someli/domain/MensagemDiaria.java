@@ -16,7 +16,7 @@ public class MensagemDiaria {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String texto;
 
-    @Column(length = 160)
+    @Column(nullable = false, length = 160)
     private String referencia;
 
     @Column(nullable = false, length = 30)

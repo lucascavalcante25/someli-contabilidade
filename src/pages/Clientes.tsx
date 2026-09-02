@@ -13,6 +13,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import ListPagination from '@/components/shared/ListPagination';
 import TableScroll from '@/components/shared/TableScroll';
 import ModalShell from '@/components/shared/ModalShell';
+import ToggleValoresButton from '@/components/shared/ToggleValoresButton';
+import { useValoresVisibilidade } from '@/contexts/ValoresVisibilidadeContext';
 import { PAGE_SIZE } from '@/lib/constants';
 import { ClienteDetalhePanel } from '@/pages/ClienteDetalhe';
 
@@ -268,6 +270,7 @@ export default function Clientes() {
   const apiBaseUrl = useMemo(() => API_BASE_URL, []);
   const location = useLocation();
   const navigate = useNavigate();
+  const { mascarar } = useValoresVisibilidade();
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -607,12 +610,15 @@ export default function Clientes() {
           <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Clientes</h1>
           <p className="text-sm text-muted-foreground mt-1">{clientes.length} clientes cadastrados</p>
         </div>
-        <button
-          onClick={() => { setEditingCliente(null); setPrefillCliente(null); setShowForm(true); }}
-          className="flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity shrink-0"
-        >
-          <Plus size={16} /> Novo Cliente
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <ToggleValoresButton />
+          <button
+            onClick={() => { setEditingCliente(null); setPrefillCliente(null); setShowForm(true); }}
+            className="flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
+          >
+            <Plus size={16} /> Novo Cliente
+          </button>
+        </div>
       </div>
 
       {/* Search */}
@@ -679,7 +685,7 @@ export default function Clientes() {
                   <td className="px-3 sm:px-4 py-3 tabular-nums text-muted-foreground whitespace-nowrap hidden sm:table-cell">{c.cnpj ? maskCnpj(c.cnpj) : '—'}</td>
                   <td className="px-3 sm:px-4 py-3 hidden md:table-cell text-muted-foreground">{c.responsavelNome || '—'}</td>
                   <td className="px-3 sm:px-4 py-3 hidden lg:table-cell text-muted-foreground tabular-nums">{c.telefone}</td>
-                  <td className="px-3 sm:px-4 py-3 text-right tabular-nums font-medium whitespace-nowrap">{formatCurrency(c.honorario)}</td>
+                  <td className="px-3 sm:px-4 py-3 text-right tabular-nums font-medium whitespace-nowrap">{mascarar(formatCurrency(c.honorario))}</td>
                   <td className="px-3 sm:px-4 py-3 text-center whitespace-nowrap">
                     <div className="flex flex-col items-center gap-0.5">
                       {!isCobravel(c.dataInicioCobranca) ? (

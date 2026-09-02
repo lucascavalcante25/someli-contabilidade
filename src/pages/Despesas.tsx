@@ -11,6 +11,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Checkbox } from '@/components/ui/checkbox';
 import TableScroll from '@/components/shared/TableScroll';
 import ModalShell from '@/components/shared/ModalShell';
+import ToggleValoresButton from '@/components/shared/ToggleValoresButton';
+import { useValoresVisibilidade } from '@/contexts/ValoresVisibilidadeContext';
 
 const TIPOS_DESPESA = [
   { value: 'fixa', label: 'Fixa' },
@@ -69,6 +71,7 @@ function isDespesaAtiva(dataInicioCobranca?: string): boolean {
 
 export default function Despesas() {
   const apiBaseUrl = useMemo(() => API_BASE_URL, []);
+  const { mascarar } = useValoresVisibilidade();
   const [despesas, setDespesas] = useState<Despesa[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -184,15 +187,18 @@ export default function Despesas() {
           <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Despesas</h1>
           <p className="text-sm text-muted-foreground mt-1">Controle de despesas do escritório</p>
         </div>
-        <button
-          onClick={() => {
-            setEditing(null);
-            setShowForm(true);
-          }}
-          className="flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity shrink-0"
-        >
-          <Plus size={16} /> Nova Despesa
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <ToggleValoresButton />
+          <button
+            onClick={() => {
+              setEditing(null);
+              setShowForm(true);
+            }}
+            className="flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
+          >
+            <Plus size={16} /> Nova Despesa
+          </button>
+        </div>
       </div>
 
       <div className="card-surface overflow-hidden max-w-full">
@@ -216,7 +222,7 @@ export default function Despesas() {
                   <span className="block truncate" title={d.descricao}>{d.descricao}</span>
                   <span className="sm:hidden text-[10px] text-muted-foreground">{TIPOS_DESPESA_MOBILE[d.tipo] ?? d.tipo}</span>
                 </td>
-                <td className="px-3 sm:px-4 py-3 text-right tabular-nums font-medium whitespace-nowrap">{formatCurrency(d.valorMensal)}</td>
+                <td className="px-3 sm:px-4 py-3 text-right tabular-nums font-medium whitespace-nowrap">{mascarar(formatCurrency(d.valorMensal))}</td>
                 <td className="px-3 sm:px-4 py-3 text-center hidden sm:table-cell">
                   <span className="text-xs font-medium text-muted-foreground">
                     {TIPOS_DESPESA.find((t) => t.value === d.tipo)?.label ?? d.tipo}

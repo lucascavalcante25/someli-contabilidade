@@ -9,7 +9,9 @@ import DateField from '@/components/shared/DateField';
 import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
 import ModalShell from '@/components/shared/ModalShell';
+import ToggleValoresButton from '@/components/shared/ToggleValoresButton';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useValoresVisibilidade } from '@/contexts/ValoresVisibilidadeContext';
 
 type TipoObrigacao = 'FISCAL' | 'LICENCA' | 'OUTROS';
 type StatusObrigacao = 'em_dia' | 'a_vencer' | 'atrasado' | 'proximo_vencimento';
@@ -116,6 +118,7 @@ export function ClienteDetalhePanel({
   const id = String(clienteId);
   const navigate = useNavigate();
   const apiBaseUrl = useMemo(() => API_BASE_URL, []);
+  const { mascarar } = useValoresVisibilidade();
 
   const [cliente, setCliente] = useState<Cliente | null>(null);
   const [obrigacoes, setObrigacoes] = useState<ClienteObrigacao[]>([]);
@@ -493,7 +496,7 @@ export function ClienteDetalhePanel({
     { label: 'Proprietário', value: cliente.proprietario || '—' },
     { label: 'Telefone', value: cliente.telefone || '—' },
     { label: 'E-mail', value: cliente.email || '—' },
-    { label: 'Honorário', value: formatCurrency(cliente.honorario) },
+    { label: 'Honorário', value: mascarar(formatCurrency(cliente.honorario)) },
     { label: 'Dia Vencimento', value: String(cliente.diaVencimento || '—') },
     {
       label: 'Data início cobrança',
@@ -535,10 +538,11 @@ export function ClienteDetalhePanel({
           >
             <ArrowLeft size={20} />
           </button>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h1 className="text-xl sm:text-2xl font-semibold tracking-tight truncate">{cliente.razaoSocial}</h1>
             <p className="text-sm text-muted-foreground truncate">{cliente.nomeFantasia || maskCnpj(cliente.cnpj)}</p>
           </div>
+          <ToggleValoresButton className="shrink-0" />
         </div>
       ) : (
         <div className="flex items-center justify-between mb-4 gap-3">
@@ -546,9 +550,12 @@ export function ClienteDetalhePanel({
             <h2 className="text-lg font-semibold truncate">Detalhes do Cliente</h2>
             <p className="text-sm text-muted-foreground truncate">{cliente.razaoSocial}</p>
           </div>
-          <button onClick={onClose} className="p-1 rounded hover:bg-muted transition-colors shrink-0" aria-label="Fechar">
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-1 shrink-0">
+            <ToggleValoresButton compact />
+            <button onClick={onClose} className="p-1 rounded hover:bg-muted transition-colors" aria-label="Fechar">
+              <X size={18} />
+            </button>
+          </div>
         </div>
       )}
 

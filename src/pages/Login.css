@@ -34,128 +34,10 @@
   overflow: hidden;
 }
 
+/* Detalhes mobile ficam no bloco final do arquivo (vence estilos base). */
 @media (max-width: 768px) {
-  .login-page {
-    flex-direction: column;
-    min-height: 100vh;
-    min-height: 100dvh;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    background: linear-gradient(
-      165deg,
-      var(--someli-gradient-start) 0%,
-      var(--someli-gradient-mid) 42%,
-      var(--someli-gradient-end) 100%
-    );
-  }
-
-  .login-left {
-    display: flex;
-    flex: 0 0 auto;
-    min-height: 0;
-  }
-
   .login-logo-watermark span {
     font-size: clamp(3.5rem, 22vw, 6rem);
-  }
-
-  .login-wave {
-    height: 48px;
-    opacity: 0.12;
-  }
-
-  .login-welcome-content {
-    padding: max(0.85rem, env(safe-area-inset-top)) 1.25rem 0.85rem;
-    max-width: none;
-    width: 100%;
-    justify-content: center;
-    min-height: 0;
-  }
-
-  .login-welcome-eyebrow {
-    margin-bottom: 0.35rem;
-    font-size: 0.6875rem;
-  }
-
-  .login-welcome-title {
-    font-size: clamp(1.5rem, 6vw, 1.85rem);
-    margin-bottom: 0;
-  }
-
-  /* No mobile o versículo sai do topo e vai ao rodapé */
-  .login-message-desktop {
-    display: none;
-  }
-
-  .login-right {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    padding: 0 1rem 0;
-    align-items: stretch;
-    justify-content: flex-start;
-    background: transparent;
-  }
-
-  .login-card-wrapper {
-    width: 100%;
-    max-width: 100%;
-    margin: 0;
-    flex: 0 0 auto;
-  }
-
-  .login-card {
-    padding: 1.35rem 1.25rem 1.25rem;
-    margin: 0;
-    border-radius: 20px;
-    box-shadow:
-      0 10px 28px rgba(40, 5, 50, 0.28),
-      0 2px 8px rgba(0, 0, 0, 0.08);
-  }
-
-  .login-card:hover {
-    box-shadow:
-      0 10px 28px rgba(40, 5, 50, 0.28),
-      0 2px 8px rgba(0, 0, 0, 0.08);
-  }
-
-  .login-card-header {
-    margin-bottom: 1.15rem;
-  }
-
-  .login-form {
-    gap: 0.9rem;
-  }
-
-  .login-input {
-    padding: 0.875rem 1rem 0.875rem 2.75rem;
-    font-size: 16px;
-    min-height: 48px;
-  }
-
-  .login-button {
-    padding: 1rem 1.5rem;
-    min-height: 48px;
-    font-size: 1rem;
-  }
-
-  .login-verse-footer {
-    display: block;
-    margin-top: auto;
-    padding: 1rem 0.25rem max(1rem, env(safe-area-inset-bottom));
-    text-align: center;
-  }
-
-  .login-verse-footer .login-message-block {
-    min-height: 0;
-  }
-
-  .login-verse-footer .login-welcome-message {
-    font-size: 0.8125rem;
-    line-height: 1.45;
-    color: rgba(255, 255, 255, 0.92);
-    max-height: none;
   }
 }
 
@@ -587,14 +469,15 @@
 @media (max-width: 768px) {
   .login-page {
     flex-direction: column;
-    min-height: 100vh;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
     min-height: 100dvh;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow: hidden;
     background: linear-gradient(
       165deg,
       var(--someli-gradient-start) 0%,
-      var(--someli-gradient-mid) 45%,
+      var(--someli-gradient-mid) 42%,
       var(--someli-gradient-end) 100%
     );
   }
@@ -606,11 +489,11 @@
   }
 
   .login-wave {
-    height: 36px;
+    height: 40px;
   }
 
   .login-welcome-content {
-    padding: max(0.75rem, env(safe-area-inset-top)) 1.25rem 0;
+    padding: max(0.85rem, env(safe-area-inset-top)) 1.25rem 0.65rem;
     min-height: 0;
     justify-content: center;
     max-width: none;
@@ -618,7 +501,7 @@
   }
 
   .login-welcome-title {
-    font-size: clamp(1.5rem, 6vw, 1.75rem);
+    font-size: clamp(1.55rem, 6vw, 1.85rem);
     margin-bottom: 0;
   }
 
@@ -632,31 +515,55 @@
 
   .login-right {
     flex: 1 1 auto;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     align-items: stretch;
     justify-content: flex-start;
-    padding: 0 1rem max(0.85rem, env(safe-area-inset-bottom));
+    /* espaço pequeno sob a faixa roxa — card não encosta */
+    padding: 0.55rem 1rem 0;
     background: transparent !important;
+    overflow: hidden;
   }
 
-  /* Sobe o card um pouco sob o Bem-vindo */
   .login-card-wrapper {
     width: 100%;
     max-width: 100%;
-    margin-top: -1.1rem;
+    margin: 0;
     flex: 0 0 auto;
   }
 
   .login-card {
-    padding: 1.35rem 1.25rem 1.25rem;
-    border-radius: 20px;
+    padding: 1.25rem 1.15rem 1.15rem;
+    border-radius: 18px;
+    box-shadow:
+      0 10px 28px rgba(40, 5, 50, 0.28),
+      0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .login-card-header {
+    margin-bottom: 1rem;
+  }
+
+  .login-form {
+    gap: 0.85rem;
+  }
+
+  .login-input {
+    min-height: 44px;
+    padding: 0.75rem 1rem 0.75rem 2.75rem;
+    font-size: 16px;
+  }
+
+  .login-button {
+    min-height: 44px;
+    padding: 0.85rem 1.25rem;
   }
 
   .login-verse-footer {
     display: block !important;
-    margin-top: 0.85rem;
-    padding: 0 0.25rem 0.15rem;
+    margin-top: auto;
+    padding: 0.75rem 0.35rem max(0.9rem, env(safe-area-inset-bottom));
     text-align: center;
     flex: 0 0 auto;
   }
@@ -666,8 +573,8 @@
   }
 
   .login-verse-footer .login-welcome-message {
-    font-size: 0.8125rem;
-    line-height: 1.45;
+    font-size: 0.78rem;
+    line-height: 1.4;
     color: rgba(255, 255, 255, 0.92);
   }
 }

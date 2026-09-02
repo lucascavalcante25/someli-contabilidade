@@ -44,8 +44,8 @@ public class ClienteService {
         List<Cliente> clientes = clienteRepository.findAll();
         YearMonth atual = YearMonth.now();
         LocalDate hoje = LocalDate.now();
-        Map<Long, Set<YearMonth>> pagosPorCliente = indexarPagamentosPagos();
-        Map<Long, Set<YearMonth>> naoCobraveis = indexarMesesNaoCobraveis();
+        Map<Long, Set<YearMonth>> pagosPorCliente = indexarPagamentosPagosInterno();
+        Map<Long, Set<YearMonth>> naoCobraveis = indexarMesesNaoCobraveisInterno();
 
         for (Cliente c : clientes) {
             enriquecerStatusPagamento(
@@ -59,7 +59,35 @@ public class ClienteService {
         return clientes;
     }
 
-    private Map<Long, Set<YearMonth>> indexarPagamentosPagos() {
+    public Map<Long, Set<YearMonth>> indexarPagamentosPagos() {
+        return indexarPagamentosPagosInterno();
+    }
+
+    public Map<Long, Set<YearMonth>> indexarMesesNaoCobraveis() {
+        return indexarMesesNaoCobraveisInterno();
+    }
+
+    public void enriquecerStatusPagamento(Cliente c, YearMonth referencia, LocalDate hoje,
+                                          Set<YearMonth> pagos, Set<YearMonth> naoCobraveis) {
+        YearMonth inicio = resolverInicioCobranca(c, referencia);
+        YearMonth fim = resolverFimCobranca(c, referencia);
+        List<YearMonth> pendentes = listarMesesPendentes(inicio, fim, pagos, naoCobraveis);
+        int mesesPendentes = pendentes.size();
+
+        if (Boolean.FALSE.equals(c.getAtivo())) {
+            c.setStatus(mesesPendentes == 0 ? "em_dia" : "atrasado");
+        } else {
+            boolean pagoEsteMes = pagos.contains(referencia) || naoCobraveis.contains(referencia);
+            c.setStatus(calcularStatus(c.getDiaVencimento(), hoje, pagoEsteMes, mesesPendentes));
+        }
+
+        c.setMesesPendentes(mesesPendentes);
+        c.setMesesPendentesDetalhe(rotulosMeses(pendentes));
+        BigDecimal honorario = c.getHonorario() != null ? c.getHonorario() : BigDecimal.ZERO;
+        c.setValorPendente(honorario.multiply(BigDecimal.valueOf(mesesPendentes)));
+    }
+
+    private Map<Long, Set<YearMonth>> indexarPagamentosPagosInterno() {
         Map<Long, Set<YearMonth>> map = new HashMap<>();
         for (PagamentoMensal p : pagamentoMensalRepository.findAll()) {
             if (!Boolean.TRUE.equals(p.getPago()) || p.getClienteId() == null) {
@@ -72,7 +100,7 @@ public class ClienteService {
     }
 
     /** Meses marcados como sem cobrança (traço na planilha). */
-    private Map<Long, Set<YearMonth>> indexarMesesNaoCobraveis() {
+    private Map<Long, Set<YearMonth>> indexarMesesNaoCobraveisInterno() {
         Map<Long, Set<YearMonth>> map = new HashMap<>();
         for (PagamentoMensal p : pagamentoMensalRepository.findAll()) {
             if (Boolean.FALSE.equals(p.getCobravel()) && p.getClienteId() != null) {
@@ -81,26 +109,6 @@ public class ClienteService {
             }
         }
         return map;
-    }
-
-    private void enriquecerStatusPagamento(Cliente c, YearMonth atual, LocalDate hoje,
-                                           Set<YearMonth> pagos, Set<YearMonth> naoCobraveis) {
-        YearMonth inicio = resolverInicioCobranca(c, atual);
-        YearMonth fim = resolverFimCobranca(c, atual);
-        List<YearMonth> pendentes = listarMesesPendentes(inicio, fim, pagos, naoCobraveis);
-        int mesesPendentes = pendentes.size();
-
-        if (Boolean.FALSE.equals(c.getAtivo())) {
-            c.setStatus(mesesPendentes == 0 ? "em_dia" : "atrasado");
-        } else {
-            boolean pagoEsteMes = pagos.contains(atual) || naoCobraveis.contains(atual);
-            c.setStatus(calcularStatus(c.getDiaVencimento(), hoje, pagoEsteMes, mesesPendentes));
-        }
-
-        c.setMesesPendentes(mesesPendentes);
-        c.setMesesPendentesDetalhe(rotulosMeses(pendentes));
-        BigDecimal honorario = c.getHonorario() != null ? c.getHonorario() : BigDecimal.ZERO;
-        c.setValorPendente(honorario.multiply(BigDecimal.valueOf(mesesPendentes)));
     }
 
     private List<YearMonth> listarMesesPendentes(YearMonth inicio, YearMonth fim,

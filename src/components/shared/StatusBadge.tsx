@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useValoresVisibilidade } from '@/contexts/ValoresVisibilidadeContext';
 
 type Status = 'em_dia' | 'pendente' | 'atrasado' | 'ativo' | 'inativo' | 'nao_iniciado' | 'futura' | 'proximo_vencimento';
 
@@ -51,8 +52,10 @@ export default function StatusBadge({
   ativo = true,
   label,
 }: PaymentStatusBadgeProps) {
+  const { mascarar } = useValoresVisibilidade();
   const meses = Math.max(0, mesesPendentes ?? 0);
   const valor = Number(valorPendente ?? 0);
+  const valorFmt = mascarar(formatCurrency(valor));
 
   let text = label;
   let className = (config[status] || config.pendente).className;
@@ -63,7 +66,7 @@ export default function StatusBadge({
         text = 'Inativo / Em dia';
         className = 'bg-muted text-muted-foreground';
       } else {
-        text = `Inativo / Inadimplente ${formatCurrency(valor)}`;
+        text = `Inativo / Inadimplente ${valorFmt}`;
         className = 'bg-destructive/10 text-destructive';
       }
     } else {
@@ -100,7 +103,7 @@ export default function StatusBadge({
       >
         <div className="space-y-1">
           <p className="font-medium">Pendente: {mesesTxt}</p>
-          <p>Valor total: {formatCurrency(valor)}</p>
+          <p>Valor total: {valorFmt}</p>
         </div>
       </TooltipContent>
     </Tooltip>

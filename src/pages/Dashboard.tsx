@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Users, DollarSign, Clock, Receipt, TrendingUp, AlertTriangle, Calendar, AlertCircle } from 'lucide-react';
 import StatCard from '@/components/shared/StatCard';
+import ToggleValoresButton from '@/components/shared/ToggleValoresButton';
 import { formatCurrency, getGreeting } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
+import { useValoresVisibilidade } from '@/contexts/ValoresVisibilidadeContext';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { API_BASE_URL } from '@/lib/api';
@@ -47,6 +49,7 @@ interface ObrigacoesDashboard {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { mascarar, visiveis } = useValoresVisibilidade();
   const isMobile = useIsMobile();
   const apiBaseUrl = useMemo(() => API_BASE_URL, []);
   const navigate = useNavigate();
@@ -170,17 +173,20 @@ export default function Dashboard() {
 
   return (
     <div className="page-shell">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">{getGreeting()}, {user?.nome?.split(' ')[0]}</h1>
-        <p className="text-sm text-muted-foreground mt-1">Aqui está o resumo do seu escritório</p>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">{getGreeting()}, {user?.nome?.split(' ')[0]}</h1>
+          <p className="text-sm text-muted-foreground mt-1">Aqui está o resumo do seu escritório</p>
+        </div>
+        <ToggleValoresButton />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 min-w-0">
         <StatCard label="Clientes Ativos" value={String(totalClientes)} icon={Users} accent="primary" />
-        <StatCard label="Receita Mensal" value={formatCurrency(receitaTotal)} icon={DollarSign} accent="success" />
-        <StatCard label="Receita Pendente" value={formatCurrency(receitaPendente)} icon={Clock} accent="warning" />
-        <StatCard label="Despesas do Mês" value={formatCurrency(despesaTotal)} icon={Receipt} accent="destructive" />
-        <StatCard label="Saldo do Mês" value={formatCurrency(saldo)} icon={TrendingUp} accent={saldo >= 0 ? 'success' : 'destructive'} />
+        <StatCard label="Receita Mensal" value={formatCurrency(receitaTotal)} icon={DollarSign} accent="success" sensitive />
+        <StatCard label="Receita Pendente" value={formatCurrency(receitaPendente)} icon={Clock} accent="warning" sensitive />
+        <StatCard label="Despesas do Mês" value={formatCurrency(despesaTotal)} icon={Receipt} accent="destructive" sensitive />
+        <StatCard label="Saldo do Mês" value={formatCurrency(saldo)} icon={TrendingUp} accent={saldo >= 0 ? 'success' : 'destructive'} sensitive />
       </div>
 
       {obrigacoesDashboard && (
@@ -251,9 +257,13 @@ export default function Dashboard() {
             <BarChart data={chartDataFinal} barGap={2}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 32%, 91%)" />
               <XAxis dataKey="mes" tick={{ fontSize: 12 }} stroke="hsl(215, 16%, 47%)" />
-              <YAxis tick={{ fontSize: 12 }} stroke="hsl(215, 16%, 47%)" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+              <YAxis
+                tick={{ fontSize: 12 }}
+                stroke="hsl(215, 16%, 47%)"
+                tickFormatter={(v) => (visiveis ? `${(v / 1000).toFixed(0)}k` : '••')}
+              />
               <Tooltip
-                formatter={(v: number) => formatCurrency(v)}
+                formatter={(v: number) => mascarar(formatCurrency(v))}
                 contentStyle={{ borderRadius: 8, border: '1px solid hsl(214, 32%, 91%)', fontSize: 12 }}
               />
               <Bar dataKey="receita" name="Receita" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
