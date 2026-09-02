@@ -239,7 +239,7 @@ def build_sql(clients: list[dict], despesas: list[dict]) -> str:
     lines.append("""
 INSERT INTO usuario (nome, cpf, email, telefone, senha, perfil, ativo, data_criacao)
 SELECT 'Hemerson', '22222222222', 'hemerson@someli.com', '(81) 99999-0001',
-       crypt('Someli@2026', gen_salt('bf')), 'CONTADOR', true, NOW()
+       crypt('Someli@2026', gen_salt('bf'::text)), 'CONTADOR', true, NOW()
 WHERE NOT EXISTS (SELECT 1 FROM usuario WHERE cpf = '22222222222');
 """)
 

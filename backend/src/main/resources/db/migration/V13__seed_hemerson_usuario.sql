@@ -7,7 +7,7 @@ VALUES (
     '22222222222',
     'hemerson@someli.com',
     '(81) 99999-0001',
-    crypt('Someli@2026', gen_salt('bf')),
+    crypt('Someli@2026', gen_salt('bf'::text)),
     'CONTADOR',
     true,
     NOW()
