@@ -314,7 +314,7 @@
   animation: login-fade-in 0.8s ease-out 0.2s both;
 }
 
-/* Desktop: mensagem no painel; mobile: rodapé */
+/* Desktop: mensagem no painel; mobile: rodapé (overrides no final do arquivo) */
 .login-message-desktop {
   display: block;
 }
@@ -580,5 +580,82 @@
 @keyframes login-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* ========== MOBILE (no final para vencer estilos base) ========== */
+@media (max-width: 768px) {
+  .login-page {
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    background: linear-gradient(
+      165deg,
+      var(--someli-gradient-start) 0%,
+      var(--someli-gradient-mid) 45%,
+      var(--someli-gradient-end) 100%
+    );
+  }
+
+  .login-left {
+    display: flex;
+    flex: 0 0 auto;
+  }
+
+  .login-welcome-content {
+    padding: max(0.75rem, env(safe-area-inset-top)) 1.25rem 0.5rem;
+    min-height: 0;
+    justify-content: center;
+    max-width: none;
+    width: 100%;
+  }
+
+  .login-welcome-title {
+    font-size: clamp(1.45rem, 6vw, 1.75rem);
+    margin-bottom: 0;
+  }
+
+  .login-welcome-eyebrow {
+    margin-bottom: 0.3rem;
+  }
+
+  .login-message-desktop {
+    display: none !important;
+  }
+
+  .login-right {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 0 1rem 0;
+    background: transparent !important;
+  }
+
+  .login-card-wrapper {
+    width: 100%;
+    max-width: 100%;
+    margin: -0.75rem 0 0;
+    flex: 0 0 auto;
+  }
+
+  .login-verse-footer {
+    display: block !important;
+    margin-top: auto;
+    padding: 0.85rem 0.35rem max(1.1rem, env(safe-area-inset-bottom));
+    text-align: center;
+  }
+
+  .login-verse-footer .login-message-block {
+    min-height: 2.75rem;
+  }
+
+  .login-verse-footer .login-welcome-message {
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.95);
   }
 }

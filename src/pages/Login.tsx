@@ -204,7 +204,7 @@ export default function Login() {
             )}
 
             <div className="login-card-header">
-              <BrandLogo variant="color" className="mx-auto justify-center" imgClassName="w-[200px] max-w-[80vw] h-auto" />
+              <BrandLogo variant="color" className="mx-auto justify-center" imgClassName="w-[180px] max-w-[75vw] h-auto" />
               <p className="login-card-subtitle">Acesse sua conta</p>
             </div>
 
@@ -282,11 +282,10 @@ export default function Login() {
           </div>
         </motion.div>
 
-        {isMobile ? (
-          <footer className="login-verse-footer">
-            {blocoMensagem}
-          </footer>
-        ) : null}
+        {/* Sempre no DOM no mobile; CSS controla visibilidade — evita sumir por ordem de estilo */}
+        <footer className="login-verse-footer" hidden={!isMobile}>
+          {isMobile ? blocoMensagem : null}
+        </footer>
       </div>
     </div>
   );
