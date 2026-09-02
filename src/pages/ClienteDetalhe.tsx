@@ -47,7 +47,7 @@ interface ClienteObrigacao {
 }
 
 interface ClienteObrigacaoForm {
-  obrigacaoId: number;
+  obrigacaoIds: number[];
   dataVencimento: string;
   observacao: string;
 }
@@ -201,40 +201,65 @@ export default function ClienteDetalhe() {
 
   const handleSaveObrigacao = async (form: ClienteObrigacaoForm, clienteObrigacaoId?: number) => {
     if (!id) return;
-    if (!form.obrigacaoId || !form.dataVencimento) {
-      toast.error('Selecione a obrigação e informe a data de vencimento');
+    if (!form.dataVencimento) {
+      toast.error('Informe a data de vencimento');
+      return;
+    }
+    if (!clienteObrigacaoId && (!form.obrigacaoIds || form.obrigacaoIds.length === 0)) {
+      toast.error('Selecione ao menos uma obrigação');
       return;
     }
     setSaving(true);
     try {
-      const payload = {
-        clienteId: Number(id),
-        obrigacaoId: form.obrigacaoId,
-        dataVencimento: form.dataVencimento,
-        ativo: true,
-        observacao: form.observacao?.trim() || null,
-      };
-      const url = clienteObrigacaoId
-        ? `${apiBaseUrl}/clientes/${id}/obrigacoes/${clienteObrigacaoId}`
-        : `${apiBaseUrl}/clientes/${id}/obrigacoes`;
-      const method = clienteObrigacaoId ? 'PUT' : 'POST';
-      const updatePayload = clienteObrigacaoId
-        ? { dataVencimento: form.dataVencimento, ativo: true, observacao: form.observacao?.trim() || null }
-        : payload;
-
-      const res = await apiFetch(url, {
-        method,
-        headers: getAuthHeaders(),
-        body: JSON.stringify(clienteObrigacaoId ? updatePayload : payload),
-      });
-      if (!res.ok) throw new Error(await parseApiError(res));
-      const saved = await res.json();
       if (clienteObrigacaoId) {
+        const res = await apiFetch(`${apiBaseUrl}/clientes/${id}/obrigacoes/${clienteObrigacaoId}`, {
+          method: 'PUT',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            dataVencimento: form.dataVencimento,
+            ativo: true,
+            observacao: form.observacao?.trim() || null,
+          }),
+        });
+        if (!res.ok) throw new Error(await parseApiError(res));
+        const saved = await res.json();
         setObrigacoes(prev => prev.map(o => (o.id === saved.id ? saved : o)));
         toast.success('Obrigação atualizada');
       } else {
-        setObrigacoes(prev => [...prev, saved]);
-        toast.success('Obrigação adicionada');
+        const salvos: ClienteObrigacao[] = [];
+        const erros: string[] = [];
+        for (const obrigacaoId of form.obrigacaoIds) {
+          const res = await apiFetch(`${apiBaseUrl}/clientes/${id}/obrigacoes`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+              clienteId: Number(id),
+              obrigacaoId,
+              dataVencimento: form.dataVencimento,
+              ativo: true,
+              observacao: form.observacao?.trim() || null,
+            }),
+          });
+          if (!res.ok) {
+            erros.push(await parseApiError(res));
+            continue;
+          }
+          salvos.push(await res.json());
+        }
+        if (salvos.length) {
+          setObrigacoes(prev => [...prev, ...salvos]);
+          toast.success(
+            salvos.length === 1
+              ? 'Obrigação adicionada'
+              : `${salvos.length} obrigações adicionadas`
+          );
+        }
+        if (erros.length && !salvos.length) {
+          throw new Error(erros[0]);
+        }
+        if (erros.length && salvos.length) {
+          toast.warning(`${erros.length} não puderam ser adicionadas (já existem ou erro)`);
+        }
       }
       setShowForm(false);
       setEditingObrigacao(null);
@@ -600,6 +625,7 @@ export default function ClienteDetalhe() {
               {showForm && (
                 <ObrigacaoFormModal
                   obrigacoes={obrigacoesCatalogo}
+                  jaVinculadas={obrigacoes.map(o => o.obrigacaoId)}
                   editing={editingObrigacao}
                   loading={saving}
                   onClose={() => { setShowForm(false); setEditingObrigacao(null); }}
@@ -738,89 +764,178 @@ function DocumentoUploadForm({ onUpload, loading }: { onUpload: (file: File, des
 
 function ObrigacaoFormModal({
   obrigacoes,
+  jaVinculadas = [],
   editing,
   onClose,
   onSave,
   loading,
 }: {
   obrigacoes: Obrigacao[];
+  jaVinculadas?: number[];
   editing: ClienteObrigacao | null;
   onClose: () => void;
   onSave: (f: ClienteObrigacaoForm) => void;
   loading: boolean;
 }) {
-  const [form, setForm] = useState<ClienteObrigacaoForm>({
-    obrigacaoId: editing?.obrigacaoId ?? (obrigacoes[0]?.id ?? 0),
-    dataVencimento: editing?.dataVencimento?.slice(0, 10) ?? '',
-    observacao: editing?.observacao ?? '',
-  });
+  const disponiveis = useMemo(
+    () =>
+      editing
+        ? obrigacoes
+        : obrigacoes.filter(o => !jaVinculadas.includes(o.id)),
+    [obrigacoes, jaVinculadas, editing]
+  );
+
+  const [selectedIds, setSelectedIds] = useState<number[]>(
+    editing ? [editing.obrigacaoId] : []
+  );
+  const [dataVencimento, setDataVencimento] = useState(
+    editing?.dataVencimento?.slice(0, 10) ?? ''
+  );
+  const [observacao, setObservacao] = useState(editing?.observacao ?? '');
 
   useEffect(() => {
     if (editing) {
-      setForm({
-        obrigacaoId: editing.obrigacaoId,
-        dataVencimento: editing.dataVencimento.slice(0, 10),
-        observacao: editing.observacao ?? '',
-      });
+      setSelectedIds([editing.obrigacaoId]);
+      setDataVencimento(editing.dataVencimento.slice(0, 10));
+      setObservacao(editing.observacao ?? '');
     } else {
-      setForm({
-        obrigacaoId: obrigacoes[0]?.id ?? 0,
-        dataVencimento: '',
-        observacao: '',
-      });
+      setSelectedIds([]);
+      setDataVencimento('');
+      setObservacao('');
     }
-  }, [editing, obrigacoes]);
+  }, [editing]);
+
+  const toggleId = (oid: number) => {
+    setSelectedIds(prev =>
+      prev.includes(oid) ? prev.filter(id => id !== oid) : [...prev, oid]
+    );
+  };
+
+  const toggleAll = () => {
+    if (selectedIds.length === disponiveis.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(disponiveis.map(o => o.id));
+    }
+  };
 
   return (
-    <ModalShell onClose={onClose} maxWidth="sm">
-        <div className="flex justify-between mb-6">
+    <ModalShell onClose={onClose} maxWidth="md">
+      <div className="flex justify-between mb-6">
+        <div>
           <h2 className="text-lg font-semibold">{editing ? 'Editar Obrigação' : 'Nova Obrigação'}</h2>
-          <button onClick={onClose} className="p-1 rounded hover:bg-muted"><X size={18} /></button>
+          {!editing && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Selecione uma ou mais obrigações para incluir de uma vez
+            </p>
+          )}
         </div>
-        <div className="space-y-4">
-          <div>
-            <label className="label-text">Tipo de Obrigação</label>
-            <select
-              value={form.obrigacaoId}
-              onChange={e => setForm(p => ({ ...p, obrigacaoId: Number(e.target.value) }))}
-              disabled={!!editing}
-              className="w-full mt-1.5 rounded-md border border-input bg-background px-3 py-2.5 text-sm"
-            >
-              {obrigacoes.map(o => (
-                <option key={o.id} value={o.id}>{o.nome} ({o.tipo})</option>
-              ))}
-            </select>
+        <button onClick={onClose} className="p-1 rounded hover:bg-muted"><X size={18} /></button>
+      </div>
+      <div className="space-y-4">
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="label-text">
+              {editing ? 'Tipo de Obrigação' : 'Tipos de Obrigação'}
+            </label>
+            {!editing && disponiveis.length > 0 && (
+              <button
+                type="button"
+                onClick={toggleAll}
+                className="text-xs text-primary hover:underline"
+              >
+                {selectedIds.length === disponiveis.length ? 'Limpar seleção' : 'Selecionar todas'}
+              </button>
+            )}
           </div>
-          <div>
-            <label className="label-text">Data de Vencimento</label>
-            <input
-              type="date"
-              value={form.dataVencimento}
-              onChange={e => setForm(p => ({ ...p, dataVencimento: e.target.value }))}
-              className="w-full mt-1.5 rounded-md border border-input bg-background px-3 py-2.5 text-sm"
-            />
-          </div>
-          <div>
-            <label className="label-text">Observação</label>
-            <textarea
-              value={form.observacao}
-              onChange={e => setForm(p => ({ ...p, observacao: e.target.value }))}
-              rows={3}
-              className="w-full mt-1.5 rounded-md border border-input bg-background px-3 py-2.5 text-sm resize-none"
-              placeholder="Opcional"
-            />
-          </div>
+
+          {editing ? (
+            <div className="w-full rounded-md border border-input bg-muted/40 px-3 py-2.5 text-sm">
+              {editing.obrigacaoNome} ({editing.obrigacaoTipo})
+            </div>
+          ) : disponiveis.length === 0 ? (
+            <p className="text-sm text-muted-foreground rounded-md border border-dashed border-border px-3 py-4 text-center">
+              Todas as obrigações do catálogo já estão vinculadas a este cliente.
+            </p>
+          ) : (
+            <div className="rounded-md border border-input bg-background max-h-52 overflow-y-auto divide-y divide-border">
+              {disponiveis.map(o => {
+                const checked = selectedIds.includes(o.id);
+                return (
+                  <label
+                    key={o.id}
+                    className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors ${
+                      checked ? 'bg-primary/5' : 'hover:bg-muted/40'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleId(o.id)}
+                      className="h-4 w-4 rounded border-input accent-primary shrink-0"
+                    />
+                    <span className="text-sm font-medium flex-1 min-w-0 truncate">{o.nome}</span>
+                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground shrink-0 rounded-full bg-muted px-2 py-0.5">
+                      {o.tipo}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+          {!editing && selectedIds.length > 0 && (
+            <p className="text-xs text-muted-foreground mt-1.5">
+              {selectedIds.length} selecionada(s)
+            </p>
+          )}
         </div>
-        <div className="flex justify-end gap-3 mt-6">
-          <button onClick={onClose} className="px-4 py-2 rounded-md text-sm text-muted-foreground hover:bg-muted">Cancelar</button>
-          <button
-            disabled={loading}
-            onClick={() => onSave(form)}
-            className="px-4 py-2.5 rounded-md bg-primary text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60"
-          >
-            {loading ? 'Salvando...' : 'Salvar'}
-          </button>
+        <div>
+          <label className="label-text">Data de Vencimento</label>
+          <input
+            type="date"
+            value={dataVencimento}
+            onChange={e => setDataVencimento(e.target.value)}
+            className="w-full mt-1.5 rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20"
+          />
+          {!editing && selectedIds.length > 1 && (
+            <p className="text-[11px] text-muted-foreground mt-1">
+              A mesma data será aplicada a todas as obrigações selecionadas
+            </p>
+          )}
         </div>
+        <div>
+          <label className="label-text">Observação</label>
+          <textarea
+            value={observacao}
+            onChange={e => setObservacao(e.target.value)}
+            rows={3}
+            className="w-full mt-1.5 rounded-md border border-input bg-background px-3 py-2.5 text-sm resize-none outline-none focus:ring-2 focus:ring-ring/20"
+            placeholder="Opcional"
+          />
+        </div>
+      </div>
+      <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 mt-6">
+        <button onClick={onClose} className="w-full sm:w-auto px-4 py-2.5 rounded-md text-sm text-muted-foreground hover:bg-muted">Cancelar</button>
+        <button
+          disabled={loading || (!editing && selectedIds.length === 0)}
+          onClick={() =>
+            onSave({
+              obrigacaoIds: selectedIds,
+              dataVencimento,
+              observacao,
+            })
+          }
+          className="w-full sm:w-auto px-4 py-2.5 rounded-md bg-primary text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60"
+        >
+          {loading
+            ? 'Salvando...'
+            : editing
+              ? 'Salvar'
+              : selectedIds.length > 1
+                ? `Adicionar ${selectedIds.length}`
+                : 'Salvar'}
+        </button>
+      </div>
     </ModalShell>
   );
 }
