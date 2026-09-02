@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="SOMELI">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ea5db9"/>
+      <stop offset="52%" stop-color="#7b2f8f"/>
+      <stop offset="100%" stop-color="#4e0a5f"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="112" fill="url(#shine)"/>
+  <text
+    x="256"
+    y="318"
+    text-anchor="middle"
+    font-family="Segoe UI, Inter, Arial, sans-serif"
+    font-size="248"
+    font-weight="700"
+    fill="#ffffff"
+  >S</text>
+</svg>

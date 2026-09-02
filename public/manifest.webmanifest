@@ -1,0 +1,26 @@
+{
+  "name": "SOMELI Contabilidade",
+  "short_name": "SOMELI",
+  "description": "Gestão de clientes e controle financeiro — SOMELI Assessoria Contábil",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#4e0a5f",
+  "theme_color": "#58196a",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -5,6 +5,10 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
   :root {
     --background: 288 30% 98%;
     --foreground: 288 81% 21%;
@@ -69,6 +73,8 @@
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     -webkit-tap-highlight-color: transparent;
+    min-height: 100dvh;
+    overflow-x: hidden;
   }
 
   .tabular-nums {
