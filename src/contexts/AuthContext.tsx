@@ -7,6 +7,8 @@ interface User {
   nome: string;
   cpf: string;
   perfil: string;
+  email?: string;
+  telefone?: string;
   fotoUrl?: string;
   /** Usado internamente para forçar refresh do avatar no header */
   _avatarVersion?: number;
@@ -17,7 +19,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (cpf: string, senha: string) => Promise<boolean>;
   logout: () => void;
-  updateUser: (updates: Partial<Pick<User, 'nome' | 'fotoUrl'>>) => void;
+  updateUser: (updates: Partial<Pick<User, 'nome' | 'fotoUrl' | 'email' | 'telefone'>>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -75,6 +77,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         nome: usuario.nome,
         cpf: usuario.cpf,
         perfil: usuario.perfil,
+        email: usuario.email,
+        telefone: usuario.telefone,
         fotoUrl: usuario.fotoUrl,
       };
       setUser(u);
@@ -92,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('someli_token');
   }, []);
 
-  const updateUser = useCallback((updates: Partial<Pick<User, 'nome' | 'fotoUrl'>>) => {
+  const updateUser = useCallback((updates: Partial<Pick<User, 'nome' | 'fotoUrl' | 'email' | 'telefone'>>) => {
     setUser(prev => {
       if (!prev) return null;
       const next: User = {

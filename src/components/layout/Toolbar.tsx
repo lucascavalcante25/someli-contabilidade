@@ -5,7 +5,7 @@ import { apiFetch } from '@/lib/http';
 import UserAvatar from '@/components/UserAvatar';
 import BrandLogo from '@/components/BrandLogo';
 import TypewriterText from '@/components/shared/TypewriterText';
-import { LogOut, Bell, ChevronRight, Menu, AlertCircle } from 'lucide-react';
+import { LogOut, Bell, ChevronRight, Menu, AlertCircle, Settings, UserRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import {
@@ -249,26 +249,52 @@ export default function Toolbar({ onMenuClick }: ToolbarProps) {
             </DropdownMenuContent>
           </DropdownMenu>
           <div className="h-6 w-px bg-sidebar-border hidden sm:block" />
-          <div className="flex items-center gap-2 sm:gap-3">
-            <UserAvatar
-              userId={user?.id}
-              fotoUrl={user?.fotoUrl}
-              nome={user?.nome}
-              avatarVersion={user?._avatarVersion}
-              className="ring-sidebar-primary ring-offset-sidebar"
-            />
-            <div className="hidden sm:block min-w-0">
-              <p className="text-sm font-medium leading-none text-sidebar-foreground">{user?.nome}</p>
-              <p className="text-xs text-sidebar-muted">{user?.perfil}</p>
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="p-2 rounded-md text-sidebar-foreground hover:text-sidebar-primary hover:bg-sidebar-accent/50 transition-colors"
-            title="Sair"
-          >
-            <LogOut size={18} />
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex items-center gap-2 sm:gap-3 rounded-md p-1 pr-1.5 sm:pr-2 hover:bg-sidebar-accent/50 transition-colors outline-none"
+                title="Conta"
+              >
+                <UserAvatar
+                  userId={user?.id}
+                  fotoUrl={user?.fotoUrl}
+                  nome={user?.nome}
+                  avatarVersion={user?._avatarVersion}
+                  className="ring-sidebar-primary ring-offset-sidebar"
+                />
+                <div className="hidden sm:block min-w-0 text-left">
+                  <p className="text-sm font-medium leading-none text-sidebar-foreground truncate max-w-[9rem]">
+                    {user?.nome}
+                  </p>
+                  <p className="text-xs text-sidebar-muted mt-0.5">{user?.perfil}</p>
+                </div>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <div className="px-2 py-2">
+                <p className="text-sm font-semibold truncate">{user?.nome}</p>
+                <p className="text-xs text-muted-foreground truncate">{user?.email || user?.perfil}</p>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate('/configuracoes')}>
+                <UserRound size={16} />
+                Minha conta
+              </DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate('/configuracoes')}>
+                <Settings size={16} />
+                Configurações
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="cursor-pointer gap-2 text-destructive focus:text-destructive"
+                onClick={handleLogout}
+              >
+                <LogOut size={16} />
+                Sair
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
