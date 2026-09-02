@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { User, Lock } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api';
+import BrandLogo from '@/components/BrandLogo';
 
 import './Login.css';
 
@@ -160,8 +161,8 @@ export default function Login() {
             )}
 
             <div className="login-card-header">
-              <h2 className="login-card-title">SOMELI</h2>
-              <p className="login-card-subtitle">Assessoria Contábil</p>
+              <BrandLogo variant="color" imgClassName="h-12 max-w-[220px] mx-auto" />
+              <p className="login-card-subtitle">Acesse sua conta</p>
             </div>
 
             <form onSubmit={handleSubmit} className="login-form">

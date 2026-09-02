@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Search, Users, DollarSign, Receipt, UserCog, ClipboardList } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
+import BrandLogo from '@/components/BrandLogo';
 
 const menuItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
@@ -25,9 +26,8 @@ export default function MobileSidebar({ open, onOpenChange }: MobileSidebarProps
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="left" className="w-[280px] max-w-[85vw] p-0 bg-sidebar border-sidebar-border pt-[env(safe-area-inset-top)] [&>button]:top-[max(1rem,env(safe-area-inset-top))] [&>button]:text-sidebar-foreground [&>button]:hover:text-sidebar-primary">
         <div className="flex flex-col h-full">
-          <div className="flex h-16 items-center px-4 gap-3 border-b border-sidebar-border shrink-0">
-            <img src="/logos/simbolo-branco.png" alt="SOMELI" className="h-9 w-9 shrink-0 object-contain" />
-            <span className="text-sidebar-primary font-semibold text-sm tracking-tight">SOMELI</span>
+          <div className="flex h-16 items-center px-4 border-b border-sidebar-border shrink-0">
+            <BrandLogo variant="white" imgClassName="h-9 max-w-[168px]" />
           </div>
           <nav className="flex-1 px-3 py-4 space-y-1">
             {menuItems.map((item) => {

@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Search, Users, DollarSign, Receipt, UserCog, ChevronLeft, ChevronRight, ClipboardList } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import BrandLogo from '@/components/BrandLogo';
 
 const menuItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
@@ -29,16 +30,11 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       className="fixed left-0 top-0 bottom-0 z-30 flex flex-col bg-sidebar"
     >
       {/* Logo */}
-      <div className="flex h-16 items-center px-4 gap-3">
-        <img src="/logos/simbolo-branco.png" alt="SOMELI" className="h-9 w-9 shrink-0 object-contain" />
-        {!collapsed && (
-          <motion.span
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-sidebar-primary font-semibold text-sm tracking-tight whitespace-nowrap"
-          >
-            SOMELI
-          </motion.span>
+      <div className="flex h-16 items-center px-3 gap-2 overflow-hidden">
+        {collapsed ? (
+          <BrandLogo variant="white" symbolOnly imgClassName="h-9 w-9" />
+        ) : (
+          <BrandLogo variant="white" imgClassName="h-9 max-w-[168px]" />
         )}
       </div>
 

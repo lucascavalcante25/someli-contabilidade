@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
 import UserAvatar from '@/components/UserAvatar';
+import BrandLogo from '@/components/BrandLogo';
 import { LogOut, Bell, ChevronRight, Menu, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -110,15 +111,8 @@ export default function Toolbar({ onMenuClick }: ToolbarProps) {
           >
             <Menu size={20} />
           </button>
-          <div className="md:hidden flex items-center gap-2 min-w-0">
-            <img
-              src="/logos/simbolo-branco.png"
-              alt="SOMELI"
-              className="h-8 w-8 shrink-0 object-contain"
-            />
-            <span className="text-sidebar-primary font-semibold text-sm tracking-tight truncate">
-              SOMELI
-            </span>
+          <div className="md:hidden flex items-center min-w-0">
+            <BrandLogo variant="white" imgClassName="h-7 max-w-[118px]" />
           </div>
         </div>
 
