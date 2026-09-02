@@ -41,6 +41,7 @@ public class FinanceiroService {
 
     public static boolean isCobravel(Cliente cliente) {
         if (cliente == null) return false;
+        if (Boolean.FALSE.equals(cliente.getAtivo())) return false;
         LocalDate data = cliente.getDataInicioCobranca();
         if (data == null) return true;
         return !data.isAfter(LocalDate.now());

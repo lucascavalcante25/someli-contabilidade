@@ -2,9 +2,12 @@ package br.com.someli.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
@@ -20,7 +23,7 @@ public class Cliente {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 14)
+    @Column(unique = true, length = 14)
     private String cnpj;
 
     @Column(name = "razao_social", nullable = false)
@@ -56,6 +59,19 @@ public class Cliente {
     @Column(name = "data_inicio_cobranca")
     private LocalDate dataInicioCobranca;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "responsavel_id")
+    private Usuario responsavel;
+
+    @Column
+    private String indicacao;
+
+    @Column(name = "forma_pagamento", length = 30)
+    private String formaPagamento;
+
+    @Column(nullable = false)
+    private Boolean ativo = Boolean.TRUE;
+
     @PrePersist
     public void prePersist() {
         if (dataCriacao == null) {
@@ -66,6 +82,9 @@ public class Cliente {
         }
         if (diaVencimento == null) {
             diaVencimento = 10;
+        }
+        if (ativo == null) {
+            ativo = Boolean.TRUE;
         }
     }
 
@@ -171,5 +190,37 @@ public class Cliente {
 
     public void setDataInicioCobranca(LocalDate dataInicioCobranca) {
         this.dataInicioCobranca = dataInicioCobranca;
+    }
+
+    public Usuario getResponsavel() {
+        return responsavel;
+    }
+
+    public void setResponsavel(Usuario responsavel) {
+        this.responsavel = responsavel;
+    }
+
+    public String getIndicacao() {
+        return indicacao;
+    }
+
+    public void setIndicacao(String indicacao) {
+        this.indicacao = indicacao;
+    }
+
+    public String getFormaPagamento() {
+        return formaPagamento;
+    }
+
+    public void setFormaPagamento(String formaPagamento) {
+        this.formaPagamento = formaPagamento;
+    }
+
+    public Boolean getAtivo() {
+        return ativo;
+    }
+
+    public void setAtivo(Boolean ativo) {
+        this.ativo = ativo;
     }
 }

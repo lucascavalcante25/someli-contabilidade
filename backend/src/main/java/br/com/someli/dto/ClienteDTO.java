@@ -16,6 +16,11 @@ public class ClienteDTO {
     private String tipoPagamento;
     private String status;
     private LocalDate dataInicioCobranca;
+    private Long responsavelId;
+    private String responsavelNome;
+    private String indicacao;
+    private String formaPagamento;
+    private Boolean ativo;
 
     public Long getId() {
         return id;
@@ -111,5 +116,45 @@ public class ClienteDTO {
 
     public void setDataInicioCobranca(LocalDate dataInicioCobranca) {
         this.dataInicioCobranca = dataInicioCobranca;
+    }
+
+    public Long getResponsavelId() {
+        return responsavelId;
+    }
+
+    public void setResponsavelId(Long responsavelId) {
+        this.responsavelId = responsavelId;
+    }
+
+    public String getResponsavelNome() {
+        return responsavelNome;
+    }
+
+    public void setResponsavelNome(String responsavelNome) {
+        this.responsavelNome = responsavelNome;
+    }
+
+    public String getIndicacao() {
+        return indicacao;
+    }
+
+    public void setIndicacao(String indicacao) {
+        this.indicacao = indicacao;
+    }
+
+    public String getFormaPagamento() {
+        return formaPagamento;
+    }
+
+    public void setFormaPagamento(String formaPagamento) {
+        this.formaPagamento = formaPagamento;
+    }
+
+    public Boolean getAtivo() {
+        return ativo;
+    }
+
+    public void setAtivo(Boolean ativo) {
+        this.ativo = ativo;
     }
 }

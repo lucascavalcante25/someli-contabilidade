@@ -32,3 +32,4 @@ data/
 
 # Deploy Contabo (segredos locais na VPS)
 deploy/contabo/.env
+deploy/import/*.xlsx

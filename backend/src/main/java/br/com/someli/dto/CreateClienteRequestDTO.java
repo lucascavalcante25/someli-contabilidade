@@ -14,8 +14,6 @@ import java.math.BigDecimal;
 
 public class CreateClienteRequestDTO {
 
-    @NotBlank(message = "CNPJ é obrigatório")
-    @Pattern(regexp = "\\d{14}", message = "CNPJ deve conter 14 dígitos")
     private String cnpj;
 
     @NotBlank(message = "Razão social é obrigatória")
@@ -46,6 +44,10 @@ public class CreateClienteRequestDTO {
     private String status;
 
     private LocalDate dataInicioCobranca;
+    private Long responsavelId;
+    private String indicacao;
+    private String formaPagamento;
+    private Boolean ativo;
 
     public String getCnpj() {
         return cnpj;
@@ -133,5 +135,37 @@ public class CreateClienteRequestDTO {
 
     public void setDataInicioCobranca(LocalDate dataInicioCobranca) {
         this.dataInicioCobranca = dataInicioCobranca;
+    }
+
+    public Long getResponsavelId() {
+        return responsavelId;
+    }
+
+    public void setResponsavelId(Long responsavelId) {
+        this.responsavelId = responsavelId;
+    }
+
+    public String getIndicacao() {
+        return indicacao;
+    }
+
+    public void setIndicacao(String indicacao) {
+        this.indicacao = indicacao;
+    }
+
+    public String getFormaPagamento() {
+        return formaPagamento;
+    }
+
+    public void setFormaPagamento(String formaPagamento) {
+        this.formaPagamento = formaPagamento;
+    }
+
+    public Boolean getAtivo() {
+        return ativo;
+    }
+
+    public void setAtivo(Boolean ativo) {
+        this.ativo = ativo;
     }
 }

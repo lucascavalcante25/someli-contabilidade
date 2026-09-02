@@ -1,12 +1,14 @@
 package br.com.someli.service;
 
 import br.com.someli.domain.Cliente;
+import br.com.someli.domain.Usuario;
 import br.com.someli.dto.CreateClienteRequestDTO;
 import br.com.someli.dto.UpdateClienteRequestDTO;
 import br.com.someli.exception.ClienteNaoEncontradoException;
 import br.com.someli.exception.RegraNegocioException;
 import br.com.someli.repository.ClienteRepository;
 import br.com.someli.repository.PagamentoMensalRepository;
+import br.com.someli.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -19,11 +21,14 @@ public class ClienteService {
 
     private final ClienteRepository clienteRepository;
     private final PagamentoMensalRepository pagamentoMensalRepository;
+    private final UsuarioRepository usuarioRepository;
 
     public ClienteService(ClienteRepository clienteRepository,
-                         PagamentoMensalRepository pagamentoMensalRepository) {
+                         PagamentoMensalRepository pagamentoMensalRepository,
+                         UsuarioRepository usuarioRepository) {
         this.clienteRepository = clienteRepository;
         this.pagamentoMensalRepository = pagamentoMensalRepository;
+        this.usuarioRepository = usuarioRepository;
     }
 
     public List<Cliente> listarTodos() {
@@ -65,7 +70,7 @@ public class ClienteService {
     }
 
     public Cliente criar(CreateClienteRequestDTO request) {
-        String cnpjNormalizado = normalizarCnpj(request.getCnpj());
+        String cnpjNormalizado = normalizarCnpjOpcional(request.getCnpj());
         validarCnpjDuplicado(cnpjNormalizado, null);
 
         Cliente cliente = new Cliente();
@@ -76,7 +81,7 @@ public class ClienteService {
     @SuppressWarnings("null")
     public Cliente atualizar(Long id, UpdateClienteRequestDTO request) {
         Cliente cliente = buscarPorId(id);
-        String cnpjNormalizado = normalizarCnpj(request.getCnpj());
+        String cnpjNormalizado = normalizarCnpjOpcional(request.getCnpj());
         validarCnpjDuplicado(cnpjNormalizado, id);
 
         preencherCampos(cliente, request, cnpjNormalizado);
@@ -101,6 +106,32 @@ public class ClienteService {
         cliente.setTipoPagamento(request.getTipoPagamento());
         cliente.setStatus(request.getStatus());
         cliente.setDataInicioCobranca(request.getDataInicioCobranca());
+        cliente.setIndicacao(trimOrNull(request.getIndicacao()));
+        cliente.setFormaPagamento(trimOrNull(request.getFormaPagamento()));
+        cliente.setAtivo(request.getAtivo() != null ? request.getAtivo() : Boolean.TRUE);
+        cliente.setResponsavel(resolverResponsavel(request.getResponsavelId()));
+    }
+
+    private Usuario resolverResponsavel(Long responsavelId) {
+        if (responsavelId == null) {
+            return null;
+        }
+        return usuarioRepository.findById(responsavelId)
+                .orElseThrow(() -> new RegraNegocioException("Responsável não encontrado"));
+    }
+
+    private String normalizarCnpjOpcional(String cnpj) {
+        if (cnpj == null || cnpj.isBlank()) {
+            return null;
+        }
+        String digits = cnpj.replaceAll("\\D", "");
+        if (digits.isEmpty()) {
+            return null;
+        }
+        if (digits.length() != 14) {
+            throw new RegraNegocioException("CNPJ deve conter 14 dígitos");
+        }
+        return digits;
     }
 
     private String trimOrNull(String value) {
@@ -111,11 +142,10 @@ public class ClienteService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
-    private String normalizarCnpj(String cnpj) {
-        return cnpj == null ? null : cnpj.replaceAll("\\D", "");
-    }
-
     private void validarCnpjDuplicado(String cnpj, Long idIgnorado) {
+        if (cnpj == null || cnpj.isBlank()) {
+            return;
+        }
         boolean duplicado = idIgnorado == null
                 ? clienteRepository.existsByCnpj(cnpj)
                 : clienteRepository.existsByCnpjAndIdNot(cnpj, idIgnorado);

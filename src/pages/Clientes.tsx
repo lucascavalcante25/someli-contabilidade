@@ -24,6 +24,16 @@ interface Cliente {
   tipoPagamento: TipoPagamento;
   status: StatusCliente;
   dataInicioCobranca?: string;
+  responsavelId?: number;
+  responsavelNome?: string;
+  indicacao?: string;
+  formaPagamento?: string;
+  ativo?: boolean;
+}
+
+interface UsuarioResumo {
+  id: number;
+  nome: string;
 }
 
 interface ClienteObrigacaoFormItem {
@@ -56,6 +66,10 @@ interface ClienteFormData {
   tipoPagamento: TipoPagamento;
   status: StatusCliente;
   dataInicioCobranca?: string;
+  responsavelId?: number;
+  indicacao?: string;
+  formaPagamento?: string;
+  ativo?: boolean;
   clienteObrigacoes: ClienteObrigacaoFormItem[];
 }
 
@@ -121,6 +135,11 @@ function normalizeClienteFromApi(raw: any): Cliente {
     tipoPagamento: (raw.tipoPagamento || 'pessoa_juridica') as TipoPagamento,
     status: (raw.status || 'em_dia') as StatusCliente,
     dataInicioCobranca: raw.dataInicioCobranca ? String(raw.dataInicioCobranca).slice(0, 10) : undefined,
+    responsavelId: raw.responsavelId ? Number(raw.responsavelId) : undefined,
+    responsavelNome: raw.responsavelNome ? String(raw.responsavelNome) : undefined,
+    indicacao: raw.indicacao ? String(raw.indicacao) : undefined,
+    formaPagamento: raw.formaPagamento ? String(raw.formaPagamento) : undefined,
+    ativo: raw.ativo !== false,
   };
 }
 
@@ -288,8 +307,8 @@ export default function Clientes() {
 
   const handleSave = async (form: ClienteFormData, clienteId?: number) => {
     const cnpjNumerico = form.cnpj.replace(/\D/g, '');
-    if (cnpjNumerico.length !== 14) {
-      toast.error('CNPJ inválido');
+    if (cnpjNumerico.length > 0 && cnpjNumerico.length !== 14) {
+      toast.error('CNPJ inválido (use 14 dígitos ou deixe em branco)');
       return;
     }
     if (!form.razaoSocial.trim()) {
@@ -310,7 +329,7 @@ export default function Clientes() {
     setSaving(true);
     try {
       const payload = {
-        cnpj: cnpjNumerico,
+        cnpj: cnpjNumerico || null,
         razaoSocial: form.razaoSocial.trim(),
         nomeFantasia: form.nomeFantasia.trim(),
         proprietario: form.proprietario.trim(),
@@ -321,6 +340,10 @@ export default function Clientes() {
         tipoPagamento: form.tipoPagamento,
         status: form.status,
         dataInicioCobranca: form.dataInicioCobranca || null,
+        responsavelId: form.responsavelId || null,
+        indicacao: form.indicacao?.trim() || null,
+        formaPagamento: form.formaPagamento || null,
+        ativo: form.ativo !== false,
       };
 
       const response = await apiFetch(
@@ -423,7 +446,7 @@ export default function Clientes() {
                 <th className="label-text px-2 py-3 text-center w-9"></th>
                 <th className="label-text px-3 sm:px-4 py-3 text-left whitespace-nowrap">Razão Social</th>
                 <th className="label-text px-3 sm:px-4 py-3 text-left whitespace-nowrap">CNPJ</th>
-                <th className="label-text px-3 sm:px-4 py-3 text-left hidden md:table-cell">Proprietário</th>
+                <th className="label-text px-3 sm:px-4 py-3 text-left hidden md:table-cell">Responsável</th>
                 <th className="label-text px-3 sm:px-4 py-3 text-left hidden lg:table-cell">Telefone</th>
                 <th className="label-text px-3 sm:px-4 py-3 text-right whitespace-nowrap">Honorário</th>
                 <th className="label-text px-3 sm:px-4 py-3 text-center whitespace-nowrap">Status Pagamento</th>
@@ -453,9 +476,12 @@ export default function Clientes() {
                       {expandedClienteId === c.id ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                     </button>
                   </td>
-                  <td className="px-3 sm:px-4 py-3 font-medium max-w-[120px] sm:max-w-none truncate" title={c.razaoSocial}>{c.razaoSocial}</td>
-                  <td className="px-3 sm:px-4 py-3 tabular-nums text-muted-foreground whitespace-nowrap">{maskCnpj(c.cnpj)}</td>
-                  <td className="px-3 sm:px-4 py-3 hidden md:table-cell text-muted-foreground">{c.proprietario}</td>
+                  <td className="px-3 sm:px-4 py-3 font-medium max-w-[120px] sm:max-w-none truncate" title={c.razaoSocial}>
+                    <span className={c.ativo === false ? 'line-through text-muted-foreground' : ''}>{c.razaoSocial}</span>
+                    {c.ativo === false && <span className="ml-1 text-[10px] uppercase text-muted-foreground">(inativo)</span>}
+                  </td>
+                  <td className="px-3 sm:px-4 py-3 tabular-nums text-muted-foreground whitespace-nowrap">{c.cnpj ? maskCnpj(c.cnpj) : '—'}</td>
+                  <td className="px-3 sm:px-4 py-3 hidden md:table-cell text-muted-foreground">{c.responsavelNome || '—'}</td>
                   <td className="px-3 sm:px-4 py-3 hidden lg:table-cell text-muted-foreground tabular-nums">{c.telefone}</td>
                   <td className="px-3 sm:px-4 py-3 text-right tabular-nums font-medium whitespace-nowrap">{formatCurrency(c.honorario)}</td>
                   <td className="px-3 sm:px-4 py-3 text-center whitespace-nowrap">
@@ -595,8 +621,14 @@ function ClienteFormModal({
     tipoPagamento: (cliente?.tipoPagamento ?? prefill?.tipoPagamento ?? 'pessoa_juridica') as TipoPagamento,
     status: (cliente?.status ?? prefill?.status ?? 'em_dia') as StatusCliente,
     dataInicioCobranca: cliente?.dataInicioCobranca ?? prefill?.dataInicioCobranca ?? getPrimeiroDiaMesAtual(),
+    responsavelId: cliente?.responsavelId ?? prefill?.responsavelId,
+    indicacao: cliente?.indicacao ?? prefill?.indicacao ?? '',
+    formaPagamento: cliente?.formaPagamento ?? prefill?.formaPagamento ?? '',
+    ativo: cliente?.ativo !== false,
     clienteObrigacoes: [],
   });
+
+  const [usuarios, setUsuarios] = useState<UsuarioResumo[]>([]);
 
   const [obrigacoesCatalogo, setObrigacoesCatalogo] = useState<{ id: number; nome: string; tipo: string }[]>([]);
   const [obrigacaoSelectValue, setObrigacaoSelectValue] = useState<string>('');
@@ -605,11 +637,25 @@ function ClienteFormModal({
 
   useEffect(() => {
     if (cliente) {
-      setForm(prev => ({ ...prev, cnpj: maskCnpj(cliente.cnpj), razaoSocial: cliente.razaoSocial, nomeFantasia: cliente.nomeFantasia, proprietario: cliente.proprietario, telefone: cliente.telefone, email: cliente.email, honorario: cliente.honorario, diaVencimento: cliente.diaVencimento, tipoPagamento: cliente.tipoPagamento, status: cliente.status, dataInicioCobranca: cliente.dataInicioCobranca ?? getPrimeiroDiaMesAtual() }));
+      setForm(prev => ({ ...prev, cnpj: maskCnpj(cliente.cnpj), razaoSocial: cliente.razaoSocial, nomeFantasia: cliente.nomeFantasia, proprietario: cliente.proprietario, telefone: cliente.telefone, email: cliente.email, honorario: cliente.honorario, diaVencimento: cliente.diaVencimento, tipoPagamento: cliente.tipoPagamento, status: cliente.status, dataInicioCobranca: cliente.dataInicioCobranca ?? getPrimeiroDiaMesAtual(), responsavelId: cliente.responsavelId, indicacao: cliente.indicacao ?? '', formaPagamento: cliente.formaPagamento ?? '', ativo: cliente.ativo !== false }));
     } else if (prefill) {
       setForm(prev => ({ ...prev, cnpj: prefill.cnpj || '', razaoSocial: prefill.razaoSocial || '', nomeFantasia: prefill.nomeFantasia || '', proprietario: prefill.proprietario || '', telefone: prefill.telefone || '', email: prefill.email || '', honorario: prefill.honorario ?? 0, diaVencimento: prefill.diaVencimento ?? 10, tipoPagamento: (prefill.tipoPagamento || 'pessoa_juridica') as TipoPagamento, status: (prefill.status || 'em_dia') as StatusCliente, dataInicioCobranca: prefill.dataInicioCobranca ?? getPrimeiroDiaMesAtual() }));
     }
   }, [cliente, prefill]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await apiFetch(`${apiBaseUrl}/usuarios`, { headers: getAuthHeaders() });
+        if (res.ok) {
+          const data = await res.json();
+          setUsuarios((Array.isArray(data) ? data : []).map((u: any) => ({ id: Number(u.id), nome: String(u.nome || '') })));
+        }
+      } catch {
+        setUsuarios([]);
+      }
+    })();
+  }, [apiBaseUrl, getAuthHeaders]);
 
   useEffect(() => {
     (async () => {
@@ -707,7 +753,7 @@ function ClienteFormModal({
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {[
-            { key: 'cnpj', label: 'CNPJ', placeholder: '00.000.000/0000-00' },
+            { key: 'cnpj', label: 'CNPJ (opcional)', placeholder: '00.000.000/0000-00' },
             { key: 'razaoSocial', label: 'Razão Social' },
             { key: 'nomeFantasia', label: 'Nome Fantasia' },
             { key: 'proprietario', label: 'Proprietário' },
@@ -792,6 +838,52 @@ function ClienteFormModal({
                 <option value="pessoa_juridica">Pessoa Jurídica</option>
                 <option value="terceiros">Terceiros</option>
               </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="label-text">Forma de pagamento</label>
+              <select
+                value={form.formaPagamento || ''}
+                onChange={e => update('formaPagamento', e.target.value)}
+                className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all"
+              >
+                <option value="">Não informado</option>
+                <option value="boleto">Boleto</option>
+                <option value="pix">PIX</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="label-text">Responsável</label>
+              <select
+                value={form.responsavelId ?? ''}
+                onChange={e => update('responsavelId', e.target.value ? Number(e.target.value) : undefined)}
+                className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all"
+              >
+                <option value="">Não atribuído</option>
+                {usuarios.map(u => (
+                  <option key={u.id} value={u.id}>{u.nome}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="label-text">Indicação</label>
+              <input
+                type="text"
+                value={form.indicacao || ''}
+                onChange={e => update('indicacao', e.target.value)}
+                placeholder="Ex.: ELANE"
+                className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all"
+              />
+            </div>
+            <div className="space-y-1.5 flex items-end">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.ativo !== false}
+                  onChange={e => update('ativo', e.target.checked)}
+                  className="rounded border-input"
+                />
+                Cliente ativo
+              </label>
             </div>
             <div className="space-y-1.5">
               <label className="label-text">Status Pagamento</label>
