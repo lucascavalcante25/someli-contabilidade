@@ -1,0 +1,58 @@
+# Deploy automático da API Someli na Contabo (mesma VPS do Semear, porta 8081).
+#
+# Secrets no GitHub (pode reutilizar os do Semear):
+#   CONTABO_HOST, CONTABO_USER, CONTABO_SSH_KEY
+
+name: Deploy Contabo API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "deploy/contabo/**"
+      - ".github/workflows/deploy-contabo.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-someli-contabo
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.CONTABO_HOST }}
+          username: ${{ secrets.CONTABO_USER }}
+          key: ${{ secrets.CONTABO_SSH_KEY }}
+          port: 22
+          command_timeout: 40m
+          script_stop: true
+          script: |
+            set -euo pipefail
+            cd /opt/someli-contabilidade
+            git fetch origin main
+            git reset --hard origin/main
+            cd deploy/contabo
+            docker compose --env-file .env up -d --build api
+            echo "Aguardando API ficar UP..."
+            ok=0
+            for i in $(seq 1 36); do
+              if curl -sf http://127.0.0.1:8081/management/health | grep -q '"status":"UP"'; then
+                echo "Health OK (tentativa $i)"
+                ok=1
+                break
+              fi
+              echo "  tentativa $i/36 — ainda subindo..."
+              sleep 5
+            done
+            if [ "$ok" != "1" ]; then
+              echo "API não respondeu UP a tempo. Últimos logs:"
+              docker compose logs api --tail 80
+              exit 1
+            fi
+            echo "Deploy Someli Contabo OK"

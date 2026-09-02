@@ -29,3 +29,6 @@ backend/*.log
 
 # Uploads
 data/
+
+# Deploy Contabo (segredos locais na VPS)
+deploy/contabo/.env

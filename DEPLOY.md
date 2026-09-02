@@ -1,68 +1,117 @@
 # Deploy - SOMELI Contabilidade
 
-## Resumo
+## Resumo (produção atual)
 
-- **Frontend:** Vercel
-- **Backend:** Render
-- **Banco de dados:** Supabase (PostgreSQL)
+| Peça | Onde |
+|------|------|
+| **Frontend** | Vercel (`someli-contabilidade.vercel.app`) |
+| **API** | Contabo VPS — porta `8081` (mesma máquina do Semear) |
+| **Banco** | Postgres local na VPS (Docker) |
 
----
-
-## 1. Supabase (Banco de dados)
-
-1. No painel do Supabase, vá em **Project Settings** → **Database**
-2. Use a **Connection string** do **Connection pooler** (Session mode) — evita "Tenant or user not found"
-3. **DB_URL** (formato JDBC):
-   ```
-   jdbc:postgresql://aws-0-[REGIAO].pooler.supabase.com:6543/postgres?sslmode=require&prepareThreshold=0
-   ```
-   - Região: ex. `us-east-1` (veja no Supabase qual é a sua)
-   - `prepareThreshold=0` é obrigatório para o transaction pooler
-4. **DB_USERNAME**: no pooler NÃO é só `postgres` — é `postgres.[PROJECT_REF]` (ex: `postgres.jksueuziekvhdmctbtey`)
-5. **DB_PASSWORD**: a senha do banco
-
-**Importante:** O backend usa **Flyway** para migrations. As tabelas serão criadas automaticamente na primeira execução.
+Legado: Render + Supabase (substituídos após migração).
 
 ---
 
-## 2. Render (Backend)
+## Contabo (API + Postgres na mesma VPS do Semear)
 
-1. Crie um novo **Web Service**
-2. Conecte o repositório Git
-3. Configurações:
-   - **Language:** Docker
-   - **Branch:** main
-   - **Region:** Oregon (US West) ou a mais próxima
-   - **Root Directory:** `backend`
-   - **Dockerfile Path:** `./Dockerfile` (padrão, relativo ao Root Directory)
+### Arquitetura
 
-4. **Variáveis de ambiente** (Environment → Add Environment Variable):
-   - `DB_URL` = Connection string do Supabase (ex: `jdbc:postgresql://...`)
-   - `DB_USERNAME` = usuário do Supabase (geralmente `postgres`)
-   - `DB_PASSWORD` = senha do Supabase
-   - `JWT_SECRET` = string aleatória longa e segura (ex: gerar com `openssl rand -base64 64`)
-   - `FRONTEND_URL` = URL do frontend na Vercel (ex: `https://someli.vercel.app`) — para CORS
+```
+Vercel (front)  →  Nginx HTTPS  →  Someli API :8081  →  Postgres (container)
+Semear API :8080 (stack separado, não conflita)
+```
 
-5. Após o deploy, anote a URL do backend (ex: `https://someli-backend.onrender.com`)
+### 1. DuckDNS
+
+Crie um hostname apontando para o **mesmo IP** da VPS do Semear, por exemplo:
+
+- `someli-contabilidade.duckdns.org`
+
+### 2. Setup na VPS (uma vez)
+
+```bash
+ssh root@169.58.179.91
+cd /opt
+git clone https://github.com/lucascavalcante25/someli-contabilidade.git
+cd someli-contabilidade
+cp deploy/contabo/.env.example deploy/contabo/.env
+nano deploy/contabo/.env   # POSTGRES_PASSWORD, JWT_SECRET (Render), SUPABASE_DB_PASSWORD
+bash deploy/contabo/setup-vps.sh
+bash deploy/contabo/migrate-from-supabase.sh
+certbot --nginx -d someli-contabilidade.duckdns.org
+```
+
+### 3. Variáveis (`deploy/contabo/.env`)
+
+| Variável | Descrição |
+|----------|-----------|
+| `POSTGRES_PASSWORD` | Senha do Postgres **local** (nova, forte) |
+| `JWT_SECRET` | Copie do Render (mantém tokens válidos se igual) |
+| `ALLOWED_ORIGINS` | `https://someli-contabilidade.vercel.app` |
+| `SUPABASE_DB_PASSWORD` | Senha do Supabase (só para migração) |
+
+CORS no código usa `ALLOWED_ORIGINS` (não `CORS_ORIGINS` do Render).
+
+### 4. Vercel
+
+Atualize:
+
+- `VITE_API_URL` = `https://someli-contabilidade.duckdns.org`
+
+Redeploy do front.
+
+### 5. Deploy automático (GitHub Actions)
+
+Push na `main` em `backend/**` ou `deploy/contabo/**` dispara deploy via SSH.
+
+Secrets (reutilize os do Semear): `CONTABO_HOST`, `CONTABO_USER`, `CONTABO_SSH_KEY`.
+
+### 6. Migrar para VPS dedicada depois
+
+Sim, é simples:
+
+1. Nova VPS Contabo
+2. `pg_dump` do Postgres local atual (ou copiar volume Docker `pgdata`)
+3. Clone do repo + `.env` + `docker compose up`
+4. Atualizar DNS DuckDNS para o novo IP
+5. Certbot no novo servidor
+
+Não precisa mudar código — só infra e DNS.
 
 ---
 
-## 3. Vercel (Frontend)
+## Migração Supabase → pg_dump
 
-1. Importe o repositório no Vercel
-2. **Root Directory:** deixe em branco (raiz do projeto)
-3. **Build Command:** `npm run build`
-4. **Output Directory:** `dist`
+O script `deploy/contabo/migrate-from-supabase.sh` usa o **session pooler** (IPv4):
 
-5. **Variáveis de ambiente:**
-   - `VITE_API_URL` = URL do backend no Render (ex: `https://someli-backend.onrender.com`)
+- Host: `aws-1-us-east-1.pooler.supabase.com`
+- Porta: `5432`
+- User: `postgres.eeortzijalyvffwdyats`
+- Database: `postgres`
+- Senha: a do painel Supabase / Render `DB_PASSWORD`
 
-6. Faça o deploy
+Conexão direta (`db.eeortzijalyvffwdyats.supabase.co`) exige IPv6 na VPS; o pooler evita isso.
 
 ---
 
-## 4. Ordem recomendada
+## Legado: Render + Supabase
 
-1. **Supabase** — criar projeto e obter connection string  
-2. **Render** — deploy do backend com as variáveis de ambiente  
-3. **Vercel** — deploy do frontend com `VITE_API_URL` apontando para o backend no Render
+<details>
+<summary>Instruções antigas (Render)</summary>
+
+### Supabase
+
+1. Connection pooler (Session mode), porta `5432` ou transaction `6543`
+2. `DB_USERNAME`: `postgres.[PROJECT_REF]`
+
+### Render
+
+- Root Directory: `backend`
+- Docker
+- Variáveis: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `ALLOWED_ORIGINS`
+
+### Vercel
+
+- `VITE_API_URL` = URL do Render
+
+</details>

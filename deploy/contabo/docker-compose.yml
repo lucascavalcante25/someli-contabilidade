@@ -1,0 +1,47 @@
+# Someli Contabilidade — API + Postgres na mesma VPS do Semear (porta 8081).
+# Semear usa 8080; este stack não conflita (rede Docker isolada).
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: someli
+      POSTGRES_USER: someli
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U someli -d someli"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    mem_limit: 512m
+
+  api:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8081:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      PORT: "8080"
+      DB_URL: jdbc:postgresql://db:5432/someli
+      DB_USERNAME: someli
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://someli-contabilidade.vercel.app}
+      UPLOAD_PATH: /app/data/uploads
+      JAVA_OPTS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=60.0 -Xms256m -Xmx512m"
+    volumes:
+      - someli-uploads:/app/data/uploads
+    mem_limit: 768m
+
+volumes:
+  pgdata:
+  someli-uploads:
