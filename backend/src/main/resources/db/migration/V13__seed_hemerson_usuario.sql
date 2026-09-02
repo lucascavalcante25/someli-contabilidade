@@ -1,20 +1,23 @@
 -- Funcionário responsável pelos clientes (H na planilha = Hemerson)
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
+-- Senha inicial igual ao admin (adm@Someli) — altere depois no sistema.
 INSERT INTO usuario (nome, cpf, email, telefone, senha, perfil, ativo, data_criacao)
-VALUES (
+SELECT
     'Hemerson',
     '22222222222',
     'hemerson@someli.com',
     '(81) 99999-0001',
-    crypt('Someli@2026', gen_salt('bf'::text)),
+    u.senha,
     'CONTADOR',
     true,
     NOW()
-)
-ON CONFLICT (cpf) DO UPDATE SET
-    nome = EXCLUDED.nome,
-    email = EXCLUDED.email,
-    telefone = EXCLUDED.telefone,
-    perfil = EXCLUDED.perfil,
-    ativo = EXCLUDED.ativo;
+FROM usuario u
+WHERE u.cpf = '11111111111'
+  AND NOT EXISTS (SELECT 1 FROM usuario WHERE cpf = '22222222222');
+
+UPDATE usuario
+SET nome = 'Hemerson',
+    email = 'hemerson@someli.com',
+    telefone = '(81) 99999-0001',
+    perfil = 'CONTADOR',
+    ativo = true
+WHERE cpf = '22222222222';

@@ -226,7 +226,7 @@ def parse_despesas(ws) -> list[dict]:
 
 
 def build_sql(clients: list[dict], despesas: list[dict]) -> str:
-    lines = ["BEGIN;", "CREATE EXTENSION IF NOT EXISTS pgcrypto;"]
+    lines = ["BEGIN;"]
 
     lines.append("DELETE FROM notification;")
     lines.append("DELETE FROM cliente_documento;")
@@ -236,12 +236,7 @@ def build_sql(clients: list[dict], despesas: list[dict]) -> str:
     lines.append("DELETE FROM despesa;")
     lines.append("DELETE FROM cliente;")
 
-    lines.append("""
-INSERT INTO usuario (nome, cpf, email, telefone, senha, perfil, ativo, data_criacao)
-SELECT 'Hemerson', '22222222222', 'hemerson@someli.com', '(81) 99999-0001',
-       crypt('Someli@2026', gen_salt('bf'::text)), 'CONTADOR', true, NOW()
-WHERE NOT EXISTS (SELECT 1 FROM usuario WHERE cpf = '22222222222');
-""")
+    # Hemerson deve existir via migração V13 (Flyway na subida da API).
 
     for c in clients:
         resp_sql = "(SELECT id FROM usuario WHERE cpf = '22222222222' LIMIT 1)"
