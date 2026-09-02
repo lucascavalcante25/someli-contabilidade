@@ -29,19 +29,19 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
       className="fixed left-0 top-0 bottom-0 z-30 flex flex-col bg-sidebar"
     >
-      {/* Logo alinhada com a altura da toolbar (mesma faixa superior) */}
+      {/* Mesma altura da toolbar: logo grande sem desalinhamento */}
       <div
         className={cn(
           'flex items-center overflow-hidden border-b border-sidebar-border/60 shrink-0',
-          collapsed ? 'h-16 justify-center px-2' : 'h-16 px-3'
+          collapsed ? 'h-24 justify-center px-2' : 'h-24 px-3'
         )}
       >
         {collapsed ? (
-          <BrandLogo variant="white" symbolOnly imgClassName="h-9 w-9" />
+          <BrandLogo variant="white" symbolOnly imgClassName="h-12 w-12" />
         ) : (
           <BrandLogo
             variant="white"
-            imgClassName="h-12 w-auto max-w-[min(204px,100%)]"
+            imgClassName="w-[200px] max-w-full h-auto max-h-[80px]"
           />
         )}
       </div>

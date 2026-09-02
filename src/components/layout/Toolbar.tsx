@@ -101,7 +101,7 @@ export default function Toolbar({ onMenuClick }: ToolbarProps) {
 
   return (
     <header className="sticky top-0 z-20 shrink-0 min-w-0 pt-[env(safe-area-inset-top)] bg-sidebar md:bg-card/80 md:backdrop-blur-sm md:border-b md:border-border">
-      <div className="flex h-14 sm:h-16 items-center justify-between px-3 sm:px-6">
+      <div className="flex h-14 md:h-24 items-center justify-between px-3 sm:px-6">
         <div className="flex items-center gap-2 shrink-0 min-w-0">
           <button
             onClick={onMenuClick}
@@ -112,7 +112,7 @@ export default function Toolbar({ onMenuClick }: ToolbarProps) {
             <Menu size={20} />
           </button>
           <div className="md:hidden flex items-center min-w-0">
-            <BrandLogo variant="white" imgClassName="h-10 w-auto max-w-[min(160px,50vw)]" />
+            <BrandLogo variant="white" imgClassName="w-[150px] max-w-[min(150px,52vw)] h-auto" />
           </div>
         </div>
 
