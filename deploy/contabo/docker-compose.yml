@@ -1,5 +1,6 @@
 # Someli Contabilidade — API + Postgres na mesma VPS do Semear (porta 8081).
 # Semear usa 8080; este stack não conflita (rede Docker isolada).
+name: someli-contabo
 
 services:
   db:
