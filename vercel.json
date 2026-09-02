@@ -1,5 +1,13 @@
 {
+  "headers": [
+    {
+      "source": "/(.*)\\.(png|ico|webmanifest|svg)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    }
+  ],
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/((?!.*\\.).*)", "destination": "/index.html" }
   ]
 }
