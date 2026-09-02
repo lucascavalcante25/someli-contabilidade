@@ -20,22 +20,22 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
-      {/* Desktop Sidebar - hidden on mobile */}
       <div className="hidden md:block">
         <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(c => !c)} />
       </div>
 
-      {/* Mobile Sidebar - Sheet drawer */}
       <MobileSidebar open={mobileMenuOpen} onOpenChange={setMobileMenuOpen} />
 
-      {/* Main content - responsive margin */}
       <motion.div
-        animate={{ marginLeft: contentMargin }}
+        animate={{
+          marginLeft: contentMargin,
+          width: `calc(100% - ${contentMargin}px)`,
+        }}
         transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
-        className="flex flex-col min-h-screen w-full max-w-full min-w-0 overflow-x-hidden"
+        className="flex flex-col min-h-screen min-w-0 overflow-x-hidden"
       >
         <Toolbar onMenuClick={() => setMobileMenuOpen(true)} />
-        <main className="flex-1 min-w-0 max-w-full overflow-x-hidden p-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <main className="flex-1 min-w-0 p-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <Outlet />
         </main>
       </motion.div>

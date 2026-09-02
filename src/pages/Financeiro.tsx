@@ -211,7 +211,7 @@ export default function Financeiro() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 min-w-0">
         <StatCard label="Receita Total" value={formatCurrency(r.receitaTotal)} icon={DollarSign} accent="primary" />
         <StatCard label="Receita Recebida" value={formatCurrency(r.receitaRecebida)} icon={CheckCircle} accent="success" />
         <StatCard label="Receita Pendente" value={formatCurrency(r.receitaPendente)} icon={Clock} accent="warning" />
@@ -221,9 +221,9 @@ export default function Financeiro() {
       </div>
 
       {/* Chart */}
-      <div className="card-surface p-4 sm:p-5 max-w-full overflow-hidden">
+      <div className="card-surface p-4 sm:p-5 max-w-full overflow-hidden min-w-0">
         <h3 className="text-sm font-semibold mb-4">Receita × Despesa — {selectedYear}</h3>
-        <div className="w-full min-w-0 -mx-1">
+        <div className="w-full min-w-0">
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={chartDataParaGrafico} barGap={2}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 32%, 91%)" />

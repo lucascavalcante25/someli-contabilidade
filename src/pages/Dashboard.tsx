@@ -175,7 +175,7 @@ export default function Dashboard() {
         <p className="text-sm text-muted-foreground mt-1">Aqui está o resumo do seu escritório</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 min-w-0">
         <StatCard label="Clientes Ativos" value={String(totalClientes)} icon={Users} accent="primary" />
         <StatCard label="Receita Mensal" value={formatCurrency(receitaTotal)} icon={DollarSign} accent="success" />
         <StatCard label="Receita Pendente" value={formatCurrency(receitaPendente)} icon={Clock} accent="warning" />

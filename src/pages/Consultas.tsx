@@ -205,7 +205,7 @@ export default function Consultas() {
               <button
                 onClick={consultarCnpj}
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 {loading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
                 Consultar
@@ -244,7 +244,7 @@ export default function Consultas() {
               <button
                 onClick={consultarSintegra}
                 disabled={loading}
-                className="w-full sm:flex-1 flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="w-full sm:flex-1 sm:max-w-xs flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 Consultar
               </button>
