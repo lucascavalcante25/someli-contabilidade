@@ -45,4 +45,6 @@ services:
 
 volumes:
   pgdata:
+    name: someli_pgdata
   someli-uploads:
+    name: someli_uploads
