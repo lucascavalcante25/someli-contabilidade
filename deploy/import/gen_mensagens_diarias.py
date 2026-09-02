@@ -346,7 +346,7 @@ def main() -> None:
         "-- Mensagens diárias cristocêntricas (protestantes / reformadas / evangélicas)",
         "CREATE TABLE IF NOT EXISTS mensagem_diaria (",
         "  id BIGSERIAL PRIMARY KEY,",
-        "  dia_ano SMALLINT NOT NULL,",
+        "  dia_ano INTEGER NOT NULL,",
         "  texto TEXT NOT NULL,",
         "  referencia VARCHAR(160),",
         "  tipo VARCHAR(30) NOT NULL DEFAULT 'versiculo',",

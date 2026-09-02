@@ -10,7 +10,7 @@ public class MensagemDiaria {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "dia_ano", nullable = false, unique = true, columnDefinition = "SMALLINT")
+    @Column(name = "dia_ano", nullable = false, unique = true)
     private Integer diaAno;
 
     @Column(nullable = false, columnDefinition = "TEXT")
