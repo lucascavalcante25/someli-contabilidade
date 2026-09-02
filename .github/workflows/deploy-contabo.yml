@@ -2,6 +2,9 @@
 #
 # Secrets no GitHub (pode reutilizar os do Semear):
 #   CONTABO_HOST, CONTABO_USER, CONTABO_SSH_KEY
+#
+# Não usa git pull na VPS (repo privado → falhava sem credencial HTTPS).
+# O runner faz checkout e envia o código via SCP.
 
 name: Deploy Contabo API
 
@@ -23,7 +26,24 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - name: Deploy via SSH
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Empacotar backend + deploy
+        run: |
+          tar -czf someli-deploy.tgz backend deploy/contabo
+
+      - name: Enviar pacote para a Contabo
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.CONTABO_HOST }}
+          username: ${{ secrets.CONTABO_USER }}
+          key: ${{ secrets.CONTABO_SSH_KEY }}
+          port: 22
+          source: "someli-deploy.tgz"
+          target: "/tmp"
+
+      - name: Extrair e rebuild da API
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.CONTABO_HOST }}
@@ -34,10 +54,13 @@ jobs:
           script_stop: true
           script: |
             set -euo pipefail
-            cd /opt/someli-contabilidade
-            git fetch origin main
-            git reset --hard origin/main
-            cd deploy/contabo
+            test -f /tmp/someli-deploy.tgz
+            # Preserva .env e volumes; só atualiza código
+            mkdir -p /opt/someli-contabilidade
+            tar -xzf /tmp/someli-deploy.tgz -C /opt/someli-contabilidade
+            rm -f /tmp/someli-deploy.tgz
+            cd /opt/someli-contabilidade/deploy/contabo
+            test -f .env
             docker compose --env-file .env up -d --build api
             echo "Aguardando API ficar UP..."
             ok=0
