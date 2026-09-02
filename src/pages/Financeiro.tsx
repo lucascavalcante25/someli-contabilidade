@@ -204,14 +204,14 @@ export default function Financeiro() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="page-shell">
       <div>
         <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Financeiro</h1>
         <p className="text-sm text-muted-foreground mt-1">Controle financeiro mensal</p>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
         <StatCard label="Receita Total" value={formatCurrency(r.receitaTotal)} icon={DollarSign} accent="primary" />
         <StatCard label="Receita Recebida" value={formatCurrency(r.receitaRecebida)} icon={CheckCircle} accent="success" />
         <StatCard label="Receita Pendente" value={formatCurrency(r.receitaPendente)} icon={Clock} accent="warning" />
@@ -221,8 +221,9 @@ export default function Financeiro() {
       </div>
 
       {/* Chart */}
-      <div className="card-surface p-5">
+      <div className="card-surface p-4 sm:p-5 max-w-full overflow-hidden">
         <h3 className="text-sm font-semibold mb-4">Receita × Despesa — {selectedYear}</h3>
+        <div className="w-full min-w-0 -mx-1">
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={chartDataParaGrafico} barGap={2}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 32%, 91%)" />
@@ -233,11 +234,12 @@ export default function Financeiro() {
             <Bar dataKey="despesa" name="Despesa" fill="hsl(var(--sidebar-primary))" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
+        </div>
       </div>
 
       {/* Month Tabs */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex gap-1 overflow-x-auto pb-1">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center min-w-0">
+        <div className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1 max-w-full">
           {meses.map((m, i) => (
             <button
               key={m}
@@ -251,7 +253,7 @@ export default function Financeiro() {
         <select
           value={selectedYear}
           onChange={(e) => setSelectedYear(Number(e.target.value))}
-          className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+          className="rounded-md border border-input bg-background px-3 py-2 text-sm w-full sm:w-auto shrink-0"
         >
           {[selectedYear - 1, selectedYear, selectedYear + 1].map((y) => (
             <option key={y} value={y}>{y}</option>
@@ -259,13 +261,13 @@ export default function Financeiro() {
         </select>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
         {/* Clientes Table */}
-        <div className="card-surface overflow-hidden">
+        <div className="card-surface overflow-hidden max-w-full min-w-0">
           <div className="px-4 py-3 border-b border-border">
-            <h3 className="text-sm font-semibold">Clientes — {meses[selectedMonth]} {selectedYear}</h3>
+            <h3 className="text-sm font-semibold truncate">Clientes — {meses[selectedMonth]} {selectedYear}</h3>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto max-w-full">
           <table className="w-full text-sm min-w-[280px]">
             <thead>
               <tr className="bg-muted/50">
@@ -285,7 +287,7 @@ export default function Financeiro() {
               ) : (
                 r.clientes.map((c) => (
                   <tr key={c.id} className="border-t border-border hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-2.5 font-medium">{c.nomeFantasia || '—'}</td>
+                    <td className="px-4 py-2.5 font-medium max-w-[140px] sm:max-w-none truncate" title={c.nomeFantasia || '—'}>{c.nomeFantasia || '—'}</td>
                     <td className="px-4 py-2.5 text-right tabular-nums">{formatCurrency(c.honorario)}</td>
                     <td className="px-4 py-2.5 text-center tabular-nums text-muted-foreground">{c.diaVencimento}</td>
                     <td className="px-4 py-2.5 text-center">
@@ -305,11 +307,11 @@ export default function Financeiro() {
         </div>
 
         {/* Despesas Table */}
-        <div className="card-surface overflow-hidden">
+        <div className="card-surface overflow-hidden max-w-full min-w-0">
           <div className="px-4 py-3 border-b border-border">
-            <h3 className="text-sm font-semibold">Despesas — {meses[selectedMonth]} {selectedYear}</h3>
+            <h3 className="text-sm font-semibold truncate">Despesas — {meses[selectedMonth]} {selectedYear}</h3>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto max-w-full">
           <table className="w-full text-sm min-w-[280px]">
             <thead>
               <tr className="bg-muted/50">
@@ -329,8 +331,8 @@ export default function Financeiro() {
               ) : (
                 r.despesas.map((d) => (
                   <tr key={d.id} className="border-t border-border hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-2.5 font-medium">
-                      {d.descricao}
+                    <td className="px-4 py-2.5 font-medium max-w-[140px] sm:max-w-none">
+                      <span className="block truncate" title={d.descricao}>{d.descricao}</span>
                       {d.parcelas != null && d.parcelaDoMes != null && (
                         <span className="ml-1 text-xs text-muted-foreground">
                           ({d.parcelaDoMes}/{d.parcelas})

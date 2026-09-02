@@ -169,13 +169,13 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="page-shell">
       <div>
         <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">{getGreeting()}, {user?.nome?.split(' ')[0]}</h1>
         <p className="text-sm text-muted-foreground mt-1">Aqui está o resumo do seu escritório</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
         <StatCard label="Clientes Ativos" value={String(totalClientes)} icon={Users} accent="primary" />
         <StatCard label="Receita Mensal" value={formatCurrency(receitaTotal)} icon={DollarSign} accent="success" />
         <StatCard label="Receita Pendente" value={formatCurrency(receitaPendente)} icon={Clock} accent="warning" />
@@ -244,7 +244,7 @@ export default function Dashboard() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="card-surface p-5 lg:col-span-2"
+          className="card-surface p-4 sm:p-5 lg:col-span-2 max-w-full overflow-hidden min-w-0"
         >
           <h3 className="text-sm font-semibold mb-4">Receita × Despesa Mensal</h3>
           <ResponsiveContainer width="100%" height={280}>
@@ -266,7 +266,7 @@ export default function Dashboard() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="card-surface p-5"
+          className="card-surface p-4 sm:p-5 max-w-full overflow-hidden min-w-0"
         >
           <h3 className="text-sm font-semibold mb-4">Adimplência de Clientes</h3>
           <ResponsiveContainer width="100%" height={280}>

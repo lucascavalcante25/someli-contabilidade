@@ -7,6 +7,10 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import ListPagination from '@/components/shared/ListPagination';
+import TableScroll from '@/components/shared/TableScroll';
+import ModalShell from '@/components/shared/ModalShell';
+import { PAGE_SIZE } from '@/lib/constants';
 
 type TipoPagamento = 'pessoa_fisica' | 'pessoa_juridica' | 'terceiros';
 type StatusCliente = 'em_dia' | 'pendente' | 'atrasado';
@@ -155,7 +159,7 @@ export default function Clientes() {
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
   const [prefillCliente, setPrefillCliente] = useState<Partial<ClienteFormData> | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const perPage = 8;
+  const perPage = PAGE_SIZE;
   const [expandedClienteId, setExpandedClienteId] = useState<number | null>(null);
   const [documentosPorCliente, setDocumentosPorCliente] = useState<Record<number, ClienteDocumento[]>>({});
   const [loadingDocumentos, setLoadingDocumentos] = useState<number | null>(null);
@@ -224,7 +228,6 @@ export default function Clientes() {
     );
   }, [clientes, search]);
 
-  const totalPages = Math.ceil(filtered.length / perPage);
   const paginated = filtered.slice((currentPage - 1) * perPage, currentPage * perPage);
 
   const handleDelete = async (id: number) => {
@@ -412,9 +415,9 @@ export default function Clientes() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+    <div className="page-shell">
+      <div className="page-header">
+        <div className="min-w-0">
           <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Clientes</h1>
           <p className="text-sm text-muted-foreground mt-1">{clientes.length} clientes cadastrados</p>
         </div>
@@ -438,14 +441,14 @@ export default function Clientes() {
       </div>
 
       {/* Table */}
-      <div className="card-surface overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[520px]">
+      <div className="card-surface overflow-hidden max-w-full">
+        <TableScroll>
+          <table className="w-full text-sm min-w-[360px]">
             <thead>
               <tr className="bg-muted/50">
                 <th className="label-text px-2 py-3 text-center w-9"></th>
                 <th className="label-text px-3 sm:px-4 py-3 text-left whitespace-nowrap">Razão Social</th>
-                <th className="label-text px-3 sm:px-4 py-3 text-left whitespace-nowrap">CNPJ</th>
+                <th className="label-text px-3 sm:px-4 py-3 text-left whitespace-nowrap hidden sm:table-cell">CNPJ</th>
                 <th className="label-text px-3 sm:px-4 py-3 text-left hidden md:table-cell">Responsável</th>
                 <th className="label-text px-3 sm:px-4 py-3 text-left hidden lg:table-cell">Telefone</th>
                 <th className="label-text px-3 sm:px-4 py-3 text-right whitespace-nowrap">Honorário</th>
@@ -476,11 +479,12 @@ export default function Clientes() {
                       {expandedClienteId === c.id ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                     </button>
                   </td>
-                  <td className="px-3 sm:px-4 py-3 font-medium max-w-[120px] sm:max-w-none truncate" title={c.razaoSocial}>
-                    <span className={c.ativo === false ? 'line-through text-muted-foreground' : ''}>{c.razaoSocial}</span>
-                    {c.ativo === false && <span className="ml-1 text-[10px] uppercase text-muted-foreground">(inativo)</span>}
+                  <td className="px-3 sm:px-4 py-3 font-medium min-w-[120px] max-w-[180px] sm:max-w-none">
+                    <span className={`block truncate ${c.ativo === false ? 'line-through text-muted-foreground' : ''}`} title={c.razaoSocial}>{c.razaoSocial}</span>
+                    {c.ativo === false && <span className="text-[10px] uppercase text-muted-foreground">(inativo)</span>}
+                    <span className="sm:hidden text-[11px] text-muted-foreground tabular-nums block truncate">{c.cnpj ? maskCnpj(c.cnpj) : '—'}</span>
                   </td>
-                  <td className="px-3 sm:px-4 py-3 tabular-nums text-muted-foreground whitespace-nowrap">{c.cnpj ? maskCnpj(c.cnpj) : '—'}</td>
+                  <td className="px-3 sm:px-4 py-3 tabular-nums text-muted-foreground whitespace-nowrap hidden sm:table-cell">{c.cnpj ? maskCnpj(c.cnpj) : '—'}</td>
                   <td className="px-3 sm:px-4 py-3 hidden md:table-cell text-muted-foreground">{c.responsavelNome || '—'}</td>
                   <td className="px-3 sm:px-4 py-3 hidden lg:table-cell text-muted-foreground tabular-nums">{c.telefone}</td>
                   <td className="px-3 sm:px-4 py-3 text-right tabular-nums font-medium whitespace-nowrap">{formatCurrency(c.honorario)}</td>
@@ -552,23 +556,13 @@ export default function Clientes() {
               ))}
             </tbody>
           </table>
-        </div>
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-border">
-            <p className="text-xs text-muted-foreground">{filtered.length} resultado(s)</p>
-            <div className="flex gap-1">
-              {Array.from({ length: totalPages }, (_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrentPage(i + 1)}
-                  className={`h-8 w-8 rounded text-xs font-medium transition-colors ${currentPage === i + 1 ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}`}
-                >
-                  {i + 1}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        </TableScroll>
+        <ListPagination
+          totalItems={filtered.length}
+          currentPage={currentPage}
+          onPageChange={setCurrentPage}
+          pageSize={perPage}
+        />
       </div>
 
       {/* Form Modal */}
@@ -732,20 +726,7 @@ function ClienteFormModal({
   }, [form.clienteObrigacoes]);
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm p-4"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.96, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.96, opacity: 0 }}
-        onClick={e => e.stopPropagation()}
-        className="card-surface w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6"
-      >
+    <ModalShell onClose={onClose} maxWidth="xl">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold">{cliente ? 'Editar Cliente' : 'Novo Cliente'}</h2>
           <button onClick={onClose} className="p-1 rounded hover:bg-muted transition-colors"><X size={18} /></button>
@@ -785,7 +766,7 @@ function ClienteFormModal({
             </div>
           ))}
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="space-y-1.5">
               <label className="label-text">Honorário (R$)</label>
               <input
@@ -964,17 +945,16 @@ function ClienteFormModal({
             </div>
           </div>
         </div>
-        <div className="flex justify-end gap-3 mt-6">
-          <button onClick={onClose} className="px-4 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted transition-colors">Cancelar</button>
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 mt-6">
+          <button onClick={onClose} className="w-full sm:w-auto px-4 py-2.5 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted transition-colors">Cancelar</button>
           <button
             disabled={loading}
             onClick={() => onSave(form)}
-            className="px-4 py-2.5 rounded-md bg-primary text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-60"
+            className="w-full sm:w-auto px-4 py-2.5 rounded-md bg-primary text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-60"
           >
             {loading ? 'Salvando...' : 'Salvar'}
           </button>
         </div>
-      </motion.div>
-    </motion.div>
+    </ModalShell>
   );
 }

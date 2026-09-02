@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
 import { useAuth } from '@/contexts/AuthContext';
+import TableScroll from '@/components/shared/TableScroll';
+import ModalShell from '@/components/shared/ModalShell';
 
 type Perfil = 'ADMIN' | 'CONTADOR' | 'OPERADOR';
 
@@ -201,9 +203,9 @@ export default function Usuarios() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+    <div className="page-shell">
+      <div className="page-header">
+        <div className="min-w-0">
           <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Usuários</h1>
           <p className="text-sm text-muted-foreground mt-1">Gerenciamento de usuários do sistema</p>
         </div>
@@ -215,17 +217,17 @@ export default function Usuarios() {
         </button>
       </div>
 
-      <div className="card-surface overflow-hidden">
-        <div className="overflow-x-auto">
-        <table className="w-full text-sm min-w-[420px]">
+      <div className="card-surface overflow-hidden max-w-full">
+        <TableScroll>
+        <table className="w-full text-sm min-w-[300px]">
           <thead>
             <tr className="bg-muted/50">
               <th className="label-text px-3 sm:px-4 py-3 text-left whitespace-nowrap">Nome</th>
-              <th className="label-text px-3 sm:px-4 py-3 text-left whitespace-nowrap">CPF</th>
+              <th className="label-text px-3 sm:px-4 py-3 text-left whitespace-nowrap hidden sm:table-cell">CPF</th>
               <th className="label-text px-3 sm:px-4 py-3 text-left hidden md:table-cell">Telefone</th>
-              <th className="label-text px-3 sm:px-4 py-3 text-left hidden md:table-cell">E-mail</th>
+              <th className="label-text px-3 sm:px-4 py-3 text-left hidden lg:table-cell">E-mail</th>
               <th className="label-text px-3 sm:px-4 py-3 text-center whitespace-nowrap">Perfil</th>
-              <th className="label-text px-3 sm:px-4 py-3 text-center whitespace-nowrap">Ações</th>
+              <th className="label-text px-3 sm:px-4 py-3 text-center whitespace-nowrap w-20">Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -245,8 +247,11 @@ export default function Usuarios() {
             )}
             {!loading && usuarios.map(u => (
               <tr key={u.id} className="border-t border-border hover:bg-muted/30 transition-colors">
-                <td className="px-3 sm:px-4 py-3 font-medium max-w-[100px] sm:max-w-none truncate" title={u.nome}>{u.nome}</td>
-                <td className="px-3 sm:px-4 py-3 tabular-nums text-muted-foreground whitespace-nowrap">{formatCpf(u.cpf)}</td>
+                <td className="px-3 sm:px-4 py-3 font-medium min-w-[100px] max-w-[160px] sm:max-w-none">
+                  <span className="block truncate" title={u.nome}>{u.nome}</span>
+                  <span className="sm:hidden text-[11px] text-muted-foreground tabular-nums">{formatCpf(u.cpf)}</span>
+                </td>
+                <td className="px-3 sm:px-4 py-3 tabular-nums text-muted-foreground whitespace-nowrap hidden sm:table-cell">{formatCpf(u.cpf)}</td>
                 <td className="px-3 sm:px-4 py-3 hidden md:table-cell text-muted-foreground">{u.telefone}</td>
                 <td className="px-3 sm:px-4 py-3 hidden md:table-cell text-muted-foreground truncate max-w-[120px]" title={u.email}>{u.email}</td>
                 <td className="px-3 sm:px-4 py-3 text-center whitespace-nowrap">
@@ -264,7 +269,7 @@ export default function Usuarios() {
             ))}
           </tbody>
         </table>
-        </div>
+        </TableScroll>
       </div>
 
       <AnimatePresence>
@@ -371,8 +376,7 @@ function UsuarioFormModal({
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm p-4" onClick={onClose}>
-      <motion.div initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.96, opacity: 0 }} onClick={e => e.stopPropagation()} className="card-surface w-full max-w-md max-h-[90vh] overflow-y-auto p-6">
+    <ModalShell onClose={onClose} maxWidth="sm">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold">{usuario ? 'Editar Usuário' : 'Novo Usuário'}</h2>
           <button onClick={onClose} className="p-1 rounded hover:bg-muted transition-colors"><X size={18} /></button>
@@ -474,13 +478,12 @@ function UsuarioFormModal({
             )}
           </div>
         </div>
-        <div className="flex justify-end gap-3 mt-6">
-          <button onClick={onClose} className="px-4 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted transition-colors">Cancelar</button>
-          <button disabled={loading} onClick={() => onSave(form)} className="px-4 py-2.5 rounded-md bg-primary text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-60">
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 mt-6">
+          <button onClick={onClose} className="w-full sm:w-auto px-4 py-2.5 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted transition-colors">Cancelar</button>
+          <button disabled={loading} onClick={() => onSave(form)} className="w-full sm:w-auto px-4 py-2.5 rounded-md bg-primary text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-60">
             {loading ? 'Salvando...' : 'Salvar'}
           </button>
         </div>
-      </motion.div>
-    </motion.div>
+    </ModalShell>
   );
 }

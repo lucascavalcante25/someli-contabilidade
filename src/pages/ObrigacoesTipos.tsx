@@ -4,6 +4,8 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
+import TableScroll from '@/components/shared/TableScroll';
+import ModalShell from '@/components/shared/ModalShell';
 
 interface ObrigacaoTipo {
   id: number;
@@ -94,30 +96,30 @@ export default function ObrigacoesTipos() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+    <div className="page-shell">
+      <div className="page-header">
+        <div className="min-w-0">
           <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Tipos de Obrigação</h1>
           <p className="text-sm text-muted-foreground mt-1">{obrigacoes.length} tipos cadastrados</p>
         </div>
         <button
           onClick={() => { setEditing(null); setShowForm(true); }}
-          className="flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90"
+          className="flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 shrink-0 w-full sm:w-auto"
         >
           <Plus size={16} /> Novo Tipo
         </button>
       </div>
 
-      <div className="card-surface overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+      <div className="card-surface overflow-hidden max-w-full">
+        <TableScroll>
+          <table className="w-full text-sm min-w-[320px]">
             <thead>
               <tr className="bg-muted/50">
-                <th className="label-text px-4 py-3 text-left">Nome</th>
-                <th className="label-text px-4 py-3 text-left">Tipo</th>
-                <th className="label-text px-4 py-3 text-left hidden md:table-cell">Descrição</th>
-                <th className="label-text px-4 py-3 text-center">Dias Alerta</th>
-                <th className="label-text px-4 py-3 text-center">Ações</th>
+                <th className="label-text px-3 sm:px-4 py-3 text-left">Nome</th>
+                <th className="label-text px-3 sm:px-4 py-3 text-left hidden sm:table-cell">Tipo</th>
+                <th className="label-text px-3 sm:px-4 py-3 text-left hidden md:table-cell">Descrição</th>
+                <th className="label-text px-3 sm:px-4 py-3 text-center whitespace-nowrap">Dias</th>
+                <th className="label-text px-3 sm:px-4 py-3 text-center whitespace-nowrap w-20">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -129,11 +131,14 @@ export default function ObrigacoesTipos() {
               )}
               {obrigacoes.map(o => (
                 <tr key={o.id} className="border-t border-border hover:bg-muted/30">
-                  <td className="px-4 py-3 font-medium">{o.nome}</td>
-                  <td className="px-4 py-3">{o.tipo}</td>
-                  <td className="px-4 py-3 hidden md:table-cell text-muted-foreground max-w-[200px] truncate">{o.descricao || '-'}</td>
-                  <td className="px-4 py-3 text-center tabular-nums">{o.diasAntecedenciaAlerta}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 sm:px-4 py-3 font-medium min-w-[120px] max-w-[180px] sm:max-w-none">
+                    <span className="block truncate" title={o.nome}>{o.nome}</span>
+                    <span className="sm:hidden text-[10px] text-muted-foreground">{o.tipo}</span>
+                  </td>
+                  <td className="px-3 sm:px-4 py-3 hidden sm:table-cell">{o.tipo}</td>
+                  <td className="px-3 sm:px-4 py-3 hidden md:table-cell text-muted-foreground max-w-[200px] truncate">{o.descricao || '-'}</td>
+                  <td className="px-3 sm:px-4 py-3 text-center tabular-nums">{o.diasAntecedenciaAlerta}</td>
+                  <td className="px-3 sm:px-4 py-3">
                     <div className="flex justify-center gap-1">
                       <button onClick={() => { setEditing(o); setShowForm(true); }} className="p-1.5 rounded hover:bg-muted"><Pencil size={14} /></button>
                       <button onClick={() => void handleDelete(o.id)} className="p-1.5 rounded hover:bg-destructive/10 text-destructive"><Trash2 size={14} /></button>
@@ -143,7 +148,7 @@ export default function ObrigacoesTipos() {
               ))}
             </tbody>
           </table>
-        </div>
+        </TableScroll>
       </div>
 
       <AnimatePresence>
@@ -187,8 +192,7 @@ function ObrigacaoTipoFormModal({
   }, [editing]);
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm p-4" onClick={onClose}>
-      <motion.div initial={{ scale: 0.96 }} animate={{ scale: 1 }} exit={{ scale: 0.96 }} onClick={e => e.stopPropagation()} className="card-surface w-full max-w-md p-6">
+    <ModalShell onClose={onClose} maxWidth="sm">
         <div className="flex justify-between mb-6">
           <h2 className="text-lg font-semibold">{editing ? 'Editar Tipo' : 'Novo Tipo'}</h2>
           <button onClick={onClose} className="p-1 rounded hover:bg-muted"><X size={18} /></button>
@@ -213,11 +217,10 @@ function ObrigacaoTipoFormModal({
             <input type="number" min={0} value={form.diasAntecedenciaAlerta} onChange={e => setForm(p => ({ ...p, diasAntecedenciaAlerta: Number(e.target.value) }))} className="w-full mt-1.5 rounded-md border border-input px-3 py-2.5 text-sm tabular-nums" />
           </div>
         </div>
-        <div className="flex justify-end gap-3 mt-6">
-          <button onClick={onClose} className="px-4 py-2 rounded-md text-sm text-muted-foreground hover:bg-muted">Cancelar</button>
-          <button disabled={loading} onClick={() => onSave(form)} className="px-4 py-2.5 rounded-md bg-primary text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60">{loading ? 'Salvando...' : 'Salvar'}</button>
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 mt-6">
+          <button onClick={onClose} className="w-full sm:w-auto px-4 py-2.5 rounded-md text-sm text-muted-foreground hover:bg-muted">Cancelar</button>
+          <button disabled={loading} onClick={() => onSave(form)} className="w-full sm:w-auto px-4 py-2.5 rounded-md bg-primary text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60">{loading ? 'Salvando...' : 'Salvar'}</button>
         </div>
-      </motion.div>
-    </motion.div>
+    </ModalShell>
   );
 }

@@ -80,9 +80,25 @@
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
+
+  @media (max-width: 768px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px;
+    }
+  }
 }
 
 @layer utilities {
+  .page-shell {
+    @apply min-w-0 max-w-full space-y-6 animate-fade-in;
+  }
+
+  .page-header {
+    @apply flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between min-w-0;
+  }
+
   .label-text {
     @apply text-xs font-medium uppercase tracking-wider text-muted-foreground;
   }

@@ -184,28 +184,28 @@ export default function Consultas() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="page-shell">
       <div>
         <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Consultas</h1>
         <p className="text-sm text-muted-foreground mt-1">Consulta pública de empresas</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
         {/* CNPJ */}
-        <div className="card-surface p-5">
+        <div className="card-surface p-4 sm:p-5 min-w-0">
           <h3 className="text-sm font-semibold mb-4">Consulta CNPJ</h3>
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="space-y-2">
             <input
               value={cnpj}
               onChange={e => setCnpj(maskCnpj(e.target.value))}
               placeholder="00.000.000/0000-00"
-              className="flex-1 min-w-0 rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all tabular-nums"
+              className="w-full min-w-0 rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all tabular-nums"
             />
-            <div className="flex gap-2 shrink-0">
+            <div className="flex flex-col sm:flex-row gap-2">
               <button
                 onClick={consultarCnpj}
                 disabled={loading}
-                className="flex-1 sm:flex-initial flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 {loading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
                 Consultar
@@ -213,7 +213,7 @@ export default function Consultas() {
               <button
                 onClick={limparConsulta}
                 disabled={loading}
-                className="rounded-md border border-input px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50 shrink-0"
+                className="w-full sm:w-auto rounded-md border border-input px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
               >
                 Limpar
               </button>
@@ -222,20 +222,20 @@ export default function Consultas() {
         </div>
 
         {/* Sintegra */}
-        <div className="card-surface p-5">
+        <div className="card-surface p-4 sm:p-5 min-w-0">
           <h3 className="text-sm font-semibold mb-4">Consulta Sintegra</h3>
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="space-y-2">
             <input
               value={cnpj}
               onChange={e => setCnpj(maskCnpj(e.target.value))}
               placeholder="CNPJ"
-              className="flex-1 min-w-0 rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all tabular-nums"
+              className="w-full min-w-0 rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all tabular-nums"
             />
-            <div className="flex gap-2 shrink-0">
+            <div className="flex flex-col sm:flex-row gap-2">
               <select
                 value={uf}
                 onChange={e => setUf(e.target.value)}
-                className="rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all w-20 shrink-0"
+                className="rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all w-full sm:w-20 shrink-0"
               >
                 {['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'].map(s => (
                   <option key={s}>{s}</option>
@@ -244,7 +244,7 @@ export default function Consultas() {
               <button
                 onClick={consultarSintegra}
                 disabled={loading}
-                className="flex-1 sm:flex-initial flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="w-full sm:flex-1 flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 Consultar
               </button>
@@ -272,8 +272,8 @@ export default function Consultas() {
 
       {/* CNPJ Result */}
       {result && (
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="card-surface p-5 space-y-4">
-          <div className="flex items-center justify-between">
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="card-surface p-4 sm:p-5 space-y-4 max-w-full overflow-hidden">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h3 className="text-sm font-semibold">Resultado da Consulta</h3>
             <button
               onClick={() => {
@@ -291,7 +291,7 @@ export default function Consultas() {
                   },
                 });
               }}
-              className="flex items-center gap-2 rounded-md bg-success px-3 py-2 text-xs font-medium text-success-foreground hover:opacity-90 transition-opacity"
+              className="flex items-center justify-center gap-2 rounded-md bg-success px-3 py-2 text-xs font-medium text-success-foreground hover:opacity-90 transition-opacity w-full sm:w-auto shrink-0"
             >
               <UserPlus size={14} /> Adicionar Cliente
             </button>

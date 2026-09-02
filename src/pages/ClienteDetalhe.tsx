@@ -409,30 +409,30 @@ export default function ClienteDetalhe() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center gap-4">
+    <div className="page-shell">
+      <div className="flex items-start gap-3 min-w-0">
         <button
           onClick={() => navigate('/clientes')}
-          className="p-2 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+          className="p-2 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground shrink-0"
         >
           <ArrowLeft size={20} />
         </button>
-        <div>
-          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">{cliente.razaoSocial}</h1>
-          <p className="text-sm text-muted-foreground">{cliente.nomeFantasia || maskCnpj(cliente.cnpj)}</p>
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight truncate">{cliente.razaoSocial}</h1>
+          <p className="text-sm text-muted-foreground truncate">{cliente.nomeFantasia || maskCnpj(cliente.cnpj)}</p>
         </div>
       </div>
 
-      <Tabs defaultValue="dados" className="w-full">
-        <TabsList className="grid w-full max-w-2xl grid-cols-3">
-          <TabsTrigger value="dados" className="flex items-center gap-2">
-            <FileText size={16} /> Dados
+      <Tabs defaultValue="dados" className="w-full min-w-0 max-w-full">
+        <TabsList className="grid w-full max-w-2xl grid-cols-3 h-auto">
+          <TabsTrigger value="dados" className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 py-2">
+            <FileText size={16} className="shrink-0" /> <span className="truncate">Dados</span>
           </TabsTrigger>
-          <TabsTrigger value="obrigacoes" className="flex items-center gap-2">
-            <ClipboardList size={16} /> Obrigações ({obrigacoes.length})
+          <TabsTrigger value="obrigacoes" className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 py-2">
+            <ClipboardList size={16} className="shrink-0" /> <span className="truncate">Obrig. ({obrigacoes.length})</span>
           </TabsTrigger>
-          <TabsTrigger value="documentos" className="flex items-center gap-2">
-            <File size={16} /> Documentos ({documentos.length})
+          <TabsTrigger value="documentos" className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 py-2">
+            <File size={16} className="shrink-0" /> <span className="truncate">Docs ({documentos.length})</span>
           </TabsTrigger>
         </TabsList>
 
@@ -490,7 +490,7 @@ export default function ClienteDetalhe() {
             </div>
 
             <div className="card-surface overflow-hidden">
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto max-w-full">
                 <table className="w-full text-sm min-w-[480px]">
                   <thead>
                     <tr className="bg-muted/50">
@@ -555,7 +555,7 @@ export default function ClienteDetalhe() {
             {obrigacoesInativas.length > 0 && (
               <div className="card-surface overflow-hidden">
                 <p className="label-text px-4 py-3 border-b border-border text-muted-foreground">Obrigações desativadas</p>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto max-w-full">
                   <table className="w-full text-sm min-w-[480px]">
                     <thead>
                       <tr className="bg-muted/30">
@@ -627,7 +627,7 @@ export default function ClienteDetalhe() {
             </div>
 
             <div className="card-surface overflow-hidden">
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto max-w-full">
                 <table className="w-full text-sm min-w-[400px]">
                   <thead>
                     <tr className="bg-muted/50">

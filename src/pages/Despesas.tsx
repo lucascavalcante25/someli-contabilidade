@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import TableScroll from '@/components/shared/TableScroll';
+import ModalShell from '@/components/shared/ModalShell';
 
 const TIPOS_DESPESA = [
   { value: 'fixa', label: 'Fixa' },
@@ -173,9 +175,9 @@ export default function Despesas() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+    <div className="page-shell">
+      <div className="page-header">
+        <div className="min-w-0">
           <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Despesas</h1>
           <p className="text-sm text-muted-foreground mt-1">Controle de despesas do escritório</p>
         </div>
@@ -190,52 +192,45 @@ export default function Despesas() {
         </button>
       </div>
 
-      <div className="card-surface overflow-hidden">
-        <div className="overflow-x-auto">
-        <table className="w-full text-sm min-w-[480px]">
+      <div className="card-surface overflow-hidden max-w-full">
+        <TableScroll>
+        <table className="w-full text-sm min-w-[340px]">
           <thead>
             <tr className="bg-muted/50">
               <th className="label-text px-3 sm:px-4 py-3 text-left whitespace-nowrap">Descrição</th>
               <th className="label-text px-3 sm:px-4 py-3 text-right whitespace-nowrap">Valor</th>
-              <th className="label-text px-3 sm:px-4 py-3 text-center whitespace-nowrap">Tipo</th>
+              <th className="label-text px-3 sm:px-4 py-3 text-center whitespace-nowrap hidden sm:table-cell">Tipo</th>
               <th className="label-text px-3 sm:px-4 py-3 text-center hidden md:table-cell">Parcelas</th>
-              <th className="label-text px-3 sm:px-4 py-3 text-center hidden md:table-cell">Data Início</th>
+              <th className="label-text px-3 sm:px-4 py-3 text-center hidden lg:table-cell">Data Início</th>
               <th className="label-text px-3 sm:px-4 py-3 text-center whitespace-nowrap">Status</th>
-              <th className="label-text px-3 sm:px-4 py-3 text-center whitespace-nowrap">Ações</th>
+              <th className="label-text px-3 sm:px-4 py-3 text-center whitespace-nowrap w-20">Ações</th>
             </tr>
           </thead>
           <tbody>
             {despesas.map((d) => (
               <tr key={d.id} className="border-t border-border hover:bg-muted/30 transition-colors">
-                <td className="px-3 sm:px-4 py-3 font-medium max-w-[100px] sm:max-w-none truncate" title={d.descricao}>{d.descricao}</td>
+                <td className="px-3 sm:px-4 py-3 font-medium min-w-[100px] max-w-[160px] sm:max-w-none">
+                  <span className="block truncate" title={d.descricao}>{d.descricao}</span>
+                  <span className="sm:hidden text-[10px] text-muted-foreground">{TIPOS_DESPESA_MOBILE[d.tipo] ?? d.tipo}</span>
+                </td>
                 <td className="px-3 sm:px-4 py-3 text-right tabular-nums font-medium whitespace-nowrap">{formatCurrency(d.valorMensal)}</td>
-                <td className="px-3 sm:px-4 py-3 text-center">
-                  <span className="text-xs font-medium text-muted-foreground md:hidden" title={TIPOS_DESPESA.find((t) => t.value === d.tipo)?.label}>
-                    {TIPOS_DESPESA_MOBILE[d.tipo] ?? d.tipo}
-                  </span>
-                  <span className="text-xs font-medium capitalize text-muted-foreground hidden md:inline">
+                <td className="px-3 sm:px-4 py-3 text-center hidden sm:table-cell">
+                  <span className="text-xs font-medium text-muted-foreground">
                     {TIPOS_DESPESA.find((t) => t.value === d.tipo)?.label ?? d.tipo}
                   </span>
                 </td>
                 <td className="px-3 sm:px-4 py-3 text-center hidden md:table-cell text-muted-foreground tabular-nums">
                   {d.parcelas != null ? `${d.parcelaAtual ?? 1}/${d.parcelas}` : '—'}
                 </td>
-                <td className="px-3 sm:px-4 py-3 text-center hidden md:table-cell text-muted-foreground tabular-nums">
+                <td className="px-3 sm:px-4 py-3 text-center hidden lg:table-cell text-muted-foreground tabular-nums">
                   {d.dataInicio ? new Date(d.dataInicio).toLocaleDateString('pt-BR') : '—'}
                 </td>
                 <td className="px-3 sm:px-4 py-3 text-center whitespace-nowrap">
-                  <div className="flex flex-col items-center gap-0.5">
-                    {!isDespesaAtiva(d.dataInicioCobranca) ? (
-                      <>
-                        <StatusBadge status="futura" />
-                        {d.dataInicioCobranca && (
-                          <span className="text-[10px] text-muted-foreground">Cobrança inicia em: {new Date(d.dataInicioCobranca + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
-                        )}
-                      </>
-                    ) : (
-                      <StatusBadge status={d.ativo ? 'ativo' : 'inativo'} />
-                    )}
-                  </div>
+                  {!isDespesaAtiva(d.dataInicioCobranca) ? (
+                    <StatusBadge status="futura" />
+                  ) : (
+                    <StatusBadge status={d.ativo ? 'ativo' : 'inativo'} />
+                  )}
                 </td>
                 <td className="px-3 sm:px-4 py-3 whitespace-nowrap">
                   <div className="flex items-center justify-center gap-1">
@@ -260,7 +255,7 @@ export default function Despesas() {
             ))}
           </tbody>
         </table>
-        </div>
+        </TableScroll>
         {despesas.length === 0 && (
           <div className="px-4 py-12 text-center text-muted-foreground">
             Nenhuma despesa cadastrada. Clique em &quot;Nova Despesa&quot; para começar.
@@ -314,20 +309,7 @@ function DespesaFormModal({
   const update = (k: keyof Despesa, v: unknown) => setForm((prev) => ({ ...prev, [k]: v }));
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm p-4"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.96, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.96, opacity: 0 }}
-        onClick={(e) => e.stopPropagation()}
-        className="card-surface w-full max-w-md p-6"
-      >
+    <ModalShell onClose={onClose} maxWidth="sm">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold">{despesa ? 'Editar Despesa' : 'Nova Despesa'}</h2>
           <button onClick={onClose} className="p-1 rounded hover:bg-muted transition-colors">
@@ -344,7 +326,7 @@ function DespesaFormModal({
               placeholder="Ex: Aluguel, Software, Internet..."
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="label-text">Valor (R$)</label>
               <input
@@ -390,7 +372,7 @@ function DespesaFormModal({
             </select>
           </div>
           {showParcelas && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="label-text">Total de Parcelas</label>
                 <input
@@ -456,22 +438,21 @@ function DespesaFormModal({
             </label>
           )}
         </div>
-        <div className="flex justify-end gap-3 mt-6">
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 mt-6">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
+            className="w-full sm:w-auto px-4 py-2.5 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
           >
             Cancelar
           </button>
           <button
             onClick={() => onSave(form)}
             disabled={!form.descricao?.trim() || (form.valorMensal ?? 0) < 0}
-            className="px-4 py-2.5 rounded-md bg-primary text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full sm:w-auto px-4 py-2.5 rounded-md bg-primary text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Salvar
           </button>
         </div>
-      </motion.div>
-    </motion.div>
+    </ModalShell>
   );
 }

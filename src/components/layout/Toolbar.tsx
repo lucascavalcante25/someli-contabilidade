@@ -99,18 +99,18 @@ export default function Toolbar({ onMenuClick }: ToolbarProps) {
   const temNotificacoes = notificacoes.length > 0;
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 sm:h-16 items-center justify-between border-b border-border bg-card/80 backdrop-blur-sm px-4 sm:px-6 pt-[env(safe-area-inset-top)]">
-      <div className="flex items-center gap-2">
+    <header className="sticky top-0 z-20 flex h-14 sm:h-16 shrink-0 items-center justify-between border-b border-border bg-card/80 backdrop-blur-sm px-3 sm:px-6 pt-[env(safe-area-inset-top)] min-w-0">
+      <div className="flex items-center gap-1 shrink-0">
         <button
           onClick={onMenuClick}
-          className="md:hidden p-2 -ml-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          className="md:hidden p-2 -ml-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           title="Menu"
           aria-label="Abrir menu"
         >
           <Menu size={20} />
         </button>
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-1.5 sm:gap-4 shrink-0">
         <DropdownMenu onOpenChange={handleOpenChange}>
           <DropdownMenuTrigger asChild>
             <button
@@ -172,10 +172,10 @@ export default function Toolbar({ onMenuClick }: ToolbarProps) {
             )}
           </DropdownMenuContent>
         </DropdownMenu>
-        <div className="h-6 w-px bg-border" />
-        <div className="flex items-center gap-3">
+        <div className="h-6 w-px bg-border hidden sm:block" />
+        <div className="flex items-center gap-2 sm:gap-3">
           <UserAvatar userId={user?.id} fotoUrl={user?.fotoUrl} nome={user?.nome} avatarVersion={user?._avatarVersion} />
-          <div className="hidden sm:block">
+          <div className="hidden sm:block min-w-0">
             <p className="text-sm font-medium leading-none">{user?.nome}</p>
             <p className="text-xs text-muted-foreground">{user?.perfil}</p>
           </div>

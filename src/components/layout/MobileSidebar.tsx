@@ -23,12 +23,10 @@ export default function MobileSidebar({ open, onOpenChange }: MobileSidebarProps
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="left" className="w-[280px] max-w-[85vw] p-0 bg-sidebar border-sidebar-border [&>button]:text-sidebar-foreground [&>button]:hover:text-sidebar-primary">
+      <SheetContent side="left" className="w-[280px] max-w-[85vw] p-0 bg-sidebar border-sidebar-border pt-[env(safe-area-inset-top)] [&>button]:top-[max(1rem,env(safe-area-inset-top))] [&>button]:text-sidebar-foreground [&>button]:hover:text-sidebar-primary">
         <div className="flex flex-col h-full">
-          <div className="flex h-16 items-center px-4 gap-3 border-b border-sidebar-border">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sidebar-accent font-bold text-sidebar-primary text-sm">
-              S
-            </div>
+          <div className="flex h-16 items-center px-4 gap-3 border-b border-sidebar-border shrink-0">
+            <img src="/logos/símbolo-colorido-01.png" alt="SOMELI" className="h-9 w-9 shrink-0 rounded-lg object-contain" />
             <span className="text-sidebar-primary font-semibold text-sm tracking-tight">SOMELI</span>
           </div>
           <nav className="flex-1 px-3 py-4 space-y-1">
