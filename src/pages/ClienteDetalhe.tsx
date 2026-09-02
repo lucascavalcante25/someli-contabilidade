@@ -24,6 +24,7 @@ interface Cliente {
   diaVencimento: number;
   tipoPagamento: string;
   status: string;
+  mesesPendentes?: number;
 }
 
 interface Obrigacao {
@@ -135,6 +136,7 @@ export default function ClienteDetalhe() {
         diaVencimento: data.diaVencimento ?? 10,
         tipoPagamento: data.tipoPagamento || '',
         status: data.status || 'em_dia',
+        mesesPendentes: data.mesesPendentes != null ? Number(data.mesesPendentes) : undefined,
       });
     } catch {
       toast.error('Cliente não encontrado');
@@ -491,7 +493,10 @@ export default function ClienteDetalhe() {
               </div>
               <div>
                 <p className="label-text">Status</p>
-                <StatusBadge status={cliente.status as 'em_dia' | 'pendente' | 'atrasado'} />
+                <StatusBadge
+                  status={cliente.status as 'em_dia' | 'pendente' | 'atrasado'}
+                  mesesPendentes={cliente.mesesPendentes}
+                />
               </div>
             </div>
             <button

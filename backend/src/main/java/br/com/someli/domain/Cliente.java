@@ -10,6 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -71,6 +72,10 @@ public class Cliente {
 
     @Column(nullable = false)
     private Boolean ativo = Boolean.TRUE;
+
+    /** Quantidade de meses sem pagamento desde o início da cobrança até o mês atual (não persistido). */
+    @Transient
+    private Integer mesesPendentes;
 
     @PrePersist
     public void prePersist() {
@@ -222,5 +227,13 @@ public class Cliente {
 
     public void setAtivo(Boolean ativo) {
         this.ativo = ativo;
+    }
+
+    public Integer getMesesPendentes() {
+        return mesesPendentes;
+    }
+
+    public void setMesesPendentes(Integer mesesPendentes) {
+        this.mesesPendentes = mesesPendentes;
     }
 }

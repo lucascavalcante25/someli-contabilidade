@@ -13,11 +13,46 @@ const config: Record<Status, { label: string; className: string }> = {
   futura: { label: 'Futura', className: 'bg-primary/10 text-primary' },
 };
 
-export default function StatusBadge({ status }: { status: Status }) {
+function labelPagamento(status: Status, mesesPendentes?: number): string {
+  const meses = Math.max(0, mesesPendentes ?? 0);
+
+  if (status === 'em_dia') {
+    return 'Em dia';
+  }
+
+  if (status === 'pendente') {
+    if (meses <= 1) return 'Pendente este mês';
+    return `Pendente há ${meses} meses`;
+  }
+
+  if (status === 'atrasado') {
+    if (meses <= 0) return 'Atrasado';
+    if (meses === 1) return 'Atrasado este mês';
+    return `Atrasado há ${meses} meses`;
+  }
+
+  return (config[status] || config.pendente).label;
+}
+
+export default function StatusBadge({
+  status,
+  mesesPendentes,
+  label,
+}: {
+  status: Status;
+  /** Quantidade de meses sem pagamento (honorário). Usado em status de cliente. */
+  mesesPendentes?: number;
+  /** Sobrescreve o texto do badge. */
+  label?: string;
+}) {
   const c = config[status] || config.pendente;
+  const text = label ?? (mesesPendentes != null || status === 'pendente' || status === 'atrasado' || status === 'em_dia'
+    ? labelPagamento(status, mesesPendentes)
+    : c.label);
+
   return (
     <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', c.className)}>
-      {c.label}
+      {text}
     </span>
   );
 }

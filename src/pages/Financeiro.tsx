@@ -6,6 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -68,8 +69,8 @@ export default function Financeiro() {
 
   const mesAtual = selectedMonth + 1;
 
-  const carregarResumo = useCallback(async () => {
-    setLoading(true);
+  const carregarResumo = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     try {
       const res = await apiFetch(
         `${apiBaseUrl}/financeiro/resumo?mes=${mesAtual}&ano=${selectedYear}`,
@@ -107,7 +108,7 @@ export default function Financeiro() {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Erro ao carregar financeiro');
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   }, [apiBaseUrl, mesAtual, selectedYear]);
 
@@ -147,10 +148,28 @@ export default function Financeiro() {
     return [chartDataFull[prev], chartDataFull[selectedMonth], chartDataFull[next]];
   }, [isMobile, chartDataFull, selectedMonth]);
 
+  const [togglingPagamento, setTogglingPagamento] = useState<Set<number>>(new Set());
+  const [togglingDespesa, setTogglingDespesa] = useState<Set<number>>(new Set());
+
   const togglePagamento = async (clienteId: number) => {
-    const cliente = resumo?.clientes.find((c) => c.id === clienteId);
+    if (!resumo || togglingPagamento.has(clienteId)) return;
+    const cliente = resumo.clientes.find((c) => c.id === clienteId);
     if (!cliente) return;
+
     const acao = cliente.pago ? 'desmarcar' : 'marcar';
+    const novoPago = !cliente.pago;
+    const delta = cliente.honorario;
+    const snapshot = resumo;
+
+    setResumo({
+      ...resumo,
+      clientes: resumo.clientes.map((c) => (c.id === clienteId ? { ...c, pago: novoPago } : c)),
+      receitaRecebida: resumo.receitaRecebida + (novoPago ? delta : -delta),
+      receitaPendente: resumo.receitaPendente + (novoPago ? -delta : delta),
+      saldo: resumo.saldo + (novoPago ? delta : -delta),
+    });
+    setTogglingPagamento((prev) => new Set(prev).add(clienteId));
+
     try {
       const url = `${apiBaseUrl}/financeiro/pagamentos/${clienteId}/${acao}?mes=${mesAtual}&ano=${selectedYear}`;
       const res = await apiFetch(url, { method: 'POST', headers: getAuthHeaders() });
@@ -160,26 +179,53 @@ export default function Financeiro() {
           ? `Pagamento registrado: ${formatCurrency(cliente.honorario)}`
           : 'Pagamento desmarcado'
       );
-      await carregarResumo();
-      await carregarGrafico();
+      void carregarGrafico();
     } catch (e) {
+      setResumo(snapshot);
       toast.error(e instanceof Error ? e.message : 'Erro ao atualizar pagamento');
+    } finally {
+      setTogglingPagamento((prev) => {
+        const next = new Set(prev);
+        next.delete(clienteId);
+        return next;
+      });
     }
   };
 
   const toggleDespesa = async (despesaId: number) => {
-    const despesa = resumo?.despesas.find((d) => d.id === despesaId);
+    if (!resumo || togglingDespesa.has(despesaId)) return;
+    const despesa = resumo.despesas.find((d) => d.id === despesaId);
     if (!despesa) return;
+
     const acao = despesa.paga ? 'desmarcar' : 'marcar';
+    const novaPaga = !despesa.paga;
+    const delta = despesa.valorMensal;
+    const snapshot = resumo;
+
+    setResumo({
+      ...resumo,
+      despesas: resumo.despesas.map((d) => (d.id === despesaId ? { ...d, paga: novaPaga } : d)),
+      despesasPagas: resumo.despesasPagas + (novaPaga ? delta : -delta),
+      despesasPendentes: resumo.despesasPendentes + (novaPaga ? -delta : delta),
+      saldo: resumo.saldo + (novaPaga ? -delta : delta),
+    });
+    setTogglingDespesa((prev) => new Set(prev).add(despesaId));
+
     try {
       const url = `${apiBaseUrl}/financeiro/despesas/${despesaId}/${acao}?mes=${mesAtual}&ano=${selectedYear}`;
       const res = await apiFetch(url, { method: 'POST', headers: getAuthHeaders() });
       if (!res.ok) throw new Error('Erro ao atualizar despesa');
       toast.success('Despesa atualizada');
-      await carregarResumo();
-      await carregarGrafico();
+      void carregarGrafico();
     } catch (e) {
+      setResumo(snapshot);
       toast.error(e instanceof Error ? e.message : 'Erro ao atualizar despesa');
+    } finally {
+      setTogglingDespesa((prev) => {
+        const next = new Set(prev);
+        next.delete(despesaId);
+        return next;
+      });
     }
   };
 
@@ -291,12 +337,15 @@ export default function Financeiro() {
                     <td className="px-4 py-2.5 text-right tabular-nums">{formatCurrency(c.honorario)}</td>
                     <td className="px-4 py-2.5 text-center tabular-nums text-muted-foreground">{c.diaVencimento}</td>
                     <td className="px-4 py-2.5 text-center">
-                      <input
-                        type="checkbox"
-                        checked={c.pago}
-                        onChange={() => togglePagamento(c.id)}
-                        className="h-4 w-4 rounded border-input accent-primary cursor-pointer"
-                      />
+                      <div className="flex justify-center">
+                        <Checkbox
+                          checked={c.pago}
+                          disabled={togglingPagamento.has(c.id)}
+                          onCheckedChange={() => void togglePagamento(c.id)}
+                          className="h-5 w-5 rounded-md"
+                          aria-label={c.pago ? 'Desmarcar como pago' : 'Marcar como pago'}
+                        />
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -342,12 +391,15 @@ export default function Financeiro() {
                     <td className="px-4 py-2.5 text-right tabular-nums">{formatCurrency(d.valorMensal)}</td>
                     <td className="px-4 py-2.5 text-center tabular-nums text-muted-foreground">{d.diaPagamento}</td>
                     <td className="px-4 py-2.5 text-center">
-                      <input
-                        type="checkbox"
-                        checked={d.paga}
-                        onChange={() => toggleDespesa(d.id)}
-                        className="h-4 w-4 rounded border-input accent-primary cursor-pointer"
-                      />
+                      <div className="flex justify-center">
+                        <Checkbox
+                          checked={d.paga}
+                          disabled={togglingDespesa.has(d.id)}
+                          onCheckedChange={() => void toggleDespesa(d.id)}
+                          className="h-5 w-5 rounded-md"
+                          aria-label={d.paga ? 'Desmarcar como paga' : 'Marcar como paga'}
+                        />
+                      </div>
                     </td>
                   </tr>
                 ))

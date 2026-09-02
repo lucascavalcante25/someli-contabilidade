@@ -21,6 +21,7 @@ public class ClienteDTO {
     private String indicacao;
     private String formaPagamento;
     private Boolean ativo;
+    private Integer mesesPendentes;
 
     public Long getId() {
         return id;
@@ -156,5 +157,13 @@ public class ClienteDTO {
 
     public void setAtivo(Boolean ativo) {
         this.ativo = ativo;
+    }
+
+    public Integer getMesesPendentes() {
+        return mesesPendentes;
+    }
+
+    public void setMesesPendentes(Integer mesesPendentes) {
+        this.mesesPendentes = mesesPendentes;
     }
 }

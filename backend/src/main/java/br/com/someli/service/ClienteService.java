@@ -1,6 +1,7 @@
 package br.com.someli.service;
 
 import br.com.someli.domain.Cliente;
+import br.com.someli.domain.PagamentoMensal;
 import br.com.someli.domain.Usuario;
 import br.com.someli.dto.CreateClienteRequestDTO;
 import br.com.someli.dto.UpdateClienteRequestDTO;
@@ -13,8 +14,12 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 @Service
 public class ClienteService {
@@ -34,22 +39,71 @@ public class ClienteService {
     public List<Cliente> listarTodos() {
         List<Cliente> clientes = clienteRepository.findAll();
         YearMonth atual = YearMonth.now();
-        int mes = atual.getMonthValue();
-        int ano = atual.getYear();
         LocalDate hoje = LocalDate.now();
+        Map<Long, Set<YearMonth>> pagosPorCliente = indexarPagamentosPagos();
 
         for (Cliente c : clientes) {
-            boolean pago = pagamentoMensalRepository.findByClienteIdAndMesAndAno(c.getId(), mes, ano)
-                    .map(p -> Boolean.TRUE.equals(p.getPago()))
-                    .orElse(false);
-            String status = calcularStatus(c.getDiaVencimento(), hoje, pago);
-            c.setStatus(status);
+            Set<YearMonth> pagos = pagosPorCliente.getOrDefault(c.getId(), Set.of());
+            boolean pagoMesAtual = pagos.contains(atual);
+            int mesesPendentes = contarMesesPendentes(c, atual, pagos);
+            c.setStatus(calcularStatus(c.getDiaVencimento(), hoje, pagoMesAtual, mesesPendentes));
+            c.setMesesPendentes(mesesPendentes);
         }
         return clientes;
     }
 
-    private String calcularStatus(Integer diaVencimento, LocalDate hoje, boolean pago) {
-        if (pago) return "em_dia";
+    private Map<Long, Set<YearMonth>> indexarPagamentosPagos() {
+        Map<Long, Set<YearMonth>> map = new HashMap<>();
+        for (PagamentoMensal p : pagamentoMensalRepository.findAll()) {
+            if (!Boolean.TRUE.equals(p.getPago()) || p.getClienteId() == null) {
+                continue;
+            }
+            map.computeIfAbsent(p.getClienteId(), id -> new HashSet<>())
+                    .add(YearMonth.of(p.getAno(), p.getMes()));
+        }
+        return map;
+    }
+
+    private int contarMesesPendentes(Cliente c, YearMonth atual, Set<YearMonth> pagos) {
+        YearMonth inicio = resolverInicioCobranca(c, atual);
+        if (inicio.isAfter(atual)) {
+            return 0;
+        }
+        int pendentes = 0;
+        for (YearMonth cursor = inicio; !cursor.isAfter(atual); cursor = cursor.plusMonths(1)) {
+            if (!pagos.contains(cursor)) {
+                pendentes++;
+            }
+        }
+        return pendentes;
+    }
+
+    private YearMonth resolverInicioCobranca(Cliente c, YearMonth atual) {
+        if (c.getDataInicioCobranca() != null) {
+            return YearMonth.from(c.getDataInicioCobranca());
+        }
+        if (c.getDataCriacao() != null) {
+            return YearMonth.from(c.getDataCriacao());
+        }
+        return atual;
+    }
+
+    /**
+     * em_dia: mês atual pago e sem meses anteriores em aberto
+     * pendente: só o mês atual em aberto e ainda dentro do vencimento
+     * atrasado: vencimento do mês atual passou, ou há meses anteriores em aberto
+     */
+    private String calcularStatus(Integer diaVencimento, LocalDate hoje, boolean pagoMesAtual, int mesesPendentes) {
+        if (pagoMesAtual && mesesPendentes == 0) {
+            return "em_dia";
+        }
+        if (pagoMesAtual) {
+            // Mês atual ok, mas há honorários de meses anteriores
+            return "atrasado";
+        }
+        if (mesesPendentes > 1) {
+            return "atrasado";
+        }
         int dia = diaVencimento != null ? Math.min(diaVencimento, hoje.lengthOfMonth()) : 10;
         LocalDate vencimento = hoje.withDayOfMonth(dia);
         return hoje.isAfter(vencimento) ? "atrasado" : "pendente";
@@ -62,10 +116,16 @@ public class ClienteService {
         Cliente c = clienteRepository.findById(id)
                 .orElseThrow(() -> new ClienteNaoEncontradoException("Cliente não encontrado para o ID informado"));
         YearMonth atual = YearMonth.now();
-        boolean pago = pagamentoMensalRepository.findByClienteIdAndMesAndAno(c.getId(), atual.getMonthValue(), atual.getYear())
-                .map(p -> Boolean.TRUE.equals(p.getPago()))
-                .orElse(false);
-        c.setStatus(calcularStatus(c.getDiaVencimento(), LocalDate.now(), pago));
+        Set<YearMonth> pagos = new HashSet<>();
+        for (PagamentoMensal p : pagamentoMensalRepository.findByClienteId(c.getId())) {
+            if (Boolean.TRUE.equals(p.getPago())) {
+                pagos.add(YearMonth.of(p.getAno(), p.getMes()));
+            }
+        }
+        boolean pagoMesAtual = pagos.contains(atual);
+        int mesesPendentes = contarMesesPendentes(c, atual, pagos);
+        c.setStatus(calcularStatus(c.getDiaVencimento(), LocalDate.now(), pagoMesAtual, mesesPendentes));
+        c.setMesesPendentes(mesesPendentes);
         return c;
     }
 

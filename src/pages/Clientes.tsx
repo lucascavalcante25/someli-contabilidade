@@ -33,6 +33,7 @@ interface Cliente {
   indicacao?: string;
   formaPagamento?: string;
   ativo?: boolean;
+  mesesPendentes?: number;
 }
 
 interface UsuarioResumo {
@@ -144,6 +145,7 @@ function normalizeClienteFromApi(raw: any): Cliente {
     indicacao: raw.indicacao ? String(raw.indicacao) : undefined,
     formaPagamento: raw.formaPagamento ? String(raw.formaPagamento) : undefined,
     ativo: raw.ativo !== false,
+    mesesPendentes: raw.mesesPendentes != null ? Number(raw.mesesPendentes) : undefined,
   };
 }
 
@@ -504,7 +506,7 @@ export default function Clientes() {
                           )}
                         </>
                       ) : (
-                        <StatusBadge status={c.status} />
+                        <StatusBadge status={c.status} mesesPendentes={c.mesesPendentes} />
                       )}
                     </div>
                   </td>
@@ -658,7 +660,7 @@ function ClienteViewModal({
       value: !isCobravel(cliente.dataInicioCobranca) ? (
         <StatusBadge status="nao_iniciado" />
       ) : (
-        <StatusBadge status={cliente.status} />
+        <StatusBadge status={cliente.status} mesesPendentes={cliente.mesesPendentes} />
       ),
     },
   ];
