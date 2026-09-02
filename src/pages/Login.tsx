@@ -7,6 +7,7 @@ import { User, Lock } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api';
 import BrandLogo from '@/components/BrandLogo';
 import TypewriterText from '@/components/shared/TypewriterText';
+import { useIsMobile } from '@/hooks/useMediaQuery';
 import {
   formatarMensagemLogin,
   indiceMensagemLogin,
@@ -20,6 +21,7 @@ const DEBOUNCE_MS = 350;
 const ROTATE_AFTER_MS = 14_000;
 
 export default function Login() {
+  const isMobile = useIsMobile();
   const [cpf, setCpf] = useState('');
   const [senha, setSenha] = useState('');
   const [loading, setLoading] = useState(false);
@@ -128,34 +130,30 @@ export default function Login() {
 
   const hasError = !!error;
 
-  const painelMensagem = (
-    <div className="login-welcome-content">
-      <p className="login-welcome-eyebrow">SOMELI Assessoria Contábil</p>
-      <h1 className="login-welcome-title">Bem-vindo</h1>
-      <div className="login-message-block" aria-live="polite">
-        <AnimatePresence mode="wait">
-          <motion.p
-            key={msgIndex}
-            className="login-welcome-message"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.35 }}
-          >
-            <TypewriterText
-              text={mensagemTexto}
-              speedMs={32}
-              onDone={agendarProximaMensagem}
-            />
-          </motion.p>
-        </AnimatePresence>
-      </div>
+  const blocoMensagem = (
+    <div className="login-message-block" aria-live="polite">
+      <AnimatePresence mode="wait">
+        <motion.p
+          key={msgIndex}
+          className="login-welcome-message"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.35 }}
+        >
+          <TypewriterText
+            text={mensagemTexto}
+            speedMs={32}
+            onDone={agendarProximaMensagem}
+          />
+        </motion.p>
+      </AnimatePresence>
     </div>
   );
 
   return (
     <div className="login-page">
-      {/* LADO ESQUERDO / TOPO MOBILE — branding + mensagem */}
+      {/* LADO ESQUERDO / TOPO MOBILE — branding */}
       <div className="login-left">
         <div className="login-background" />
         <div className="login-shapes">
@@ -176,7 +174,11 @@ export default function Login() {
         <div className="login-logo-watermark">
           <span>SOMELI</span>
         </div>
-        {painelMensagem}
+          <div className="login-welcome-content">
+          <p className="login-welcome-eyebrow">SOMELI Assessoria Contábil</p>
+          <h1 className="login-welcome-title">Bem-vindo</h1>
+          {!isMobile ? <div className="login-message-desktop">{blocoMensagem}</div> : null}
+        </div>
       </div>
 
       {/* LADO DIREITO — formulário */}
@@ -279,6 +281,12 @@ export default function Login() {
             </form>
           </div>
         </motion.div>
+
+        {isMobile ? (
+          <footer className="login-verse-footer">
+            {blocoMensagem}
+          </footer>
+        ) : null}
       </div>
     </div>
   );
