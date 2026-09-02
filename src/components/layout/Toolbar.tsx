@@ -4,8 +4,10 @@ import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
 import UserAvatar from '@/components/UserAvatar';
 import BrandLogo from '@/components/BrandLogo';
+import TypewriterText from '@/components/shared/TypewriterText';
 import { LogOut, Bell, ChevronRight, Menu, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/useMediaQuery';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +27,14 @@ interface Notificacao {
   lida: boolean;
 }
 
+interface MensagemDiaria {
+  id?: number;
+  diaAno?: number;
+  texto: string;
+  referencia?: string;
+  tipo?: string;
+}
+
 function getAuthHeaders() {
   return {
     'Content-Type': 'application/json',
@@ -38,8 +48,11 @@ interface ToolbarProps {
 export default function Toolbar({ onMenuClick }: ToolbarProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
   const [count, setCount] = useState(0);
+  const [mensagem, setMensagem] = useState<MensagemDiaria | null>(null);
+  const [mostrarRef, setMostrarRef] = useState(false);
 
   const apiBaseUrl = API_BASE_URL;
 
@@ -63,9 +76,30 @@ export default function Toolbar({ onMenuClick }: ToolbarProps) {
     }
   }, [apiBaseUrl]);
 
+  const carregarMensagem = useCallback(async () => {
+    try {
+      const res = await apiFetch(`${apiBaseUrl}/mensagens-diarias/hoje`, {
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setMostrarRef(false);
+      setMensagem({
+        id: data.id,
+        diaAno: data.diaAno,
+        texto: String(data.texto || ''),
+        referencia: data.referencia ? String(data.referencia) : undefined,
+        tipo: data.tipo ? String(data.tipo) : undefined,
+      });
+    } catch {
+      setMensagem(null);
+    }
+  }, [apiBaseUrl]);
+
   useEffect(() => {
     void carregarNotificacoes();
-  }, [carregarNotificacoes]);
+    void carregarMensagem();
+  }, [carregarNotificacoes, carregarMensagem]);
 
   const handleOpenChange = useCallback(
     (open: boolean) => {
@@ -77,10 +111,6 @@ export default function Toolbar({ onMenuClick }: ToolbarProps) {
   const handleLogout = () => {
     logout();
     navigate('/login');
-  };
-
-  const handleIrParaCliente = (clienteId: number) => {
-    navigate(`/clientes/${clienteId}`);
   };
 
   const handleMarcarLida = async (id: number, clienteId: number) => {
@@ -100,8 +130,8 @@ export default function Toolbar({ onMenuClick }: ToolbarProps) {
   const temNotificacoes = notificacoes.length > 0;
 
   return (
-    <header className="sticky top-0 z-20 shrink-0 min-w-0 pt-[env(safe-area-inset-top)] bg-sidebar md:bg-card/80 md:backdrop-blur-sm md:border-b md:border-border">
-      <div className="flex h-14 md:h-16 items-center justify-between px-3 sm:px-6">
+    <header className="sticky top-0 z-20 shrink-0 min-w-0 pt-[env(safe-area-inset-top)] bg-sidebar border-b border-sidebar-border">
+      <div className="flex h-14 md:h-16 items-center gap-2 sm:gap-4 px-3 sm:px-6">
         <div className="flex items-center gap-2 shrink-0 min-w-0">
           <button
             onClick={onMenuClick}
@@ -116,11 +146,31 @@ export default function Toolbar({ onMenuClick }: ToolbarProps) {
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 sm:gap-4 shrink-0">
+        {/* Mensagem diária — centro (desktop) */}
+        <div className="hidden md:flex flex-1 min-w-0 items-center justify-center px-2">
+          {!isMobile && mensagem?.texto ? (
+            <div className="max-w-3xl w-full text-center">
+              <p className="text-[13px] leading-snug text-sidebar-foreground/95 font-medium">
+                <TypewriterText
+                  text={mensagem.texto}
+                  speedMs={22}
+                  onDone={() => setMostrarRef(true)}
+                />
+              </p>
+              {mostrarRef && mensagem.referencia ? (
+                <p className="mt-1 text-[11px] text-sidebar-muted truncate animate-in fade-in duration-500">
+                  — {mensagem.referencia}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 ml-auto">
           <DropdownMenu onOpenChange={handleOpenChange}>
             <DropdownMenuTrigger asChild>
               <button
-                className="relative p-2 rounded-md text-sidebar-foreground hover:text-sidebar-primary md:text-muted-foreground md:hover:text-foreground transition-colors"
+                className="relative p-2 rounded-md text-sidebar-foreground hover:text-sidebar-primary hover:bg-sidebar-accent/50 transition-colors"
                 title="Notificações"
               >
                 <Bell size={18} />
@@ -128,7 +178,7 @@ export default function Toolbar({ onMenuClick }: ToolbarProps) {
                   <span className={`absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full text-[10px] font-medium px-1 ${
                     notificacoes.some(n => n.prioridade === 'critica')
                       ? 'bg-destructive text-destructive-foreground'
-                      : 'bg-sidebar-primary text-sidebar-primary-foreground md:bg-primary md:text-primary-foreground'
+                      : 'bg-sidebar-primary text-sidebar-primary-foreground'
                   }`}>
                     {count > 9 ? '9+' : count}
                   </span>
@@ -180,29 +230,41 @@ export default function Toolbar({ onMenuClick }: ToolbarProps) {
               )}
             </DropdownMenuContent>
           </DropdownMenu>
-          <div className="h-6 w-px bg-border hidden sm:block" />
+          <div className="h-6 w-px bg-sidebar-border hidden sm:block" />
           <div className="flex items-center gap-2 sm:gap-3">
             <UserAvatar
               userId={user?.id}
               fotoUrl={user?.fotoUrl}
               nome={user?.nome}
               avatarVersion={user?._avatarVersion}
-              className="ring-sidebar-primary ring-offset-sidebar md:ring-primary md:ring-offset-background"
+              className="ring-sidebar-primary ring-offset-sidebar"
             />
             <div className="hidden sm:block min-w-0">
-              <p className="text-sm font-medium leading-none">{user?.nome}</p>
-              <p className="text-xs text-muted-foreground">{user?.perfil}</p>
+              <p className="text-sm font-medium leading-none text-sidebar-foreground">{user?.nome}</p>
+              <p className="text-xs text-sidebar-muted">{user?.perfil}</p>
             </div>
           </div>
           <button
             onClick={handleLogout}
-            className="p-2 rounded-md text-sidebar-foreground hover:text-sidebar-primary md:text-muted-foreground md:hover:text-destructive transition-colors"
+            className="p-2 rounded-md text-sidebar-foreground hover:text-sidebar-primary hover:bg-sidebar-accent/50 transition-colors"
             title="Sair"
           >
             <LogOut size={18} />
           </button>
         </div>
       </div>
+
+      {/* Mobile: mensagem compacta abaixo */}
+      {isMobile && mensagem?.texto ? (
+        <div className="md:hidden px-3 pb-2.5 border-t border-sidebar-border/50">
+          <p className="text-[11px] leading-snug text-sidebar-foreground/90 line-clamp-2">
+            <TypewriterText text={mensagem.texto} speedMs={18} onDone={() => setMostrarRef(true)} />
+          </p>
+          {mostrarRef && mensagem.referencia ? (
+            <p className="text-[10px] text-sidebar-muted mt-0.5 truncate">— {mensagem.referencia}</p>
+          ) : null}
+        </div>
+      ) : null}
     </header>
   );
 }
