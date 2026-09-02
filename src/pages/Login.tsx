@@ -98,6 +98,23 @@ export default function Login() {
     if (rotateRef.current) clearTimeout(rotateRef.current);
   }, []);
 
+  /* Mobile: fundo roxo contínuo, sem tarja branca nem scroll elástico */
+  useEffect(() => {
+    if (!isMobile) return;
+    const html = document.documentElement;
+    html.classList.add('login-screen-mobile');
+    const meta = document.querySelector('meta[name="theme-color"]');
+    const prevTheme = meta?.getAttribute('content') ?? '';
+    meta?.setAttribute('content', '#58196a');
+    return () => {
+      html.classList.remove('login-screen-mobile');
+      if (meta) {
+        if (prevTheme) meta.setAttribute('content', prevTheme);
+        else meta.removeAttribute('content');
+      }
+    };
+  }, [isMobile]);
+
   const agendarProximaMensagem = () => {
     if (rotateRef.current) clearTimeout(rotateRef.current);
     rotateRef.current = setTimeout(() => {

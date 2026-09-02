@@ -473,28 +473,57 @@
 
 /* ========== MOBILE (no final para vencer estilos base) ========== */
 @media (max-width: 768px) {
-  .login-page {
-    flex-direction: column;
-    height: 100vh;
-    height: 100dvh;
-    max-height: 100dvh;
-    min-height: 100dvh;
-    overflow: hidden;
+  /* Um único gradiente em html/body — evita tarja branca e “duas faixas” de cor */
+  html.login-screen-mobile,
+  html.login-screen-mobile body {
+    height: 100% !important;
+    min-height: 100% !important;
+    overflow: hidden !important;
+    overscroll-behavior: none;
     background: linear-gradient(
       165deg,
       var(--someli-gradient-start) 0%,
-      var(--someli-gradient-mid) 42%,
+      var(--someli-gradient-mid) 48%,
       var(--someli-gradient-end) 100%
-    );
+    ) !important;
+    background-attachment: fixed;
   }
 
-  /* Faixa roxa superior — proporção parecida com o layout de referência */
+  html.login-screen-mobile #root {
+    min-height: 100%;
+    background: transparent;
+  }
+
+  .login-page {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+    max-height: none;
+    overflow: hidden;
+    overscroll-behavior: none;
+    background: transparent;
+  }
+
+  /* Sem segundo gradiente no topo — mesma cor de ponta a ponta */
+  .login-left .login-background {
+    display: none;
+  }
+
   .login-left {
     display: flex;
     flex: 0 0 auto;
     min-height: clamp(168px, 30vh, 240px);
     padding-bottom: 0;
     overflow: visible;
+    background: transparent;
+  }
+
+  .login-shapes {
+    opacity: 0.55;
   }
 
   .login-wave {
@@ -531,8 +560,7 @@
     flex-direction: column;
     align-items: stretch;
     justify-content: flex-start;
-    /* respiro claro entre a faixa roxa e o card */
-    padding: 1.35rem 1rem 0;
+    padding: 1.35rem 1rem max(0.5rem, env(safe-area-inset-bottom));
     background: transparent !important;
     overflow: hidden;
   }
@@ -580,9 +608,10 @@
   .login-verse-footer {
     display: block !important;
     margin-top: auto;
-    padding: 1rem 0.5rem max(1rem, env(safe-area-inset-bottom));
+    padding: 0.75rem 0.5rem 0;
     text-align: center;
     flex: 0 0 auto;
+    background: transparent;
   }
 
   .login-verse-footer .login-message-block {
