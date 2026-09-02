@@ -30,9 +30,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
     >
       {/* Logo */}
       <div className="flex h-16 items-center px-4 gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sidebar-accent font-bold text-sidebar-primary text-sm">
-          S
-        </div>
+        <img src="/logos/simbolo-branco.png" alt="SOMELI" className="h-9 w-9 shrink-0 object-contain" />
         {!collapsed && (
           <motion.span
             initial={{ opacity: 0 }}
