@@ -99,16 +99,12 @@ export default function Login() {
     if (rotateRef.current) clearTimeout(rotateRef.current);
   }, []);
 
-  /* Mobile: fundo roxo contínuo, sem tarja branca nem scroll elástico */
+  /* Mobile: fundo roxo contínuo + theme-color da barra do sistema */
   useEffect(() => {
-    if (!isMobile) return;
-    const html = document.documentElement;
-    html.classList.add('login-screen-mobile');
     const meta = document.querySelector('meta[name="theme-color"]');
     const prevTheme = meta?.getAttribute('content') ?? '';
-    meta?.setAttribute('content', '#58196a');
+    if (isMobile) meta?.setAttribute('content', '#58196a');
     return () => {
-      html.classList.remove('login-screen-mobile');
       if (meta) {
         if (prevTheme) meta.setAttribute('content', prevTheme);
         else meta.removeAttribute('content');
@@ -170,7 +166,7 @@ export default function Login() {
   );
 
   return (
-    <div className="login-page">
+    <div className={`login-page${isMobile ? ' login-page--mobile' : ''}`}>
       {/* LADO ESQUERDO / TOPO MOBILE — branding */}
       <div className="login-left">
         <div className="login-background" />

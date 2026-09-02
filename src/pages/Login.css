@@ -43,24 +43,24 @@
 
 /* Telas muito pequenas (ex: iPhone SE) */
 @media (max-width: 380px) {
-  .login-left {
-    min-height: clamp(152px, 28vh, 200px);
+  .login-page--mobile .login-left {
+    min-height: clamp(148px, 26vh, 190px);
   }
 
-  .login-welcome-content {
+  .login-page--mobile .login-welcome-content {
     padding-left: 1rem;
     padding-right: 1rem;
-    padding-bottom: 1.5rem;
+    padding-bottom: 1.25rem;
   }
 
-  .login-right {
-    padding-top: 1.1rem;
+  .login-page--mobile .login-right {
+    padding-top: 1rem;
     padding-left: 0.75rem;
     padding-right: 0.75rem;
   }
 
-  .login-card {
-    padding: 1.15rem 1rem;
+  .login-page--mobile .login-card {
+    padding: 1.1rem 1rem;
   }
 
   .login-card-title {
@@ -505,154 +505,139 @@
   }
 }
 
-/* ========== MOBILE (no final para vencer estilos base) ========== */
+/* ========== MOBILE — layout estável (hex direto, sem depender de vars no html) ========== */
 @media (max-width: 768px) {
-  /* Um único gradiente em html/body — evita tarja branca e “duas faixas” de cor */
-  html.login-screen-mobile,
-  html.login-screen-mobile body {
-    height: 100% !important;
-    min-height: 100% !important;
-    overflow: hidden !important;
-    overscroll-behavior: none;
-    background: linear-gradient(
-      165deg,
-      var(--someli-gradient-start) 0%,
-      var(--someli-gradient-mid) 48%,
-      var(--someli-gradient-end) 100%
-    ) !important;
-    background-attachment: fixed;
-  }
-
-  html.login-screen-mobile #root {
-    min-height: 100%;
-    background: transparent;
-  }
-
-  .login-page {
-    position: fixed;
-    inset: 0;
-    z-index: 1;
-    flex-direction: column;
-    width: 100%;
+  html:has(.login-page--mobile),
+  body:has(.login-page--mobile) {
     height: 100%;
     min-height: 100%;
-    max-height: none;
     overflow: hidden;
     overscroll-behavior: none;
-    background: transparent;
+    background: #4e0a5f !important;
   }
 
-  /* Sem segundo gradiente no topo — mesma cor de ponta a ponta */
-  .login-left .login-background {
-    display: none;
+  .login-page--mobile {
+    flex-direction: column;
+    width: 100%;
+    min-height: 100dvh;
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+    background: linear-gradient(
+      165deg,
+      #ea5db9 0%,
+      #58196a 52%,
+      #4e0a5f 100%
+    );
   }
 
-  .login-left {
+  .login-page--mobile .login-left {
     display: flex;
     flex: 0 0 auto;
-    min-height: clamp(168px, 30vh, 240px);
-    padding-bottom: 0;
-    overflow: visible;
+    min-height: clamp(160px, 28vh, 220px);
     background: transparent;
+    overflow: hidden;
   }
 
-  .login-shapes {
-    opacity: 0.55;
-  }
-
-  .login-wave {
+  .login-page--mobile .login-left .login-background {
     display: none;
   }
 
-  .login-welcome-content {
+  .login-page--mobile .login-shapes {
+    opacity: 0.45;
+  }
+
+  .login-page--mobile .login-wave {
+    display: none;
+  }
+
+  .login-page--mobile .login-welcome-content {
     flex: 1;
     width: 100%;
     max-width: none;
     min-height: 0;
     justify-content: center;
-    padding: max(1.25rem, env(safe-area-inset-top)) 1.5rem 2rem;
+    padding: max(1.1rem, env(safe-area-inset-top)) 1.35rem 1.5rem;
   }
 
-  .login-welcome-eyebrow {
+  .login-page--mobile .login-welcome-eyebrow {
     margin-bottom: 0.35rem;
     font-size: 0.6875rem;
   }
 
-  .login-welcome-title {
-    font-size: clamp(1.75rem, 7vw, 2.1rem);
+  .login-page--mobile .login-welcome-title {
+    font-size: clamp(1.65rem, 7vw, 2rem);
     margin-bottom: 0;
   }
 
-  .login-message-desktop {
+  .login-page--mobile .login-message-desktop {
     display: none !important;
   }
 
-  .login-right {
+  .login-page--mobile .login-right {
     flex: 1 1 auto;
     min-height: 0;
     display: flex;
     flex-direction: column;
     align-items: stretch;
     justify-content: flex-start;
-    padding: 1.35rem 1rem max(0.5rem, env(safe-area-inset-bottom));
+    padding: 1.15rem 1rem max(0.65rem, env(safe-area-inset-bottom));
     background: transparent !important;
     overflow: hidden;
   }
 
-  .login-card-wrapper {
+  .login-page--mobile .login-card-wrapper {
     width: 100%;
     max-width: 100%;
     margin: 0;
     flex: 0 0 auto;
   }
 
-  .login-card {
-    padding: 1.35rem 1.2rem 1.2rem;
+  .login-page--mobile .login-card {
+    padding: 1.3rem 1.15rem 1.15rem;
     border-radius: 20px;
     box-shadow:
       0 10px 28px rgba(40, 5, 50, 0.28),
       0 2px 8px rgba(0, 0, 0, 0.08);
   }
 
-  .login-card:hover {
+  .login-page--mobile .login-card:hover {
     box-shadow:
       0 10px 28px rgba(40, 5, 50, 0.28),
       0 2px 8px rgba(0, 0, 0, 0.08);
   }
 
-  .login-card-header {
-    margin-bottom: 1.1rem;
+  .login-page--mobile .login-card-header {
+    margin-bottom: 1rem;
   }
 
-  .login-form {
-    gap: 0.9rem;
+  .login-page--mobile .login-form {
+    gap: 0.85rem;
   }
 
-  .login-input {
+  .login-page--mobile .login-input {
     min-height: 44px;
-    padding: 0.75rem 1rem 0.75rem 2.75rem;
     font-size: 16px;
   }
 
-  .login-button {
+  .login-page--mobile .login-button {
     min-height: 44px;
-    padding: 0.85rem 1.25rem;
   }
 
-  .login-verse-footer {
+  .login-page--mobile .login-verse-footer {
     display: block !important;
     margin-top: auto;
-    padding: 0.75rem 0.5rem 0;
+    padding: 0.65rem 0.4rem 0;
     text-align: center;
     flex: 0 0 auto;
     background: transparent;
   }
 
-  .login-verse-footer .login-message-block {
+  .login-page--mobile .login-verse-footer .login-message-block {
     min-height: 0;
   }
 
-  .login-verse-footer .login-welcome-message {
+  .login-page--mobile .login-verse-footer .login-welcome-message {
     font-size: 0.78rem;
     line-height: 1.4;
     color: rgba(255, 255, 255, 0.92);
