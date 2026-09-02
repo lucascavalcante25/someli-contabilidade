@@ -101,18 +101,18 @@ export default function Toolbar({ onMenuClick }: ToolbarProps) {
 
   return (
     <header className="sticky top-0 z-20 shrink-0 min-w-0 pt-[env(safe-area-inset-top)] bg-sidebar md:bg-card/80 md:backdrop-blur-sm md:border-b md:border-border">
-      <div className="flex items-center justify-between px-3 sm:px-6 min-h-[5rem] md:min-h-16 md:h-16">
-        <div className="flex items-center gap-2.5 shrink-0 min-w-0 flex-1 md:flex-none">
+      <div className="flex h-14 sm:h-16 items-center justify-between px-3 sm:px-6">
+        <div className="flex items-center gap-2 shrink-0 min-w-0">
           <button
             onClick={onMenuClick}
             className="md:hidden p-2 -ml-1 rounded-md text-sidebar-foreground hover:text-sidebar-primary hover:bg-sidebar-accent/50 transition-colors shrink-0"
             title="Menu"
             aria-label="Abrir menu"
           >
-            <Menu size={22} />
+            <Menu size={20} />
           </button>
-          <div className="md:hidden flex items-center min-w-0 flex-1 py-1">
-            <BrandLogo variant="white" imgClassName="w-[156px] max-w-[min(156px,54vw)] h-auto" />
+          <div className="md:hidden flex items-center min-w-0">
+            <BrandLogo variant="white" imgClassName="h-10 w-auto max-w-[min(160px,50vw)]" />
           </div>
         </div>
 
