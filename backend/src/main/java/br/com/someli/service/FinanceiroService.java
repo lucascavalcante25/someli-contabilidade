@@ -20,6 +20,7 @@ import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -114,12 +115,27 @@ public class FinanceiroService {
         Map<Long, DespesaMensal> dmPorDespesa = despesasMensais.stream()
                 .collect(Collectors.toMap(DespesaMensal::getDespesaId, dm -> dm, (a, b) -> a));
 
+        // Despesas que têm valor mensal importado: só aparecem nos meses em que há valor > 0
+        Set<Long> despesasComValorMensal = despesaMensalRepository.findDespesaIdsComValorMensal();
+
         List<DespesaMensalDTO> despesasDto = despesasDoMes.stream().map(d -> {
             DespesaMensal dm = dmPorDespesa.get(d.getId());
+            boolean temHistoricoValor = despesasComValorMensal.contains(d.getId());
+            if (temHistoricoValor) {
+                if (dm == null || dm.getValor() == null || dm.getValor().signum() <= 0) {
+                    return null;
+                }
+            }
             boolean paga = dm != null && Boolean.TRUE.equals(dm.getPaga());
-            BigDecimal valorMes = (dm != null && dm.getValor() != null)
-                    ? dm.getValor()
-                    : (d.getValorMensal() != null ? d.getValorMensal() : BigDecimal.ZERO);
+            BigDecimal valorMes;
+            if (dm != null && dm.getValor() != null) {
+                valorMes = dm.getValor();
+            } else {
+                valorMes = d.getValorMensal() != null ? d.getValorMensal() : BigDecimal.ZERO;
+            }
+            if (valorMes.signum() <= 0) {
+                return null;
+            }
             DespesaMensalDTO dto = new DespesaMensalDTO();
             dto.setId(d.getId());
             dto.setDescricao(d.getDescricao());
@@ -135,7 +151,7 @@ public class FinanceiroService {
             }
             dto.setParcelaDoMes(parcelaDoMes);
             return dto;
-        }).collect(Collectors.toList());
+        }).filter(java.util.Objects::nonNull).collect(Collectors.toList());
 
         BigDecimal despesaTotal = despesasDto.stream()
                 .map(DespesaMensalDTO::getValorMensal)

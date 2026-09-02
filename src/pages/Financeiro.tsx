@@ -1,15 +1,19 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import StatCard from '@/components/shared/StatCard';
 import AppSelect from '@/components/shared/AppSelect';
 import { DollarSign, Clock, TrendingUp, CheckCircle, Receipt, Banknote } from 'lucide-react';
 import { toast } from 'sonner';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
 import { Checkbox } from '@/components/ui/checkbox';
 
 const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+const mesesCompletos = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+];
 
 function formatCurrency(value: number): string {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2 });
@@ -69,6 +73,18 @@ export default function Financeiro() {
   const [loading, setLoading] = useState(true);
 
   const mesAtual = selectedMonth + 1;
+  const rotuloMesAno = `${mesesCompletos[selectedMonth]} / ${selectedYear}`;
+  const isMesCorrente =
+    selectedMonth === new Date().getMonth() && selectedYear === new Date().getFullYear();
+  const detalheRef = useRef<HTMLDivElement>(null);
+
+  const selecionarMes = useCallback((indice: number) => {
+    setSelectedMonth(indice);
+    // leve delay para o resumo do mês novo começar a carregar
+    requestAnimationFrame(() => {
+      detalheRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, []);
 
   const carregarResumo = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) setLoading(true);
@@ -252,45 +268,98 @@ export default function Financeiro() {
 
   return (
     <div className="page-shell">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Financeiro</h1>
-        <p className="text-sm text-muted-foreground mt-1">Controle financeiro mensal</p>
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Financeiro</h1>
+          <p className="text-sm text-muted-foreground mt-1">Controle financeiro mensal</p>
+        </div>
+        <p className="text-sm font-medium text-foreground">
+          Exibindo: <span className="text-primary">{rotuloMesAno}</span>
+          {isMesCorrente ? (
+            <span className="ml-2 text-xs font-normal text-muted-foreground">(mês atual)</span>
+          ) : null}
+        </p>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 min-w-0">
-        <StatCard label="Receita Total" value={formatCurrency(r.receitaTotal)} icon={DollarSign} accent="primary" />
-        <StatCard label="Receita Recebida" value={formatCurrency(r.receitaRecebida)} icon={CheckCircle} accent="success" />
-        <StatCard label="Receita Pendente" value={formatCurrency(r.receitaPendente)} icon={Clock} accent="warning" />
-        <StatCard label="Despesas" value={formatCurrency(r.despesaTotal)} icon={Receipt} accent="destructive" />
-        <StatCard label="Despesas Pagas" value={formatCurrency(r.despesasPagas)} icon={Banknote} accent="success" />
-        <StatCard label="Saldo" value={formatCurrency(r.saldo)} icon={TrendingUp} accent={r.saldo >= 0 ? 'success' : 'destructive'} />
+      {/* Stats do mês selecionado */}
+      <div className="space-y-2 min-w-0">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Resumo de {rotuloMesAno}
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 min-w-0">
+          <StatCard label="Receita Total" value={formatCurrency(r.receitaTotal)} icon={DollarSign} accent="primary" subtitle={rotuloMesAno} />
+          <StatCard label="Receita Recebida" value={formatCurrency(r.receitaRecebida)} icon={CheckCircle} accent="success" subtitle={rotuloMesAno} />
+          <StatCard label="Receita Pendente" value={formatCurrency(r.receitaPendente)} icon={Clock} accent="warning" subtitle={rotuloMesAno} />
+          <StatCard label="Despesas" value={formatCurrency(r.despesaTotal)} icon={Receipt} accent="destructive" subtitle={rotuloMesAno} />
+          <StatCard label="Despesas Pagas" value={formatCurrency(r.despesasPagas)} icon={Banknote} accent="success" subtitle={rotuloMesAno} />
+          <StatCard label="Saldo" value={formatCurrency(r.saldo)} icon={TrendingUp} accent={r.saldo >= 0 ? 'success' : 'destructive'} subtitle="Recebida − despesas pagas" />
+        </div>
       </div>
 
       {/* Chart */}
       <div className="card-surface p-4 sm:p-5 max-w-full overflow-hidden min-w-0">
-        <h3 className="text-sm font-semibold mb-4">Receita × Despesa — {selectedYear}</h3>
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between mb-4">
+          <h3 className="text-sm font-semibold">Receita × Despesa — {selectedYear}</h3>
+          <p className="text-xs text-muted-foreground">Clique em um mês no gráfico para ver clientes e despesas daquele mês</p>
+        </div>
         <div className="w-full min-w-0">
         <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={chartDataParaGrafico} barGap={2}>
+          <BarChart
+            data={chartDataParaGrafico}
+            barGap={2}
+            style={{ cursor: 'pointer' }}
+            onClick={(state) => {
+              const label = state?.activeLabel;
+              if (!label) return;
+              // No mobile o gráfico mostra só 3 meses; mapear pelo nome
+              const idx = meses.indexOf(String(label));
+              if (idx >= 0) selecionarMes(idx);
+            }}
+          >
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 32%, 91%)" />
             <XAxis dataKey="mes" tick={{ fontSize: 12 }} stroke="hsl(215, 16%, 47%)" />
             <YAxis tick={{ fontSize: 12 }} stroke="hsl(215, 16%, 47%)" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
             <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={{ borderRadius: 8, border: '1px solid hsl(214, 32%, 91%)', fontSize: 12 }} />
-            <Bar dataKey="receita" name="Receita" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="despesa" name="Despesa" fill="hsl(var(--sidebar-primary))" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="receita" name="Receita" radius={[4, 4, 0, 0]} cursor="pointer">
+              {chartDataParaGrafico.map((entry, index) => {
+                const mesIdx = meses.indexOf(entry.mes);
+                const ativo = mesIdx === selectedMonth;
+                return (
+                  <Cell
+                    key={`rec-${entry.mes}-${index}`}
+                    fill={ativo ? 'hsl(var(--primary))' : 'hsl(var(--primary) / 0.45)'}
+                    stroke={ativo ? 'hsl(var(--primary))' : undefined}
+                    strokeWidth={ativo ? 2 : 0}
+                  />
+                );
+              })}
+            </Bar>
+            <Bar dataKey="despesa" name="Despesa" radius={[4, 4, 0, 0]} cursor="pointer">
+              {chartDataParaGrafico.map((entry, index) => {
+                const mesIdx = meses.indexOf(entry.mes);
+                const ativo = mesIdx === selectedMonth;
+                return (
+                  <Cell
+                    key={`desp-${entry.mes}-${index}`}
+                    fill={ativo ? 'hsl(var(--sidebar-primary))' : 'hsl(var(--sidebar-primary) / 0.4)'}
+                    stroke={ativo ? 'hsl(var(--sidebar-primary))' : undefined}
+                    strokeWidth={ativo ? 2 : 0}
+                  />
+                );
+              })}
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
         </div>
       </div>
 
       {/* Month Tabs */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center min-w-0">
+      <div ref={detalheRef} className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center min-w-0 scroll-mt-24">
         <div className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1 max-w-full">
           {meses.map((m, i) => (
             <button
               key={m}
-              onClick={() => setSelectedMonth(i)}
+              onClick={() => selecionarMes(i)}
               className={`shrink-0 px-3 py-2 rounded-md text-xs font-medium transition-colors ${selectedMonth === i ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}`}
             >
               {m}
@@ -312,7 +381,10 @@ export default function Financeiro() {
         {/* Clientes Table */}
         <div className="card-surface overflow-hidden max-w-full min-w-0">
           <div className="px-4 py-3 border-b border-border">
-            <h3 className="text-sm font-semibold truncate">Clientes — {meses[selectedMonth]} {selectedYear}</h3>
+            <h3 className="text-sm font-semibold truncate">Clientes — {rotuloMesAno}</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Marque &quot;Pago?&quot; para registrar o honorário deste mês. Se o cliente quitar atrasados, marque também nos meses anteriores no gráfico.
+            </p>
           </div>
           <div className="overflow-x-auto max-w-full">
           <table className="w-full text-sm min-w-[280px]">
@@ -328,7 +400,7 @@ export default function Financeiro() {
               {r.clientes.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
-                    Nenhum cliente cadastrado
+                    Nenhum cliente cobrado neste mês
                   </td>
                 </tr>
               ) : (
@@ -359,7 +431,7 @@ export default function Financeiro() {
         {/* Despesas Table */}
         <div className="card-surface overflow-hidden max-w-full min-w-0">
           <div className="px-4 py-3 border-b border-border">
-            <h3 className="text-sm font-semibold truncate">Despesas — {meses[selectedMonth]} {selectedYear}</h3>
+            <h3 className="text-sm font-semibold truncate">Despesas — {rotuloMesAno}</h3>
           </div>
           <div className="overflow-x-auto max-w-full">
           <table className="w-full text-sm min-w-[280px]">
@@ -375,7 +447,7 @@ export default function Financeiro() {
               {r.despesas.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
-                    Nenhuma despesa cadastrada
+                    Nenhuma despesa neste mês
                   </td>
                 </tr>
               ) : (
