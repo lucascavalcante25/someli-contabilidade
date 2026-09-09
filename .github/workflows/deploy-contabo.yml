@@ -61,6 +61,12 @@ jobs:
             rm -f /tmp/someli-deploy.tgz
             cd /opt/someli-contabilidade/deploy/contabo
             test -f .env
+            # Reparo defensivo de checksums Flyway (migrations já aplicadas)
+            if [ -f repair_flyway_checksums.sql ]; then
+              docker compose --env-file .env exec -T db \
+                psql -U someli -d someli -v ON_ERROR_STOP=1 \
+                < repair_flyway_checksums.sql || echo "Aviso: repair Flyway falhou ou já estava ok"
+            fi
             docker compose --env-file .env up -d --build api
             echo "Aguardando API ficar UP..."
             ok=0
@@ -75,7 +81,7 @@ jobs:
             done
             if [ "$ok" != "1" ]; then
               echo "API não respondeu UP a tempo. Últimos logs:"
-              docker compose logs api --tail 80
+              docker compose logs api --tail 120
               exit 1
             fi
             echo "Deploy Someli Contabo OK"
