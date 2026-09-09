@@ -1,18 +1,18 @@
-import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Search, Users, DollarSign, Receipt, UserCog, ChevronLeft, ChevronRight, ClipboardList } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import BrandLogo from '@/components/BrandLogo';
+import { useAuth } from '@/contexts/AuthContext';
 
 const menuItems = [
-  { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-  { label: 'Consultas', icon: Search, path: '/consultas' },
-  { label: 'Clientes', icon: Users, path: '/clientes' },
-  { label: 'Financeiro', icon: DollarSign, path: '/financeiro' },
-  { label: 'Despesas', icon: Receipt, path: '/despesas' },
-  { label: 'Tipos de Obrigação', icon: ClipboardList, path: '/obrigacoes-tipos' },
-  { label: 'Usuários', icon: UserCog, path: '/usuarios' },
+  { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', module: 'DASHBOARD' },
+  { label: 'Consultas', icon: Search, path: '/consultas', module: 'CONSULTAS' },
+  { label: 'Clientes', icon: Users, path: '/clientes', module: 'CLIENTES' },
+  { label: 'Financeiro', icon: DollarSign, path: '/financeiro', module: 'FINANCEIRO' },
+  { label: 'Despesas', icon: Receipt, path: '/despesas', module: 'DESPESAS' },
+  { label: 'Tipos de Obrigação', icon: ClipboardList, path: '/obrigacoes-tipos', module: 'OBRIGACOES_TIPOS' },
+  { label: 'Usuários', icon: UserCog, path: '/usuarios', module: 'USUARIOS' },
 ];
 
 interface SidebarProps {
@@ -22,6 +22,8 @@ interface SidebarProps {
 
 export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const location = useLocation();
+  const { canModule } = useAuth();
+  const visible = menuItems.filter(item => canModule(item.module));
 
   return (
     <motion.aside
@@ -29,7 +31,6 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
       className="fixed left-0 top-0 bottom-0 z-30 flex flex-col bg-sidebar"
     >
-      {/* Altura alinhada à toolbar; logo já sem margens transparentes */}
       <div
         className={cn(
           'flex items-center overflow-hidden border-b border-sidebar-border/60 shrink-0',
@@ -46,9 +47,8 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         )}
       </div>
 
-      {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {menuItems.map(item => {
+        {visible.map(item => {
           const active = location.pathname === item.path;
           return (
             <Link
@@ -68,7 +68,6 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         })}
       </nav>
 
-      {/* Toggle */}
       <div className="p-3 border-t border-sidebar-border">
         <button
           onClick={onToggle}

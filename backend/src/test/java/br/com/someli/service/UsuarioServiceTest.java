@@ -3,11 +3,12 @@ package br.com.someli.service;
 import br.com.someli.domain.Usuario;
 import br.com.someli.exception.UsuarioNaoEncontradoException;
 import br.com.someli.repository.UsuarioRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 
@@ -18,11 +19,19 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class UsuarioServiceTest {
 
-    @Mock
-    private UsuarioRepository usuarioRepository;
+    @Mock private UsuarioRepository usuarioRepository;
+    @Mock private PasswordEncoder passwordEncoder;
+    @Mock private AuthorizationService authorizationService;
+    @Mock private AuditLogService auditLogService;
 
-    @InjectMocks
     private UsuarioService usuarioService;
+
+    @BeforeEach
+    void setUp() {
+        usuarioService = new UsuarioService(
+                usuarioRepository, passwordEncoder, "./data/uploads",
+                authorizationService, auditLogService);
+    }
 
     @Test
     void deveBuscarUsuarioPorCpf() {

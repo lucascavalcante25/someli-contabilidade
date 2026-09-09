@@ -17,6 +17,9 @@ public class UpdateObrigacaoRequestDTO {
     @Min(value = 0, message = "Dias de antecedência deve ser >= 0")
     private Integer diasAntecedenciaAlerta;
 
+    @Size(max = 500)
+    private String urlPortal;
+
     public String getNome() {
         return nome;
     }
@@ -47,5 +50,13 @@ public class UpdateObrigacaoRequestDTO {
 
     public void setDiasAntecedenciaAlerta(Integer diasAntecedenciaAlerta) {
         this.diasAntecedenciaAlerta = diasAntecedenciaAlerta;
+    }
+
+    public String getUrlPortal() {
+        return urlPortal;
+    }
+
+    public void setUrlPortal(String urlPortal) {
+        this.urlPortal = urlPortal;
     }
 }

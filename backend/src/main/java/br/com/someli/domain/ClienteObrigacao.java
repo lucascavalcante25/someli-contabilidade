@@ -37,6 +37,25 @@ public class ClienteObrigacao {
     @Column(length = 500)
     private String observacao;
 
+    @Column(nullable = false, length = 20)
+    private String periodicidade = PeriodicidadeObrigacao.UNICA;
+
+    @Column(name = "dia_vencimento")
+    private Integer diaVencimento;
+
+    @Column(name = "tipo_regra_vencimento", nullable = false, length = 40)
+    private String tipoRegraVencimento = "DIA_FIXO";
+
+    @Column(length = 40)
+    private String setor;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "responsavel_usuario_id")
+    private Usuario responsavel;
+
+    @Column(name = "dias_antecedencia_alerta")
+    private Integer diasAntecedenciaAlerta;
+
     public Long getId() {
         return id;
     }
@@ -83,5 +102,32 @@ public class ClienteObrigacao {
 
     public void setObservacao(String observacao) {
         this.observacao = observacao;
+    }
+
+    public String getPeriodicidade() { return periodicidade; }
+    public void setPeriodicidade(String periodicidade) { this.periodicidade = periodicidade; }
+    public Integer getDiaVencimento() { return diaVencimento; }
+    public void setDiaVencimento(Integer diaVencimento) { this.diaVencimento = diaVencimento; }
+    public String getTipoRegraVencimento() { return tipoRegraVencimento; }
+    public void setTipoRegraVencimento(String tipoRegraVencimento) { this.tipoRegraVencimento = tipoRegraVencimento; }
+    public String getSetor() { return setor; }
+    public void setSetor(String setor) { this.setor = setor; }
+    public Usuario getResponsavel() { return responsavel; }
+    public void setResponsavel(Usuario responsavel) { this.responsavel = responsavel; }
+    public Integer getDiasAntecedenciaAlerta() { return diasAntecedenciaAlerta; }
+    public void setDiasAntecedenciaAlerta(Integer diasAntecedenciaAlerta) { this.diasAntecedenciaAlerta = diasAntecedenciaAlerta; }
+
+    public Integer resolverDiasAntecedencia() {
+        if (diasAntecedenciaAlerta != null) return diasAntecedenciaAlerta;
+        if (obrigacao != null && obrigacao.getDiasAntecedenciaAlerta() != null) {
+            return obrigacao.getDiasAntecedenciaAlerta();
+        }
+        return 7;
+    }
+
+    public String resolverSetor() {
+        if (setor != null && !setor.isBlank()) return setor;
+        if (obrigacao != null && obrigacao.getSetor() != null) return obrigacao.getSetor();
+        return SetorResponsabilidade.FISCAL;
     }
 }

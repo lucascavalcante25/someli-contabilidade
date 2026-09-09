@@ -5,6 +5,7 @@ import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
 import { useAuth } from '@/contexts/AuthContext';
 import UserAvatar from '@/components/UserAvatar';
+import HintTooltip from '@/components/shared/HintTooltip';
 
 interface ContaForm {
   nome: string;
@@ -182,15 +183,19 @@ export default function Configuracoes() {
               avatarVersion={user?._avatarVersion}
               className="h-20 w-20 text-lg ring-offset-2"
             />
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              disabled={uploading}
-              className="absolute -bottom-1 -right-1 h-9 w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:opacity-90 disabled:opacity-60"
-              title="Alterar foto"
-            >
-              {uploading ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
-            </button>
+            <HintTooltip content="Alterar foto">
+              <span className="absolute -bottom-1 -right-1 inline-flex">
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploading}
+                  className="h-9 w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:opacity-90 disabled:opacity-60"
+                  aria-label="Alterar foto"
+                >
+                  {uploading ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+                </button>
+              </span>
+            </HintTooltip>
             <input
               ref={fileRef}
               type="file"

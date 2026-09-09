@@ -16,6 +16,11 @@ interface ModalShellProps {
   children: React.ReactNode;
   className?: string;
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+  /**
+   * Mantém largura/altura estáveis (não “pula” ao trocar abas/conteúdo).
+   * O conteúdo interno deve usar overflow próprio se precisar rolar.
+   */
+  fixedSize?: boolean;
 }
 
 export default function ModalShell({
@@ -23,6 +28,7 @@ export default function ModalShell({
   children,
   className,
   maxWidth = 'md',
+  fixedSize = false,
 }: ModalShellProps) {
   const closeOnBackdropRef = useRef(false);
 
@@ -68,13 +74,28 @@ export default function ModalShell({
           e.stopPropagation();
         }}
         className={cn(
-          'card-surface w-full max-h-[92vh] sm:max-h-[90vh] overflow-y-auto',
-          'rounded-t-2xl sm:rounded-xl p-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom))]',
+          'card-surface w-full',
+          'rounded-t-2xl sm:rounded-xl',
           maxWidthClass[maxWidth],
+          fixedSize
+            ? cn(
+                'flex flex-col overflow-hidden',
+                'h-[min(100dvh,100%)] sm:h-[min(720px,90vh)]',
+                'max-h-[100dvh] sm:max-h-[90vh]',
+                'p-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom))]'
+              )
+            : cn(
+                'max-h-[92vh] sm:max-h-[90vh] overflow-y-auto',
+                'p-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom))]'
+              ),
           className
         )}
       >
-        {children}
+        {fixedSize ? (
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
+        ) : (
+          children
+        )}
       </motion.div>
     </motion.div>,
     document.body

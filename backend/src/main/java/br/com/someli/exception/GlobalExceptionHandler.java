@@ -16,6 +16,14 @@ import java.time.LocalDateTime;
 public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    @ExceptionHandler(AcessoNegadoException.class)
+    public ResponseEntity<ApiErrorDTO> handleAcessoNegado(
+            AcessoNegadoException ex,
+            HttpServletRequest request
+    ) {
+        return buildError(HttpStatus.FORBIDDEN, ex.getMessage(), request.getRequestURI());
+    }
+
     @ExceptionHandler(UsuarioNaoEncontradoException.class)
     public ResponseEntity<ApiErrorDTO> handleUsuarioNaoEncontrado(
             UsuarioNaoEncontradoException ex,

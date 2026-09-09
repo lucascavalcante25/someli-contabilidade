@@ -1,9 +1,11 @@
 package br.com.someli.controller;
 
+import br.com.someli.dto.AplicarObrigacoesEmMassaRequestDTO;
 import br.com.someli.dto.CreateObrigacaoRequestDTO;
 import br.com.someli.dto.ObrigacaoDTO;
 import br.com.someli.dto.UpdateObrigacaoRequestDTO;
 import br.com.someli.mapper.ObrigacaoMapper;
+import br.com.someli.service.ClienteObrigacaoService;
 import br.com.someli.service.ObrigacaoService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/obrigacoes")
@@ -25,10 +28,14 @@ public class ObrigacaoController {
 
     private final ObrigacaoService obrigacaoService;
     private final ObrigacaoMapper obrigacaoMapper;
+    private final ClienteObrigacaoService clienteObrigacaoService;
 
-    public ObrigacaoController(ObrigacaoService obrigacaoService, ObrigacaoMapper obrigacaoMapper) {
+    public ObrigacaoController(ObrigacaoService obrigacaoService,
+                               ObrigacaoMapper obrigacaoMapper,
+                               ClienteObrigacaoService clienteObrigacaoService) {
         this.obrigacaoService = obrigacaoService;
         this.obrigacaoMapper = obrigacaoMapper;
+        this.clienteObrigacaoService = clienteObrigacaoService;
     }
 
     @GetMapping
@@ -60,5 +67,15 @@ public class ObrigacaoController {
     public ResponseEntity<Void> remover(@PathVariable Long id) {
         obrigacaoService.remover(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/aplicar-em-massa")
+    public ResponseEntity<Map<String, Object>> aplicarEmMassa(
+            @Valid @RequestBody AplicarObrigacoesEmMassaRequestDTO request) {
+        int criadas = clienteObrigacaoService.aplicarEmMassa(request);
+        return ResponseEntity.ok(Map.of(
+                "criadas", criadas,
+                "solicitadas", request.getClienteIds() != null ? request.getClienteIds().size() : 0
+        ));
     }
 }

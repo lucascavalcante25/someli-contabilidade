@@ -11,6 +11,7 @@ import br.com.someli.repository.ClienteRepository;
 import br.com.someli.repository.PagamentoMensalRepository;
 import br.com.someli.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -31,17 +32,30 @@ public class ClienteService {
     private final ClienteRepository clienteRepository;
     private final PagamentoMensalRepository pagamentoMensalRepository;
     private final UsuarioRepository usuarioRepository;
+    private final AuthorizationService authorizationService;
+    private final AuditLogService auditLogService;
 
     public ClienteService(ClienteRepository clienteRepository,
                          PagamentoMensalRepository pagamentoMensalRepository,
-                         UsuarioRepository usuarioRepository) {
+                         UsuarioRepository usuarioRepository,
+                         AuthorizationService authorizationService,
+                         AuditLogService auditLogService) {
         this.clienteRepository = clienteRepository;
         this.pagamentoMensalRepository = pagamentoMensalRepository;
         this.usuarioRepository = usuarioRepository;
+        this.authorizationService = authorizationService;
+        this.auditLogService = auditLogService;
     }
 
+    @Transactional(readOnly = true)
     public List<Cliente> listarTodos() {
-        List<Cliente> clientes = clienteRepository.findAll();
+        authorizationService.requirePermission(br.com.someli.domain.PermissaoCodigo.CLIENTES_VISUALIZAR);
+        List<Cliente> clientes = clienteRepository.findAllWithResponsavel();
+        List<Long> alcada = authorizationService.clienteIdsNaAlcadaAtual();
+        if (alcada != null) {
+            Set<Long> ids = new HashSet<>(alcada);
+            clientes = clientes.stream().filter(c -> ids.contains(c.getId())).toList();
+        }
         YearMonth atual = YearMonth.now();
         LocalDate hoje = LocalDate.now();
         Map<Long, Set<YearMonth>> pagosPorCliente = indexarPagamentosPagosInterno();
@@ -185,11 +199,14 @@ public class ClienteService {
         return hoje.isAfter(vencimento) ? "atrasado" : "pendente";
     }
 
+    @Transactional(readOnly = true)
     public Cliente buscarPorId(Long id) {
         if (id == null) {
             throw new RegraNegocioException("ID do cliente é obrigatório");
         }
-        Cliente c = clienteRepository.findById(id)
+        authorizationService.requirePermission(br.com.someli.domain.PermissaoCodigo.CLIENTES_VISUALIZAR);
+        authorizationService.requireCompanyAccess(id);
+        Cliente c = clienteRepository.findByIdWithResponsavel(id)
                 .orElseThrow(() -> new ClienteNaoEncontradoException("Cliente não encontrado para o ID informado"));
         YearMonth atual = YearMonth.now();
         Set<YearMonth> pagos = new HashSet<>();
@@ -207,27 +224,48 @@ public class ClienteService {
     }
 
     public Cliente criar(CreateClienteRequestDTO request) {
+        authorizationService.requirePermission(br.com.someli.domain.PermissaoCodigo.CLIENTES_CADASTRAR);
         String cnpjNormalizado = normalizarCnpjOpcional(request.getCnpj());
         validarCnpjDuplicado(cnpjNormalizado, null);
 
         Cliente cliente = new Cliente();
         preencherCampos(cliente, request, cnpjNormalizado);
-        return Objects.requireNonNull(clienteRepository.save(cliente));
+        if (!authorizationService.canViewHonorario() && request.getHonorario() != null) {
+            // Sem permissão de honorário: não aceita valor no create (mantém zero)
+            cliente.setHonorario(java.math.BigDecimal.ZERO);
+        }
+        Cliente salvo = Objects.requireNonNull(clienteRepository.save(cliente));
+        auditLogService.registrar("CLIENTE_CRIAR", "CLIENTE", String.valueOf(salvo.getId()), null, salvo.getRazaoSocial());
+        return salvo;
     }
 
     @SuppressWarnings("null")
     public Cliente atualizar(Long id, UpdateClienteRequestDTO request) {
+        authorizationService.requirePermission(br.com.someli.domain.PermissaoCodigo.CLIENTES_EDITAR);
         Cliente cliente = buscarPorId(id);
         String cnpjNormalizado = normalizarCnpjOpcional(request.getCnpj());
         validarCnpjDuplicado(cnpjNormalizado, id);
 
+        java.math.BigDecimal honorarioAnterior = cliente.getHonorario();
+        boolean podeHonorario = authorizationService.hasPermission(br.com.someli.domain.PermissaoCodigo.HONORARIO_EDITAR)
+                || authorizationService.canViewHonorario();
+
         preencherCampos(cliente, request, cnpjNormalizado);
+        if (!podeHonorario) {
+            cliente.setHonorario(honorarioAnterior);
+        } else if (honorarioAnterior != null && request.getHonorario() != null
+                && honorarioAnterior.compareTo(request.getHonorario()) != 0) {
+            auditLogService.registrar("HONORARIO_ALTERAR", "CLIENTE", String.valueOf(id),
+                    String.valueOf(honorarioAnterior), String.valueOf(request.getHonorario()));
+        }
         Cliente clienteAtualizado = clienteRepository.save(cliente);
         return Objects.requireNonNull(clienteAtualizado);
     }
 
     public void remover(Long id) {
+        authorizationService.requirePermission(br.com.someli.domain.PermissaoCodigo.CLIENTES_EXCLUIR);
         Cliente cliente = buscarPorId(id);
+        auditLogService.registrar("CLIENTE_EXCLUIR", "CLIENTE", String.valueOf(id), cliente.getRazaoSocial(), null);
         clienteRepository.delete(Objects.requireNonNull(cliente));
     }
 

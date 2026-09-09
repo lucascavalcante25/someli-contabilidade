@@ -34,6 +34,7 @@ public class ObrigacaoService {
         obrigacao.setTipo(request.getTipo());
         obrigacao.setDescricao(trimOrNull(request.getDescricao()));
         obrigacao.setDiasAntecedenciaAlerta(request.getDiasAntecedenciaAlerta() != null ? request.getDiasAntecedenciaAlerta() : 7);
+        obrigacao.setUrlPortal(trimOrNull(request.getUrlPortal()));
         return obrigacaoRepository.save(obrigacao);
     }
 
@@ -43,6 +44,7 @@ public class ObrigacaoService {
         if (request.getTipo() != null) obrigacao.setTipo(request.getTipo());
         if (request.getDescricao() != null) obrigacao.setDescricao(trimOrNull(request.getDescricao()));
         if (request.getDiasAntecedenciaAlerta() != null) obrigacao.setDiasAntecedenciaAlerta(request.getDiasAntecedenciaAlerta());
+        if (request.getUrlPortal() != null) obrigacao.setUrlPortal(trimOrNull(request.getUrlPortal()));
         return obrigacaoRepository.save(obrigacao);
     }
 

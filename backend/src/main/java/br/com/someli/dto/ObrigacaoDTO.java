@@ -6,6 +6,7 @@ public class ObrigacaoDTO {
     private String tipo;
     private String descricao;
     private Integer diasAntecedenciaAlerta;
+    private String urlPortal;
 
     public Long getId() {
         return id;
@@ -45,5 +46,13 @@ public class ObrigacaoDTO {
 
     public void setDiasAntecedenciaAlerta(Integer diasAntecedenciaAlerta) {
         this.diasAntecedenciaAlerta = diasAntecedenciaAlerta;
+    }
+
+    public String getUrlPortal() {
+        return urlPortal;
+    }
+
+    public void setUrlPortal(String urlPortal) {
+        this.urlPortal = urlPortal;
     }
 }

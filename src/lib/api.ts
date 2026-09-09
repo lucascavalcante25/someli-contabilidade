@@ -4,7 +4,7 @@ const envApiUrl = (import.meta.env.VITE_API_URL || "").trim();
 const PRODUCTION_API_URL = "https://someli-contabilidade.duckdns.org";
 
 export const API_BASE_URL =
-  envApiUrl || (import.meta.env.DEV ? "http://localhost:8081" : PRODUCTION_API_URL);
+  envApiUrl || (import.meta.env.DEV ? "http://localhost:8080" : PRODUCTION_API_URL);
 
 if (!envApiUrl && !import.meta.env.DEV) {
   console.warn("VITE_API_URL ausente no build; usando fallback:", PRODUCTION_API_URL);

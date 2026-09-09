@@ -3,15 +3,16 @@ import { LayoutDashboard, Search, Users, DollarSign, Receipt, UserCog, Clipboard
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import BrandLogo from '@/components/BrandLogo';
+import { useAuth } from '@/contexts/AuthContext';
 
 const menuItems = [
-  { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-  { label: 'Consultas', icon: Search, path: '/consultas' },
-  { label: 'Clientes', icon: Users, path: '/clientes' },
-  { label: 'Financeiro', icon: DollarSign, path: '/financeiro' },
-  { label: 'Despesas', icon: Receipt, path: '/despesas' },
-  { label: 'Tipos de Obrigação', icon: ClipboardList, path: '/obrigacoes-tipos' },
-  { label: 'Usuários', icon: UserCog, path: '/usuarios' },
+  { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', module: 'DASHBOARD' },
+  { label: 'Consultas', icon: Search, path: '/consultas', module: 'CONSULTAS' },
+  { label: 'Clientes', icon: Users, path: '/clientes', module: 'CLIENTES' },
+  { label: 'Financeiro', icon: DollarSign, path: '/financeiro', module: 'FINANCEIRO' },
+  { label: 'Despesas', icon: Receipt, path: '/despesas', module: 'DESPESAS' },
+  { label: 'Tipos de Obrigação', icon: ClipboardList, path: '/obrigacoes-tipos', module: 'OBRIGACOES_TIPOS' },
+  { label: 'Usuários', icon: UserCog, path: '/usuarios', module: 'USUARIOS' },
 ];
 
 interface MobileSidebarProps {
@@ -21,6 +22,8 @@ interface MobileSidebarProps {
 
 export default function MobileSidebar({ open, onOpenChange }: MobileSidebarProps) {
   const location = useLocation();
+  const { canModule } = useAuth();
+  const visible = menuItems.filter(item => canModule(item.module));
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -30,7 +33,7 @@ export default function MobileSidebar({ open, onOpenChange }: MobileSidebarProps
             <BrandLogo variant="white" imgClassName="w-[168px] max-w-full h-auto max-h-[44px]" />
           </div>
           <nav className="flex-1 px-3 py-4 space-y-1">
-            {menuItems.map((item) => {
+            {visible.map((item) => {
               const active = location.pathname === item.path;
               return (
                 <Link

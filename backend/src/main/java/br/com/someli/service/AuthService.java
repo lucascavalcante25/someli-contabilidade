@@ -11,6 +11,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+
 @Service
 public class AuthService {
 
@@ -20,17 +22,20 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final UsuarioMapper usuarioMapper;
+    private final AuthorizationService authorizationService;
 
     public AuthService(
             UsuarioService usuarioService,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
-            UsuarioMapper usuarioMapper
+            UsuarioMapper usuarioMapper,
+            AuthorizationService authorizationService
     ) {
         this.usuarioService = usuarioService;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.usuarioMapper = usuarioMapper;
+        this.authorizationService = authorizationService;
     }
 
     public LoginResponseDTO login(LoginRequestDTO request) {
@@ -49,6 +54,9 @@ public class AuthService {
 
         String token = jwtService.gerarToken(usuario);
         LOGGER.info("Login realizado com sucesso para CPF {}", cpfNormalizado);
-        return new LoginResponseDTO(token, usuarioMapper.toDto(usuario));
+        LoginResponseDTO response = new LoginResponseDTO(token, usuarioMapper.toDto(usuario));
+        response.setPermissoes(new ArrayList<>(authorizationService.resolvePermissoes(usuario)));
+        response.setAlcadaGlobal(authorizationService.hasAlcadaGlobal(usuario));
+        return response;
     }
 }

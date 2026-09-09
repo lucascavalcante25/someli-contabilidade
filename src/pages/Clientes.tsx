@@ -15,6 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import ListPagination from '@/components/shared/ListPagination';
 import TableScroll from '@/components/shared/TableScroll';
 import ModalShell from '@/components/shared/ModalShell';
+import HintTooltip from '@/components/shared/HintTooltip';
 import ToggleValoresButton from '@/components/shared/ToggleValoresButton';
 import { useValoresVisibilidade } from '@/contexts/ValoresVisibilidadeContext';
 import { PAGE_SIZE } from '@/lib/constants';
@@ -45,6 +46,7 @@ interface Cliente {
   mesesPendentesDetalhe?: string[];
   valorPendente?: number;
   dataFimCobranca?: string;
+  tags?: { id: number; nome: string; cor?: string }[];
 }
 
 interface UsuarioResumo {
@@ -196,6 +198,13 @@ function normalizeClienteFromApi(raw: any): Cliente {
       : undefined,
     valorPendente: raw.valorPendente != null ? Number(raw.valorPendente) : undefined,
     dataFimCobranca: raw.dataFimCobranca ? String(raw.dataFimCobranca).slice(0, 10) : undefined,
+    tags: Array.isArray(raw.tags)
+      ? raw.tags.map((t: any) => ({
+          id: Number(t.id),
+          nome: String(t.nome || ''),
+          cor: t.cor ? String(t.cor) : undefined,
+        }))
+      : [],
   };
 }
 
@@ -208,6 +217,8 @@ export default function Clientes() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
+  const [tagFilter, setTagFilter] = useState('');
+  const [tagOptions, setTagOptions] = useState<{ id: number; nome: string }[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
   const [viewingCliente, setViewingCliente] = useState<Cliente | null>(null);
@@ -282,6 +293,24 @@ export default function Clientes() {
   }, [carregarClientes]);
 
   useEffect(() => {
+    void (async () => {
+      try {
+        const res = await apiFetch(`${apiBaseUrl}/tags`, { headers: { 'Content-Type': 'application/json' } });
+        if (!res.ok) return;
+        const data = await res.json();
+        setTagOptions(
+          (Array.isArray(data) ? data : []).map((t: any) => ({
+            id: Number(t.id),
+            nome: String(t.nome || ''),
+          }))
+        );
+      } catch {
+        setTagOptions([]);
+      }
+    })();
+  }, [apiBaseUrl]);
+
+  useEffect(() => {
     const state = (location.state || {}) as {
       prefillCliente?: any;
       viewClienteId?: number;
@@ -327,12 +356,16 @@ export default function Clientes() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    const list = clientes.filter(c =>
-      c.razaoSocial.toLowerCase().includes(q) ||
-      c.cnpj.includes(q) ||
-      c.proprietario.toLowerCase().includes(q) ||
-      c.email.toLowerCase().includes(q)
-    );
+    const list = clientes.filter(c => {
+      const matchText =
+        c.razaoSocial.toLowerCase().includes(q) ||
+        c.cnpj.includes(q) ||
+        c.proprietario.toLowerCase().includes(q) ||
+        c.email.toLowerCase().includes(q) ||
+        (c.tags || []).some((t) => t.nome.toLowerCase().includes(q));
+      const matchTag = !tagFilter || (c.tags || []).some((t) => String(t.id) === tagFilter);
+      return matchText && matchTag;
+    });
     const rules = sortRules.length
       ? sortRules
       : ([{ key: 'ativo', dir: 'asc' }, { key: 'razaoSocial', dir: 'asc' }] as SortRule[]);
@@ -343,7 +376,7 @@ export default function Clientes() {
       }
       return a.razaoSocial.localeCompare(b.razaoSocial, 'pt-BR', { sensitivity: 'base' });
     });
-  }, [clientes, search, sortRules]);
+  }, [clientes, search, tagFilter, sortRules]);
 
   const paginated = filtered.slice((currentPage - 1) * perPage, currentPage * perPage);
 
@@ -555,14 +588,27 @@ export default function Clientes() {
       </div>
 
       {/* Search */}
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <div className="relative w-full sm:max-w-sm">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input
-            value={search}
-            onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
-            placeholder="Buscar por nome, CNPJ, email..."
-            className="w-full rounded-md border border-input bg-card pl-9 pr-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-all"
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:max-w-xl">
+          <div className="relative flex-1">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={search}
+              onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+              placeholder="Buscar por nome, CNPJ, email, tag..."
+              className="w-full rounded-md border border-input bg-card pl-9 pr-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-all"
+            />
+          </div>
+          <AppSelect
+            value={tagFilter}
+            onChange={(v) => { setTagFilter(v); setCurrentPage(1); }}
+            allowEmpty
+            placeholder="Todas as tags"
+            className="sm:w-44"
+            options={[
+              { value: '', label: 'Todas as tags' },
+              ...tagOptions.map((t) => ({ value: String(t.id), label: t.nome })),
+            ]}
           />
         </div>
         <p className="text-[11px] text-muted-foreground sm:text-right">
@@ -602,16 +648,34 @@ export default function Clientes() {
                 <React.Fragment key={c.id}>
                 <tr className="border-t border-border hover:bg-muted/30 transition-colors">
                   <td className="px-2 py-3 text-center">
-                    <button
-                      onClick={() => void toggleExpand(c.id)}
-                      className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
-                      title={expandedClienteId === c.id ? 'Recolher' : 'Ver documentos'}
-                    >
-                      {expandedClienteId === c.id ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                    </button>
+                    <HintTooltip content={expandedClienteId === c.id ? 'Recolher documentos' : 'Ver documentos'}>
+                      <button
+                        type="button"
+                        onClick={() => void toggleExpand(c.id)}
+                        className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                        aria-label={expandedClienteId === c.id ? 'Recolher documentos' : 'Ver documentos'}
+                      >
+                        {expandedClienteId === c.id ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                      </button>
+                    </HintTooltip>
                   </td>
                   <td className="px-3 sm:px-4 py-3 font-medium min-w-[120px] max-w-[180px] sm:max-w-none">
-                    <span className={`block truncate ${c.ativo === false ? 'line-through text-muted-foreground' : ''}`} title={c.razaoSocial}>{c.razaoSocial}</span>
+                    <HintTooltip content={c.razaoSocial} enabled={!!c.razaoSocial && c.razaoSocial.length > 28}>
+                      <span className={`block truncate ${c.ativo === false ? 'line-through text-muted-foreground' : ''}`}>{c.razaoSocial}</span>
+                    </HintTooltip>
+                    {(c.tags || []).length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {c.tags!.slice(0, 3).map((t) => (
+                          <span
+                            key={t.id}
+                            className="text-[10px] px-1.5 py-0.5 rounded border border-border/80"
+                            style={{ borderColor: t.cor || undefined, color: t.cor || undefined }}
+                          >
+                            {t.nome.replace(/_/g, ' ')}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     {c.ativo === false && <span className="text-[10px] uppercase text-muted-foreground">(inativo)</span>}
                     <span className="sm:hidden text-[11px] text-muted-foreground tabular-nums block truncate">{c.cnpj ? maskCnpj(c.cnpj) : '—'}</span>
                   </td>
@@ -646,9 +710,36 @@ export default function Clientes() {
                   </td>
                   <td className="px-3 sm:px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center justify-center gap-1">
-                      <button onClick={() => handleView(c)} className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground" title="Ver detalhes"><Eye size={14} /></button>
-                      <button onClick={() => handleEdit(c)} className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground" title="Editar"><Pencil size={14} /></button>
-                      <button onClick={() => void handleDelete(c.id)} className="p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
+                      <HintTooltip content="Ver detalhes">
+                        <button
+                          type="button"
+                          onClick={() => handleView(c)}
+                          className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                          aria-label="Ver detalhes"
+                        >
+                          <Eye size={14} />
+                        </button>
+                      </HintTooltip>
+                      <HintTooltip content="Editar">
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(c)}
+                          className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                          aria-label="Editar"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                      </HintTooltip>
+                      <HintTooltip content="Excluir">
+                        <button
+                          type="button"
+                          onClick={() => void handleDelete(c.id)}
+                          className="p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"
+                          aria-label="Excluir"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </HintTooltip>
                     </div>
                   </td>
                 </tr>
@@ -678,11 +769,24 @@ export default function Clientes() {
                                 return (
                                   <tr key={doc.id} className="border-t border-border hover:bg-background/50">
                                     <td className="px-3 py-2"><Icon size={14} className="text-muted-foreground" /></td>
-                                    <td className="px-3 py-2 font-medium truncate max-w-[150px]" title={doc.nomeArquivo}>{doc.nomeArquivo}</td>
+                                    <td className="px-3 py-2 font-medium truncate max-w-[150px]">
+                                      <HintTooltip content={doc.nomeArquivo} enabled={!!doc.nomeArquivo && doc.nomeArquivo.length > 18}>
+                                        <span className="block truncate">{doc.nomeArquivo}</span>
+                                      </HintTooltip>
+                                    </td>
                                     <td className="px-3 py-2 hidden sm:table-cell text-muted-foreground truncate max-w-[120px]">{doc.descricao || '—'}</td>
                                     <td className="px-3 py-2 text-muted-foreground text-xs">{doc.dataUpload ? new Date(doc.dataUpload).toLocaleDateString('pt-BR') : '—'}</td>
                                     <td className="px-3 py-2 text-center">
-                                      <button onClick={() => void handleDownloadDoc(c.id, doc)} className="p-1.5 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary" title="Baixar"><Download size={14} /></button>
+                                      <HintTooltip content="Baixar documento">
+                                        <button
+                                          type="button"
+                                          onClick={() => void handleDownloadDoc(c.id, doc)}
+                                          className="p-1.5 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary"
+                                          aria-label="Baixar documento"
+                                        >
+                                          <Download size={14} />
+                                        </button>
+                                      </HintTooltip>
                                     </td>
                                   </tr>
                                 );
@@ -725,7 +829,7 @@ export default function Clientes() {
 
       <AnimatePresence>
         {viewingCliente && (
-          <ModalShell onClose={() => setViewingCliente(null)} maxWidth="2xl">
+          <ModalShell onClose={() => setViewingCliente(null)} maxWidth="2xl" fixedSize>
             <ClienteDetalhePanel
               clienteId={viewingCliente.id}
               variant="modal"
@@ -1184,9 +1288,16 @@ function ClienteFormModal({
                     <div key={obr.id ? `co-${obr.id}` : `new-${obr._key ?? index}`} className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium">{nome}</span>
-                        <button type="button" onClick={() => removeObrigacao(idx)} className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
-                          <Trash2 size={14} />
-                        </button>
+                        <HintTooltip content="Remover obrigação">
+                          <button
+                            type="button"
+                            onClick={() => removeObrigacao(idx)}
+                            className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                            aria-label="Remover obrigação"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </HintTooltip>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <div>

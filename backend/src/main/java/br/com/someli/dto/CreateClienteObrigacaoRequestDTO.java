@@ -19,6 +19,18 @@ public class CreateClienteObrigacaoRequestDTO {
 
     private String observacao;
 
+    private String periodicidade;
+
+    private Integer diaVencimento;
+
+    private String tipoRegraVencimento;
+
+    private String setor;
+
+    private Long responsavelUsuarioId;
+
+    private Integer diasAntecedenciaAlerta;
+
     public Long getClienteId() {
         return clienteId;
     }
@@ -58,4 +70,17 @@ public class CreateClienteObrigacaoRequestDTO {
     public void setObservacao(String observacao) {
         this.observacao = observacao;
     }
+
+    public String getPeriodicidade() { return periodicidade; }
+    public void setPeriodicidade(String periodicidade) { this.periodicidade = periodicidade; }
+    public Integer getDiaVencimento() { return diaVencimento; }
+    public void setDiaVencimento(Integer diaVencimento) { this.diaVencimento = diaVencimento; }
+    public String getTipoRegraVencimento() { return tipoRegraVencimento; }
+    public void setTipoRegraVencimento(String tipoRegraVencimento) { this.tipoRegraVencimento = tipoRegraVencimento; }
+    public String getSetor() { return setor; }
+    public void setSetor(String setor) { this.setor = setor; }
+    public Long getResponsavelUsuarioId() { return responsavelUsuarioId; }
+    public void setResponsavelUsuarioId(Long responsavelUsuarioId) { this.responsavelUsuarioId = responsavelUsuarioId; }
+    public Integer getDiasAntecedenciaAlerta() { return diasAntecedenciaAlerta; }
+    public void setDiasAntecedenciaAlerta(Integer diasAntecedenciaAlerta) { this.diasAntecedenciaAlerta = diasAntecedenciaAlerta; }
 }

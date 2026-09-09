@@ -22,8 +22,16 @@ public class Notification {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "cliente_obrigacao_id", nullable = false)
+    @JoinColumn(name = "cliente_obrigacao_id")
     private ClienteObrigacao clienteObrigacao;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_id")
+    private Usuario usuario;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ocorrencia_id")
+    private ObrigacaoOcorrencia ocorrencia;
 
     @Column(nullable = false, length = 200)
     private String titulo;
@@ -33,6 +41,15 @@ public class Notification {
 
     @Column(nullable = false, length = 20)
     private String prioridade = "normal";
+
+    @Column(nullable = false, length = 40)
+    private String tipo = "OBRIGACAO_ALERTA";
+
+    @Column(length = 300)
+    private String link;
+
+    @Column(name = "chave_dedup", length = 200)
+    private String chaveDedup;
 
     @Column(name = "data_criacao", nullable = false)
     private LocalDateTime dataCriacao;
@@ -102,4 +119,15 @@ public class Notification {
     public void setLida(Boolean lida) {
         this.lida = lida;
     }
+
+    public Usuario getUsuario() { return usuario; }
+    public void setUsuario(Usuario usuario) { this.usuario = usuario; }
+    public ObrigacaoOcorrencia getOcorrencia() { return ocorrencia; }
+    public void setOcorrencia(ObrigacaoOcorrencia ocorrencia) { this.ocorrencia = ocorrencia; }
+    public String getTipo() { return tipo; }
+    public void setTipo(String tipo) { this.tipo = tipo; }
+    public String getLink() { return link; }
+    public void setLink(String link) { this.link = link; }
+    public String getChaveDedup() { return chaveDedup; }
+    public void setChaveDedup(String chaveDedup) { this.chaveDedup = chaveDedup; }
 }

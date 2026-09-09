@@ -1,6 +1,7 @@
 package br.com.someli.service;
 
 import br.com.someli.domain.Perfil;
+import br.com.someli.domain.PermissaoCodigo;
 import br.com.someli.domain.Usuario;
 import br.com.someli.dto.CreateUsuarioRequestDTO;
 import br.com.someli.dto.UpdateUsuarioRequestDTO;
@@ -28,17 +29,33 @@ public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final Path basePath;
+    private final AuthorizationService authorizationService;
+    private final AuditLogService auditLogService;
 
     public UsuarioService(UsuarioRepository usuarioRepository,
                           PasswordEncoder passwordEncoder,
-                          @Value("${app.upload.base-path:./data/uploads}") String basePathStr) {
+                          @Value("${app.upload.base-path:./data/uploads}") String basePathStr,
+                          AuthorizationService authorizationService,
+                          AuditLogService auditLogService) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.basePath = Paths.get(basePathStr).toAbsolutePath().normalize();
+        this.authorizationService = authorizationService;
+        this.auditLogService = auditLogService;
     }
 
     public List<Usuario> listarTodos() {
+        authorizationService.requirePermission(PermissaoCodigo.USUARIOS_VISUALIZAR);
         return usuarioRepository.findAll();
+    }
+
+    /** Lista funcionários ativos para seleção de responsáveis (sem exigir permissão de usuários). */
+    public List<Usuario> listarAtivosParaSelecao() {
+        authorizationService.requirePermission(PermissaoCodigo.CLIENTES_VISUALIZAR);
+        return usuarioRepository.findAll().stream()
+                .filter(u -> Boolean.TRUE.equals(u.getAtivo()))
+                .filter(u -> !"CLIENTE".equalsIgnoreCase(u.getTipoUsuario()))
+                .toList();
     }
 
     public Usuario buscarPorId(Long id) {
@@ -55,6 +72,7 @@ public class UsuarioService {
     }
 
     public Usuario criar(CreateUsuarioRequestDTO request) {
+        authorizationService.requirePermission(PermissaoCodigo.USUARIOS_CADASTRAR);
         String cpfNormalizado = normalizarCpf(request.getCpf());
         validarDuplicidade(cpfNormalizado, request.getEmail(), null);
 
@@ -66,26 +84,39 @@ public class UsuarioService {
         usuario.setPerfil(request.getPerfil());
         usuario.setSenha(passwordEncoder.encode(request.getSenha()));
         usuario.setAtivo(request.getAtivo() == null ? Boolean.TRUE : request.getAtivo());
-        return Objects.requireNonNull(usuarioRepository.save(usuario));
+        if (request.getPerfil() == Perfil.ADMIN) {
+            usuario.setAlcadaGlobal(true);
+        }
+        Usuario salvo = Objects.requireNonNull(usuarioRepository.save(usuario));
+        auditLogService.registrar("USUARIO_CRIAR", "USUARIO", String.valueOf(salvo.getId()), null, salvo.getNome());
+        return salvo;
     }
 
     public Usuario atualizar(Long id, UpdateUsuarioRequestDTO request) {
+        authorizationService.requirePermission(PermissaoCodigo.USUARIOS_EDITAR);
         Usuario usuario = buscarPorId(id);
         String cpfNormalizado = normalizarCpf(request.getCpf());
         validarDuplicidade(cpfNormalizado, request.getEmail(), id);
 
+        String antes = usuario.getPerfil() + "/" + usuario.getAtivo();
         usuario.setNome(request.getNome());
         usuario.setCpf(cpfNormalizado);
         usuario.setEmail(request.getEmail().trim().toLowerCase());
         usuario.setTelefone(request.getTelefone().trim());
         usuario.setPerfil(request.getPerfil() == null ? Perfil.OPERADOR : request.getPerfil());
         usuario.setAtivo(request.getAtivo());
+        if (usuario.getPerfil() == Perfil.ADMIN) {
+            usuario.setAlcadaGlobal(true);
+        }
 
         if (request.getSenha() != null && !request.getSenha().isBlank()) {
             usuario.setSenha(passwordEncoder.encode(request.getSenha()));
         }
 
-        return Objects.requireNonNull(usuarioRepository.save(usuario));
+        Usuario salvo = Objects.requireNonNull(usuarioRepository.save(usuario));
+        auditLogService.registrar("USUARIO_EDITAR", "USUARIO", String.valueOf(id), antes,
+                salvo.getPerfil() + "/" + salvo.getAtivo());
+        return salvo;
     }
 
     public void remover(Long id) {

@@ -13,6 +13,7 @@ import { comparePagamentoStatus, type SortDir } from '@/lib/pagamento-sort';
 import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
 import { Checkbox } from '@/components/ui/checkbox';
+import HintTooltip from '@/components/shared/HintTooltip';
 
 const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 const mesesCompletos = [
@@ -514,7 +515,9 @@ export default function Financeiro() {
                 clientesFiltrados.map((c) => (
                   <tr key={c.id} className="border-t border-border hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-2.5 font-medium max-w-[140px] sm:max-w-none">
-                      <span className="block truncate" title={c.nomeFantasia || '—'}>{c.nomeFantasia || '—'}</span>
+                      <HintTooltip content={c.nomeFantasia || '—'} enabled={!!(c.nomeFantasia && c.nomeFantasia.length > 22)}>
+                        <span className="block truncate">{c.nomeFantasia || '—'}</span>
+                      </HintTooltip>
                       <span className="sm:hidden mt-1">
                         <StatusBadge
                           status={c.status ?? 'em_dia'}
@@ -590,7 +593,9 @@ export default function Financeiro() {
                 despesasFiltradas.map((d) => (
                   <tr key={d.id} className="border-t border-border hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-2.5 font-medium max-w-[140px] sm:max-w-none">
-                      <span className="block truncate" title={d.descricao}>{d.descricao}</span>
+                      <HintTooltip content={d.descricao} enabled={!!d.descricao && d.descricao.length > 22}>
+                        <span className="block truncate">{d.descricao}</span>
+                      </HintTooltip>
                       {d.parcelas != null && d.parcelaDoMes != null && (
                         <span className="ml-1 text-xs text-muted-foreground">
                           ({d.parcelaDoMes}/{d.parcelas})

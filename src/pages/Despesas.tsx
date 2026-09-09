@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import TableScroll from '@/components/shared/TableScroll';
 import ModalShell from '@/components/shared/ModalShell';
 import ToggleValoresButton from '@/components/shared/ToggleValoresButton';
+import HintTooltip from '@/components/shared/HintTooltip';
 import { useValoresVisibilidade } from '@/contexts/ValoresVisibilidadeContext';
 
 const TIPOS_DESPESA = [
@@ -219,7 +220,9 @@ export default function Despesas() {
             {despesas.map((d) => (
               <tr key={d.id} className="border-t border-border hover:bg-muted/30 transition-colors">
                 <td className="px-3 sm:px-4 py-3 font-medium min-w-[100px] max-w-[160px] sm:max-w-none">
-                  <span className="block truncate" title={d.descricao}>{d.descricao}</span>
+                  <HintTooltip content={d.descricao} enabled={!!d.descricao && d.descricao.length > 22}>
+                    <span className="block truncate">{d.descricao}</span>
+                  </HintTooltip>
                   <span className="sm:hidden text-[10px] text-muted-foreground">{TIPOS_DESPESA_MOBILE[d.tipo] ?? d.tipo}</span>
                 </td>
                 <td className="px-3 sm:px-4 py-3 text-right tabular-nums font-medium whitespace-nowrap">{mascarar(formatCurrency(d.valorMensal))}</td>
@@ -243,21 +246,29 @@ export default function Despesas() {
                 </td>
                 <td className="px-3 sm:px-4 py-3 whitespace-nowrap">
                   <div className="flex items-center justify-center gap-1">
-                    <button
-                      onClick={() => {
-                        setEditing(d);
-                        setShowForm(true);
-                      }}
-                      className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                    >
-                      <Pencil size={14} />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(d.id)}
-                      className="p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    <HintTooltip content="Editar">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditing(d);
+                          setShowForm(true);
+                        }}
+                        className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                        aria-label="Editar"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                    </HintTooltip>
+                    <HintTooltip content="Excluir">
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(d.id)}
+                        className="p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"
+                        aria-label="Excluir"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </HintTooltip>
                   </div>
                 </td>
               </tr>

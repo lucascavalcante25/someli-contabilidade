@@ -45,6 +45,14 @@ public class Usuario {
     @Column(name = "foto_url", length = 500)
     private String fotoUrl;
 
+    /** Quando true, usuário enxerga todos os clientes (além de ALCADA_GLOBAL). */
+    @Column(name = "alcada_global", nullable = false)
+    private Boolean alcadaGlobal = Boolean.FALSE;
+
+    /** INTERNO (escritório) ou CLIENTE (portal futuro). */
+    @Column(name = "tipo_usuario", nullable = false, length = 20)
+    private String tipoUsuario = "INTERNO";
+
     @Column(name = "data_criacao", nullable = false)
     private LocalDateTime dataCriacao;
 
@@ -55,6 +63,12 @@ public class Usuario {
         }
         if (ativo == null) {
             ativo = Boolean.TRUE;
+        }
+        if (alcadaGlobal == null) {
+            alcadaGlobal = Boolean.FALSE;
+        }
+        if (tipoUsuario == null) {
+            tipoUsuario = "INTERNO";
         }
     }
 
@@ -128,6 +142,22 @@ public class Usuario {
 
     public void setFotoUrl(String fotoUrl) {
         this.fotoUrl = fotoUrl;
+    }
+
+    public Boolean getAlcadaGlobal() {
+        return alcadaGlobal;
+    }
+
+    public void setAlcadaGlobal(Boolean alcadaGlobal) {
+        this.alcadaGlobal = alcadaGlobal;
+    }
+
+    public String getTipoUsuario() {
+        return tipoUsuario;
+    }
+
+    public void setTipoUsuario(String tipoUsuario) {
+        this.tipoUsuario = tipoUsuario;
     }
 
     public LocalDateTime getDataCriacao() {

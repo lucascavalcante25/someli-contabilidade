@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Pencil, Trash2, X, FileText, ClipboardList, File, Download, Loader2, Image, FileSpreadsheet, PowerOff, Power } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, X, FileText, ClipboardList, File, Download, Loader2, Image, FileSpreadsheet, PowerOff, Power, ListChecks } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -12,6 +12,13 @@ import ModalShell from '@/components/shared/ModalShell';
 import ToggleValoresButton from '@/components/shared/ToggleValoresButton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useValoresVisibilidade } from '@/contexts/ValoresVisibilidadeContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { Permissoes } from '@/lib/permissions';
+import ClienteResponsaveisSection from '@/components/ClienteResponsaveisSection';
+import ClienteTagsSection from '@/components/ClienteTagsSection';
+import OcorrenciaWorkList, { type OcorrenciaItem } from '@/components/obrigacoes/OcorrenciaWorkList';
+import HintTooltip from '@/components/shared/HintTooltip';
+import { cn } from '@/lib/utils';
 
 type TipoObrigacao = 'FISCAL' | 'LICENCA' | 'OUTROS';
 type StatusObrigacao = 'em_dia' | 'a_vencer' | 'atrasado' | 'proximo_vencimento';
@@ -85,7 +92,7 @@ interface Cliente {
   proprietario: string;
   telefone: string;
   email: string;
-  honorario: number;
+  honorario: number | null;
   diaVencimento: number;
   tipoPagamento: string;
   status: string;
@@ -103,7 +110,7 @@ interface Cliente {
 export type ClienteDetalhePanelProps = {
   clienteId: number;
   variant?: 'page' | 'modal';
-  initialTab?: 'dados' | 'obrigacoes' | 'documentos';
+  initialTab?: 'dados' | 'obrigacoes' | 'ocorrencias' | 'documentos';
   onClose?: () => void;
   onEdit?: () => void;
 };
@@ -124,6 +131,7 @@ export function ClienteDetalhePanel({
   const [obrigacoes, setObrigacoes] = useState<ClienteObrigacao[]>([]);
   const [obrigacoesInativas, setObrigacoesInativas] = useState<ClienteObrigacao[]>([]);
   const [documentos, setDocumentos] = useState<ClienteDocumento[]>([]);
+  const [ocorrencias, setOcorrencias] = useState<OcorrenciaItem[]>([]);
   const [obrigacoesCatalogo, setObrigacoesCatalogo] = useState<Obrigacao[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploadingDoc, setUploadingDoc] = useState(false);
@@ -160,7 +168,7 @@ export function ClienteDetalhePanel({
         proprietario: data.proprietario || '',
         telefone: data.telefone || '',
         email: data.email || '',
-        honorario: Number(data.honorario ?? 0),
+        honorario: data.honorario == null ? null : Number(data.honorario),
         diaVencimento: data.diaVencimento ?? 10,
         tipoPagamento: data.tipoPagamento || '',
         status: data.status || 'em_dia',
@@ -223,6 +231,18 @@ export function ClienteDetalhePanel({
     }
   }, [apiBaseUrl, id]);
 
+  const carregarOcorrencias = useCallback(async () => {
+    if (!id) return;
+    try {
+      const res = await apiFetch(`${apiBaseUrl}/clientes/${id}/ocorrencias`, { headers: getAuthHeaders() });
+      if (!res.ok) throw new Error('falha');
+      const data = await res.json();
+      setOcorrencias(Array.isArray(data) ? data : []);
+    } catch {
+      setOcorrencias([]);
+    }
+  }, [apiBaseUrl, id]);
+
   const carregarCatalogo = useCallback(async () => {
     try {
       const res = await apiFetch(`${apiBaseUrl}/obrigacoes`, { headers: getAuthHeaders() });
@@ -241,8 +261,9 @@ export function ClienteDetalhePanel({
   useEffect(() => {
     void carregarObrigacoes();
     void carregarDocumentos();
+    void carregarOcorrencias();
     void carregarCatalogo();
-  }, [carregarObrigacoes, carregarDocumentos, carregarCatalogo]);
+  }, [carregarObrigacoes, carregarDocumentos, carregarOcorrencias, carregarCatalogo]);
 
   const handleSaveObrigacao = async (form: ClienteObrigacaoForm, clienteObrigacaoId?: number) => {
     if (!id) return;
@@ -308,6 +329,7 @@ export function ClienteDetalhePanel({
       }
       setShowForm(false);
       setEditingObrigacao(null);
+      void carregarOcorrencias();
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Erro ao salvar';
       toast.error(msg);
@@ -489,31 +511,33 @@ export function ClienteDetalhePanel({
     pix: 'PIX',
   };
 
-  const dadosFields: { label: string; value: ReactNode }[] = [
-    { label: 'CNPJ', value: cliente.cnpj ? maskCnpj(cliente.cnpj) : '—' },
-    { label: 'Razão Social', value: cliente.razaoSocial || '—' },
-    { label: 'Nome Fantasia', value: cliente.nomeFantasia || '—' },
-    { label: 'Proprietário', value: cliente.proprietario || '—' },
-    { label: 'Telefone', value: cliente.telefone || '—' },
-    { label: 'E-mail', value: cliente.email || '—' },
-    { label: 'Honorário', value: mascarar(formatCurrency(cliente.honorario)) },
-    { label: 'Dia Vencimento', value: String(cliente.diaVencimento || '—') },
+  const dadosFields: { label: string; value: ReactNode; hint: string }[] = [
+    { label: 'CNPJ', value: cliente.cnpj ? maskCnpj(cliente.cnpj) : '—', hint: 'Cadastro Nacional da Pessoa Jurídica da empresa.' },
+    { label: 'Razão Social', value: cliente.razaoSocial || '—', hint: 'Nome oficial registrado na Receita Federal.' },
+    { label: 'Nome Fantasia', value: cliente.nomeFantasia || '—', hint: 'Nome comercial pelo qual a empresa é conhecida.' },
+    { label: 'Proprietário', value: cliente.proprietario || '—', hint: 'Sócio ou responsável informado no cadastro.' },
+    { label: 'Telefone', value: cliente.telefone || '—', hint: 'Contato principal para cobrança e comunicação.' },
+    { label: 'E-mail', value: cliente.email || '—', hint: 'E-mail para envio de avisos e documentos.' },
+    { label: 'Honorário', value: cliente.honorario == null ? '—' : mascarar(formatCurrency(cliente.honorario)), hint: 'Valor mensal cobrado pelo escritório. Pode ficar oculto sem permissão de honorário.' },
+    { label: 'Dia Vencimento', value: String(cliente.diaVencimento || '—'), hint: 'Dia do mês em que o honorário vence.' },
     {
       label: 'Data início cobrança',
       value: cliente.dataInicioCobranca
         ? new Date(cliente.dataInicioCobranca + 'T12:00:00').toLocaleDateString('pt-BR')
         : '—',
+      hint: 'A partir desta data o sistema calcula meses em aberto.',
     },
-    { label: 'Tipo Pagamento', value: tipoPagamentoLabel[cliente.tipoPagamento] || cliente.tipoPagamento || '—' },
+    { label: 'Tipo Pagamento', value: tipoPagamentoLabel[cliente.tipoPagamento] || cliente.tipoPagamento || '—', hint: 'Quem paga: pessoa física, jurídica ou terceiros.' },
     {
       label: 'Forma de pagamento',
       value: cliente.formaPagamento
         ? formaPagamentoLabel[cliente.formaPagamento] || cliente.formaPagamento
         : '—',
+      hint: 'Meio usado na cobrança (Pix, boleto, etc.).',
     },
-    { label: 'Responsável', value: cliente.responsavelNome || '—' },
-    { label: 'Indicação', value: cliente.indicacao || '—' },
-    { label: 'Cliente ativo', value: cliente.ativo === false ? 'Não' : 'Sim' },
+    { label: 'Responsável', value: cliente.responsavelNome || '—', hint: 'Responsável legado do cadastro (além dos setores).' },
+    { label: 'Indicação', value: cliente.indicacao || '—', hint: 'Origem ou observação comercial do cliente.' },
+    { label: 'Cliente ativo', value: cliente.ativo === false ? 'Não' : 'Sim', hint: 'Clientes inativos saem da operação normal de cobrança.' },
     {
       label: 'Status Pagamento',
       value: (
@@ -525,19 +549,24 @@ export function ClienteDetalhePanel({
           ativo={cliente.ativo}
         />
       ),
+      hint: 'Situação financeira calculada pelos pagamentos mensais registrados.',
     },
   ];
 
+  const isModal = variant === 'modal';
+
   return (
-    <div className={variant === 'page' ? 'page-shell' : 'min-w-0'}>
+    <div className={cn(isModal ? 'flex h-full min-h-0 flex-col' : 'page-shell')}>
       {variant === 'page' ? (
         <div className="flex items-start gap-3 min-w-0">
-          <button
-            onClick={() => navigate('/clientes')}
-            className="p-2 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground shrink-0"
-          >
-            <ArrowLeft size={20} />
-          </button>
+          <HintTooltip content="Voltar para a lista de clientes">
+            <button
+              onClick={() => navigate('/clientes')}
+              className="p-2 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground shrink-0"
+            >
+              <ArrowLeft size={20} />
+            </button>
+          </HintTooltip>
           <div className="min-w-0 flex-1">
             <h1 className="text-xl sm:text-2xl font-semibold tracking-tight truncate">{cliente.razaoSocial}</h1>
             <p className="text-sm text-muted-foreground truncate">{cliente.nomeFantasia || maskCnpj(cliente.cnpj)}</p>
@@ -545,79 +574,120 @@ export function ClienteDetalhePanel({
           <ToggleValoresButton className="shrink-0" />
         </div>
       ) : (
-        <div className="flex items-center justify-between mb-4 gap-3">
+        <div className="mb-3 flex shrink-0 items-center justify-between gap-3">
           <div className="min-w-0">
             <h2 className="text-lg font-semibold truncate">Detalhes do Cliente</h2>
-            <p className="text-sm text-muted-foreground truncate">{cliente.razaoSocial}</p>
+            <HintTooltip content={cliente.razaoSocial}>
+              <p className="cursor-default truncate text-sm text-muted-foreground">{cliente.razaoSocial}</p>
+            </HintTooltip>
           </div>
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex shrink-0 items-center gap-1">
             <ToggleValoresButton compact />
-            <button onClick={onClose} className="p-1 rounded hover:bg-muted transition-colors" aria-label="Fechar">
-              <X size={18} />
-            </button>
+            <HintTooltip content="Fechar detalhes">
+              <button onClick={onClose} className="rounded p-1 transition-colors hover:bg-muted" aria-label="Fechar">
+                <X size={18} />
+              </button>
+            </HintTooltip>
           </div>
         </div>
       )}
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="w-full min-w-0 max-w-full">
-        <TabsList className="grid w-full grid-cols-3 h-auto">
-          <TabsTrigger value="dados" className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 py-2">
-            <FileText size={16} className="shrink-0" /> <span className="truncate">Dados</span>
-          </TabsTrigger>
-          <TabsTrigger value="obrigacoes" className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 py-2">
-            <ClipboardList size={16} className="shrink-0" /> <span className="truncate">Obrig. ({obrigacoes.length})</span>
-          </TabsTrigger>
-          <TabsTrigger value="documentos" className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 py-2">
-            <File size={16} className="shrink-0" /> <span className="truncate">Docs ({documentos.length})</span>
-          </TabsTrigger>
+      <Tabs
+        value={tab}
+        onValueChange={(v) => setTab(v as typeof tab)}
+        className={cn('w-full min-w-0 max-w-full', isModal && 'flex min-h-0 flex-1 flex-col')}
+      >
+        <TabsList className={cn('grid h-auto w-full shrink-0 grid-cols-4', isModal && 'sticky top-0 z-10')}>
+          <HintTooltip content="Cadastro, responsáveis por setor e tags">
+            <TabsTrigger value="dados" className="flex items-center justify-center gap-1 px-2 py-2 text-xs sm:gap-2 sm:text-sm">
+              <FileText size={16} className="shrink-0" /> <span className="truncate">Dados</span>
+            </TabsTrigger>
+          </HintTooltip>
+          <HintTooltip content="Vínculos de obrigações recorrentes deste cliente">
+            <TabsTrigger value="obrigacoes" className="flex items-center justify-center gap-1 px-2 py-2 text-xs sm:gap-2 sm:text-sm">
+              <ClipboardList size={16} className="shrink-0" /> <span className="truncate">Obrig. ({obrigacoes.length})</span>
+            </TabsTrigger>
+          </HintTooltip>
+          <HintTooltip content="Ocorrências do período: status e histórico de eventos">
+            <TabsTrigger value="ocorrencias" className="flex items-center justify-center gap-1 px-2 py-2 text-xs sm:gap-2 sm:text-sm">
+              <ListChecks size={16} className="shrink-0" /> <span className="truncate">Ocorr. ({ocorrencias.length})</span>
+            </TabsTrigger>
+          </HintTooltip>
+          <HintTooltip content="Arquivos compartilhados ou internos do cliente">
+            <TabsTrigger value="documentos" className="flex items-center justify-center gap-1 px-2 py-2 text-xs sm:gap-2 sm:text-sm">
+              <File size={16} className="shrink-0" /> <span className="truncate">Docs ({documentos.length})</span>
+            </TabsTrigger>
+          </HintTooltip>
         </TabsList>
 
-        <TabsContent value="dados" className="mt-4">
+        <div className={cn(isModal && 'mt-3 min-h-0 flex-1 overflow-y-auto pr-1')}>
+        <TabsContent value="dados" className="mt-4 focus-visible:outline-none">
           <div className={variant === 'page' ? 'card-surface p-6 max-w-3xl space-y-4' : 'space-y-4'}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
               {dadosFields.map((f) => (
                 <div key={f.label} className="min-w-0 border-b border-border/60 pb-2">
-                  <p className="label-text mb-1">{f.label}</p>
-                  <div className="text-sm font-medium break-words">{f.value}</div>
+                  <HintTooltip content={f.hint}>
+                    <p className="label-text mb-1 w-fit cursor-help border-b border-dotted border-muted-foreground/40">{f.label}</p>
+                  </HintTooltip>
+                  <HintTooltip
+                    content={typeof f.value === 'string' || typeof f.value === 'number' ? String(f.value) : f.hint}
+                    enabled={typeof f.value === 'string' || typeof f.value === 'number'}
+                  >
+                    <div className="truncate text-sm font-medium">{f.value}</div>
+                  </HintTooltip>
                 </div>
               ))}
             </div>
+            <div className="pt-4">
+              <ClienteResponsaveisSection clienteId={cliente.id} />
+            </div>
+            <div className="pt-4 border-t border-border">
+              <ClienteTagsSection clienteId={cliente.id} />
+            </div>
             <div className={`flex ${variant === 'modal' ? 'flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 pt-2' : ''}`}>
               {variant === 'modal' && (
-                <button
-                  onClick={onClose}
-                  className="w-full sm:w-auto px-4 py-2.5 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
-                >
-                  Fechar
-                </button>
+                <HintTooltip content="Fecha este painel sem salvar alterações">
+                  <button
+                    onClick={onClose}
+                    className="w-full sm:w-auto px-4 py-2.5 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
+                  >
+                    Fechar
+                  </button>
+                </HintTooltip>
               )}
-              <button
-                onClick={() => {
-                  if (onEdit) onEdit();
-                  else navigate('/clientes', { state: { editClienteId: cliente.id } });
-                }}
-                className={
-                  variant === 'modal'
-                    ? 'w-full sm:w-auto px-4 py-2.5 rounded-md bg-primary text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity'
-                    : 'text-sm text-primary hover:underline'
-                }
-              >
-                {variant === 'modal' ? 'Editar' : 'Editar dados do cliente'}
-              </button>
+              <HintTooltip content="Abre o formulário para alterar dados cadastrais">
+                <button
+                  onClick={() => {
+                    if (onEdit) onEdit();
+                    else navigate('/clientes', { state: { editClienteId: cliente.id } });
+                  }}
+                  className={
+                    variant === 'modal'
+                      ? 'w-full sm:w-auto px-4 py-2.5 rounded-md bg-primary text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity'
+                      : 'text-sm text-primary hover:underline'
+                  }
+                >
+                  {variant === 'modal' ? 'Editar' : 'Editar dados do cliente'}
+                </button>
+              </HintTooltip>
             </div>
           </div>
         </TabsContent>
 
         <TabsContent value="obrigacoes" className="mt-4">
           <div className="flex flex-col gap-4">
-            <div className="flex justify-between items-center">
-              <p className="text-sm text-muted-foreground">Obrigações cadastradas para este cliente</p>
-              <button
-                onClick={() => { setEditingObrigacao(null); setShowForm(true); }}
-                className="flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90"
-              >
-                <Plus size={16} /> Nova Obrigação
-              </button>
+            <div className="flex items-center justify-between gap-2">
+              <HintTooltip content="Configurações recorrentes (DAS, eSocial, alvará…) vinculadas ao cliente">
+                <p className="cursor-help text-sm text-muted-foreground">Obrigações cadastradas para este cliente</p>
+              </HintTooltip>
+              <HintTooltip content="Adiciona uma ou mais obrigações do catálogo">
+                <button
+                  onClick={() => { setEditingObrigacao(null); setShowForm(true); }}
+                  className="flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90"
+                >
+                  <Plus size={16} /> Nova Obrigação
+                </button>
+              </HintTooltip>
             </div>
 
             <div className="card-surface overflow-hidden">
@@ -652,27 +722,33 @@ export function ClienteDetalhePanel({
                             </td>
                             <td className="px-4 py-3">
                               <div className="flex justify-center gap-1">
-                                <button
-                                  onClick={() => handleEditObrigacao(o)}
-                                  className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
-                                  title="Editar"
-                                >
-                                  <Pencil size={14} />
-                                </button>
-                                <button
-                                  onClick={() => void handleDesativarObrigacao(o)}
-                                  className="p-1.5 rounded hover:bg-amber-500/10 text-muted-foreground hover:text-amber-600"
-                                  title="Desativar"
-                                >
-                                  <PowerOff size={14} />
-                                </button>
-                                <button
-                                  onClick={() => void handleDeleteObrigacao(o.id)}
-                                  className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-                                  title="Excluir"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
+                                <HintTooltip content="Editar vencimento ou observação desta obrigação">
+                                  <button
+                                    onClick={() => handleEditObrigacao(o)}
+                                    className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                                    aria-label="Editar"
+                                  >
+                                    <Pencil size={14} />
+                                  </button>
+                                </HintTooltip>
+                                <HintTooltip content="Desativa a obrigação sem excluir o histórico">
+                                  <button
+                                    onClick={() => void handleDesativarObrigacao(o)}
+                                    className="rounded p-1.5 text-muted-foreground hover:bg-amber-500/10 hover:text-amber-600"
+                                    aria-label="Desativar"
+                                  >
+                                    <PowerOff size={14} />
+                                  </button>
+                                </HintTooltip>
+                                <HintTooltip content="Exclui permanentemente este vínculo">
+                                  <button
+                                    onClick={() => void handleDeleteObrigacao(o.id)}
+                                    className="rounded p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                                    aria-label="Excluir"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </HintTooltip>
                               </div>
                             </td>
                           </tr>
@@ -702,20 +778,26 @@ export function ClienteDetalhePanel({
                           <td className="px-4 py-2 tabular-nums">{formatDate(o.dataVencimento)}</td>
                           <td className="px-4 py-2">
                             <div className="flex justify-center gap-1">
-                              <button
-                                onClick={() => void handleReativarObrigacao(o)}
-                                className="p-1.5 rounded hover:bg-success/10 text-muted-foreground hover:text-success"
-                                title="Reativar"
-                              >
-                                <Power size={14} />
-                              </button>
-                              <button
-                                onClick={() => void handleDeleteObrigacao(o.id)}
-                                className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-                                title="Excluir"
-                              >
-                                <Trash2 size={14} />
-                              </button>
+                              <HintTooltip content="Reativar obrigação">
+                                <button
+                                  type="button"
+                                  onClick={() => void handleReativarObrigacao(o)}
+                                  className="p-1.5 rounded hover:bg-success/10 text-muted-foreground hover:text-success"
+                                  aria-label="Reativar"
+                                >
+                                  <Power size={14} />
+                                </button>
+                              </HintTooltip>
+                              <HintTooltip content="Excluir">
+                                <button
+                                  type="button"
+                                  onClick={() => void handleDeleteObrigacao(o.id)}
+                                  className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                                  aria-label="Excluir"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </HintTooltip>
                             </div>
                           </td>
                         </tr>
@@ -738,6 +820,23 @@ export function ClienteDetalhePanel({
                 />
               )}
             </AnimatePresence>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="ocorrencias" className="mt-4">
+          <div className="card-surface p-4 space-y-3">
+            <div>
+              <p className="text-sm font-medium">Ocorrências do período</p>
+              <p className="text-sm text-muted-foreground">
+                Atualize o status e consulte o histórico de eventos desta empresa.
+              </p>
+            </div>
+            <OcorrenciaWorkList
+              items={ocorrencias}
+              showCliente={false}
+              emptyMessage="Nenhuma ocorrência gerada ainda para este cliente."
+              onUpdated={() => void carregarOcorrencias()}
+            />
           </div>
         </TabsContent>
 
@@ -787,25 +886,39 @@ export function ClienteDetalhePanel({
                               <Icon size={16} className="text-muted-foreground" />
                             </div>
                           </td>
-                          <td className="px-4 py-3 font-medium truncate max-w-[180px]" title={doc.nomeArquivo}>{doc.nomeArquivo}</td>
-                          <td className="px-4 py-3 hidden md:table-cell text-muted-foreground truncate max-w-[150px]" title={doc.descricao}>{doc.descricao || '—'}</td>
+                          <td className="px-4 py-3 font-medium truncate max-w-[180px]">
+                            <HintTooltip content={doc.nomeArquivo} enabled={!!doc.nomeArquivo && doc.nomeArquivo.length > 20}>
+                              <span className="block truncate">{doc.nomeArquivo}</span>
+                            </HintTooltip>
+                          </td>
+                          <td className="px-4 py-3 hidden md:table-cell text-muted-foreground truncate max-w-[150px]">
+                            <HintTooltip content={doc.descricao || ''} enabled={!!doc.descricao && doc.descricao.length > 18}>
+                              <span className="block truncate">{doc.descricao || '—'}</span>
+                            </HintTooltip>
+                          </td>
                           <td className="px-4 py-3 text-muted-foreground tabular-nums text-xs">{formatDateTime(doc.dataUpload)}</td>
                           <td className="px-4 py-3">
                             <div className="flex justify-center gap-1">
-                              <button
-                                onClick={() => void handleDownloadDocumento(doc)}
-                                className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
-                                title="Baixar"
-                              >
-                                <Download size={14} />
-                              </button>
-                              <button
-                                onClick={() => void handleDeleteDocumento(doc.id)}
-                                className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-                                title="Excluir"
-                              >
-                                <Trash2 size={14} />
-                              </button>
+                              <HintTooltip content="Baixar documento">
+                                <button
+                                  type="button"
+                                  onClick={() => void handleDownloadDocumento(doc)}
+                                  className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                                  aria-label="Baixar"
+                                >
+                                  <Download size={14} />
+                                </button>
+                              </HintTooltip>
+                              <HintTooltip content="Excluir documento">
+                                <button
+                                  type="button"
+                                  onClick={() => void handleDeleteDocumento(doc.id)}
+                                  className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                                  aria-label="Excluir"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </HintTooltip>
                             </div>
                           </td>
                         </tr>
@@ -817,6 +930,7 @@ export function ClienteDetalhePanel({
             </div>
           </div>
         </TabsContent>
+        </div>
       </Tabs>
     </div>
   );

@@ -11,6 +11,7 @@ import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { motion } from 'framer-motion';
+import OcorrenciaWorkList from '@/components/obrigacoes/OcorrenciaWorkList';
 
 const CHART_COLORS = ['hsl(var(--primary))', 'hsl(var(--sidebar-primary))', 'hsl(var(--accent))'];
 
@@ -48,7 +49,7 @@ interface ObrigacoesDashboard {
 }
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, can } = useAuth();
   const { mascarar, visiveis } = useValoresVisibilidade();
   const isMobile = useIsMobile();
   const apiBaseUrl = useMemo(() => API_BASE_URL, []);
@@ -58,17 +59,33 @@ export default function Dashboard() {
   const [resumo, setResumo] = useState<ResumoFinanceiro | null>(null);
   const [chartData, setChartData] = useState<GraficoItem[]>([]);
   const [obrigacoesDashboard, setObrigacoesDashboard] = useState<ObrigacoesDashboard | null>(null);
+  const [meuTrabalho, setMeuTrabalho] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  const podeFinanceiro = can('FINANCEIRO_VISUALIZAR');
+  const podeHonorario = can('HONORARIO_VISUALIZAR');
 
   const carregarDados = useCallback(async () => {
     setLoading(true);
     try {
-      const [resClientes, resResumo, resGrafico, resObrigacoes] = await Promise.all([
+      const fetches: Promise<Response>[] = [
         apiFetch(`${apiBaseUrl}/clientes`, { headers: getAuthHeaders() }),
-        apiFetch(`${apiBaseUrl}/financeiro/resumo`, { headers: getAuthHeaders() }),
-        apiFetch(`${apiBaseUrl}/financeiro/grafico`, { headers: getAuthHeaders() }),
+        apiFetch(`${apiBaseUrl}/meu-trabalho`, { headers: getAuthHeaders() }),
         apiFetch(`${apiBaseUrl}/obrigacoes/dashboard`, { headers: getAuthHeaders() }),
-      ]);
+      ];
+      if (podeFinanceiro) {
+        fetches.push(
+          apiFetch(`${apiBaseUrl}/financeiro/resumo`, { headers: getAuthHeaders() }),
+          apiFetch(`${apiBaseUrl}/financeiro/grafico`, { headers: getAuthHeaders() }),
+        );
+      }
+
+      const results = await Promise.all(fetches);
+      const resClientes = results[0];
+      const resMeu = results[1];
+      const resObrigacoes = results[2];
+      const resResumo = podeFinanceiro ? results[3] : null;
+      const resGrafico = podeFinanceiro ? results[4] : null;
 
       if (resClientes.ok) {
         const data = await resClientes.json();
@@ -81,7 +98,11 @@ export default function Dashboard() {
         );
       }
 
-      if (resResumo.ok) {
+      if (resMeu.ok) {
+        setMeuTrabalho(await resMeu.json());
+      }
+
+      if (resResumo?.ok) {
         const data = await resResumo.json();
         setResumo({
           receitaTotal: Number(data.receitaTotal ?? 0),
@@ -91,9 +112,11 @@ export default function Dashboard() {
           despesasPagas: Number(data.despesasPagas ?? 0),
           saldo: Number(data.saldo ?? 0),
         });
+      } else if (!podeFinanceiro) {
+        setResumo(null);
       }
 
-      if (resGrafico.ok) {
+      if (resGrafico?.ok) {
         const data = await resGrafico.json();
         setChartData(
           (Array.isArray(data) ? data : []).map((d: any) => ({
@@ -102,6 +125,8 @@ export default function Dashboard() {
             despesa: Number(d.despesa ?? 0),
           }))
         );
+      } else if (!podeFinanceiro) {
+        setChartData([]);
       }
 
       if (resObrigacoes.ok) {
@@ -119,10 +144,11 @@ export default function Dashboard() {
       setResumo(null);
       setChartData([]);
       setObrigacoesDashboard(null);
+      setMeuTrabalho(null);
     } finally {
       setLoading(false);
     }
-  }, [apiBaseUrl]);
+  }, [apiBaseUrl, podeFinanceiro]);
 
   useEffect(() => {
     void carregarDados();
@@ -178,9 +204,80 @@ export default function Dashboard() {
           <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">{getGreeting()}, {user?.nome?.split(' ')[0]}</h1>
           <p className="text-sm text-muted-foreground mt-1">Aqui está o resumo do seu escritório</p>
         </div>
-        <ToggleValoresButton />
+        {podeHonorario && <ToggleValoresButton />}
       </div>
 
+      {meuTrabalho && (
+        <div className="card-surface p-4 sm:p-5 space-y-3">
+          <div>
+            <h2 className="text-base font-semibold">Meu Trabalho</h2>
+            <p className="text-sm text-muted-foreground">Obrigações e pendências da sua carteira</p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="rounded-md bg-muted/40 p-3">
+              <p className="label-text">Vence hoje</p>
+              <p className="text-xl font-semibold tabular-nums">{meuTrabalho.vencendoHoje}</p>
+            </div>
+            <div className="rounded-md bg-muted/40 p-3">
+              <p className="label-text">Próximos dias</p>
+              <p className="text-xl font-semibold tabular-nums">{meuTrabalho.vencendoProximosDias}</p>
+            </div>
+            <div className="rounded-md bg-muted/40 p-3">
+              <p className="label-text">Atrasadas</p>
+              <p className="text-xl font-semibold tabular-nums text-destructive">{meuTrabalho.atrasadas}</p>
+            </div>
+            <div className="rounded-md bg-muted/40 p-3">
+              <p className="label-text">Aguard. cliente</p>
+              <p className="text-xl font-semibold tabular-nums">{meuTrabalho.aguardandoCliente}</p>
+            </div>
+            <div className="rounded-md bg-muted/40 p-3">
+              <p className="label-text">Notificações</p>
+              <p className="text-xl font-semibold tabular-nums">{meuTrabalho.notificacoesNaoLidas}</p>
+            </div>
+            <div className="rounded-md bg-muted/40 p-3">
+              <p className="label-text">Minha carteira</p>
+              <p className="text-xl font-semibold tabular-nums">{meuTrabalho.empresasNaCarteira}</p>
+            </div>
+          </div>
+          {meuTrabalho.visaoGerencial && (
+            <div className="pt-2 border-t border-border space-y-2">
+              <p className="text-sm font-medium">Visão gerencial do mês</p>
+              <p className="text-sm text-muted-foreground">
+                {meuTrabalho.visaoGerencial.totalMes} obrigações · {meuTrabalho.visaoGerencial.concluidas} concluídas ·{' '}
+                {meuTrabalho.visaoGerencial.pendentes} pendentes · {meuTrabalho.visaoGerencial.atrasadas} atrasadas
+                {meuTrabalho.visaoGerencial.clientesSemResponsavel > 0
+                  ? ` · ${meuTrabalho.visaoGerencial.clientesSemResponsavel} cliente(s) sem responsável`
+                  : ''}
+              </p>
+              {Array.isArray(meuTrabalho.visaoGerencial.porSetor) && meuTrabalho.visaoGerencial.porSetor.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {meuTrabalho.visaoGerencial.porSetor.map((s: any) => (
+                    <span key={s.setor} className="text-xs rounded-full bg-primary/10 text-primary px-2.5 py-1">
+                      {s.label}: {s.percentual}%
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="space-y-2 border-t border-border pt-3">
+            <div>
+              <p className="text-sm font-medium">Fila de trabalho</p>
+              <p className="text-xs text-muted-foreground">
+                Admin/sócio com alçada global vê pendências de todas as áreas; demais perfis só a própria alçada.
+              </p>
+            </div>
+            <OcorrenciaWorkList
+              atrasadas={Array.isArray(meuTrabalho.obrigacoesAtrasadas) ? meuTrabalho.obrigacoesAtrasadas : []}
+              proximas={Array.isArray(meuTrabalho.obrigacoesProximas) ? meuTrabalho.obrigacoesProximas : []}
+              onUpdated={() => void carregarDados()}
+            />
+          </div>
+        </div>
+      )}
+
+      {podeFinanceiro && (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 min-w-0">
         <StatCard label="Clientes Ativos" value={String(totalClientes)} icon={Users} accent="primary" />
         <StatCard label="Receita Mensal" value={formatCurrency(receitaTotal)} icon={DollarSign} accent="success" sensitive />
@@ -188,6 +285,12 @@ export default function Dashboard() {
         <StatCard label="Despesas do Mês" value={formatCurrency(despesaTotal)} icon={Receipt} accent="destructive" sensitive />
         <StatCard label="Saldo do Mês" value={formatCurrency(saldo)} icon={TrendingUp} accent={saldo >= 0 ? 'success' : 'destructive'} sensitive />
       </div>
+      )}
+      {!podeFinanceiro && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <StatCard label="Clientes na carteira" value={String(totalClientes)} icon={Users} accent="primary" />
+        </div>
+      )}
 
       {obrigacoesDashboard && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -245,6 +348,7 @@ export default function Dashboard() {
         </div>
       )}
 
+      {podeFinanceiro && (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -299,6 +403,7 @@ export default function Dashboard() {
           </div>
         </motion.div>
       </div>
+      )}
     </div>
   );
 }

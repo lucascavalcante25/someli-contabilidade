@@ -10,7 +10,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:backend": "cd backend && mvn test",
+    "test:all": "npm run test && npm run test:backend"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

@@ -5,6 +5,7 @@ import { apiFetch } from '@/lib/http';
 import UserAvatar from '@/components/UserAvatar';
 import BrandLogo from '@/components/BrandLogo';
 import TypewriterText from '@/components/shared/TypewriterText';
+import HintTooltip from '@/components/shared/HintTooltip';
 import { LogOut, Bell, ChevronRight, Menu, AlertCircle, Settings, UserRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/useMediaQuery';
@@ -159,14 +160,16 @@ export default function Toolbar({ onMenuClick }: ToolbarProps) {
   const topBar = (
     <div className="flex h-14 md:h-16 items-center gap-2 sm:gap-4 px-3 sm:px-6">
       <div className="flex items-center gap-2 shrink-0 min-w-0">
-        <button
-          onClick={onMenuClick}
-          className="md:hidden p-2 -ml-1 rounded-md text-sidebar-foreground hover:text-sidebar-primary hover:bg-sidebar-accent/50 transition-colors shrink-0"
-          title="Menu"
-          aria-label="Abrir menu"
-        >
-          <Menu size={20} />
-        </button>
+        <HintTooltip content="Abrir menu">
+          <button
+            type="button"
+            onClick={onMenuClick}
+            className="md:hidden p-2 -ml-1 rounded-md text-sidebar-foreground hover:text-sidebar-primary hover:bg-sidebar-accent/50 transition-colors shrink-0"
+            aria-label="Abrir menu"
+          >
+            <Menu size={20} />
+          </button>
+        </HintTooltip>
         <div className="md:hidden flex items-center min-w-0">
           <BrandLogo variant="white" imgClassName="w-[140px] max-w-[min(140px,52vw)] h-auto max-h-[36px]" />
         </div>
@@ -185,23 +188,26 @@ export default function Toolbar({ onMenuClick }: ToolbarProps) {
 
       <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 ml-auto">
         <DropdownMenu onOpenChange={handleOpenChange}>
-          <DropdownMenuTrigger asChild>
-            <button
-              className="relative p-2 rounded-md text-sidebar-foreground hover:text-sidebar-primary hover:bg-sidebar-accent/50 transition-colors"
-              title="Notificações"
-            >
-              <Bell size={18} />
-              {count > 0 && (
-                <span className={`absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full text-[10px] font-medium px-1 ${
-                  notificacoes.some(n => n.prioridade === 'critica')
-                    ? 'bg-destructive text-destructive-foreground'
-                    : 'bg-sidebar-primary text-sidebar-primary-foreground'
-                }`}>
-                  {count > 9 ? '9+' : count}
-                </span>
-              )}
-            </button>
-          </DropdownMenuTrigger>
+          <HintTooltip content="Notificações">
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="relative p-2 rounded-md text-sidebar-foreground hover:text-sidebar-primary hover:bg-sidebar-accent/50 transition-colors"
+                aria-label="Notificações"
+              >
+                <Bell size={18} />
+                {count > 0 && (
+                  <span className={`absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full text-[10px] font-medium px-1 ${
+                    notificacoes.some(n => n.prioridade === 'critica')
+                      ? 'bg-destructive text-destructive-foreground'
+                      : 'bg-sidebar-primary text-sidebar-primary-foreground'
+                  }`}>
+                    {count > 9 ? '9+' : count}
+                  </span>
+                )}
+              </button>
+            </DropdownMenuTrigger>
+          </HintTooltip>
           <DropdownMenuContent align="end" className="w-[min(22rem,calc(100vw-2rem))]">
             <div className="px-2 py-2">
               <p className="text-sm font-semibold text-foreground">Notificações</p>
@@ -249,27 +255,29 @@ export default function Toolbar({ onMenuClick }: ToolbarProps) {
         </DropdownMenu>
         <div className="h-6 w-px bg-sidebar-border hidden sm:block" />
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              className="flex items-center gap-2 sm:gap-3 rounded-md p-1 pr-1.5 sm:pr-2 hover:bg-sidebar-accent/50 transition-colors outline-none"
-              title="Conta"
-            >
-              <UserAvatar
-                userId={user?.id}
-                fotoUrl={user?.fotoUrl}
-                nome={user?.nome}
-                avatarVersion={user?._avatarVersion}
-                className="ring-sidebar-primary ring-offset-sidebar"
-              />
-              <div className="hidden sm:block min-w-0 text-left">
-                <p className="text-sm font-medium leading-none text-sidebar-foreground truncate max-w-[9rem]">
-                  {user?.nome}
-                </p>
-                <p className="text-xs text-sidebar-muted mt-0.5">{user?.perfil}</p>
-              </div>
-            </button>
-          </DropdownMenuTrigger>
+          <HintTooltip content="Conta">
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex items-center gap-2 sm:gap-3 rounded-md p-1 pr-1.5 sm:pr-2 hover:bg-sidebar-accent/50 transition-colors outline-none"
+                aria-label="Conta"
+              >
+                <UserAvatar
+                  userId={user?.id}
+                  fotoUrl={user?.fotoUrl}
+                  nome={user?.nome}
+                  avatarVersion={user?._avatarVersion}
+                  className="ring-sidebar-primary ring-offset-sidebar"
+                />
+                <div className="hidden sm:block min-w-0 text-left">
+                  <p className="text-sm font-medium leading-none text-sidebar-foreground truncate max-w-[9rem]">
+                    {user?.nome}
+                  </p>
+                  <p className="text-xs text-sidebar-muted mt-0.5">{user?.perfil}</p>
+                </div>
+              </button>
+            </DropdownMenuTrigger>
+          </HintTooltip>
           <DropdownMenuContent align="end" className="w-56">
             <div className="px-2 py-2">
               <p className="text-sm font-semibold truncate">{user?.nome}</p>

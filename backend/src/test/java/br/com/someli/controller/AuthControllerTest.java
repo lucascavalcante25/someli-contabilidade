@@ -5,6 +5,7 @@ import br.com.someli.dto.LoginResponseDTO;
 import br.com.someli.dto.UsuarioDTO;
 import br.com.someli.security.JwtAuthenticationFilter;
 import br.com.someli.service.AuthService;
+import br.com.someli.service.UsuarioService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +33,9 @@ class AuthControllerTest {
 
     @MockBean
     private AuthService authService;
+
+    @MockBean
+    private UsuarioService usuarioService;
 
     @MockBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;

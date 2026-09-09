@@ -6,6 +6,8 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
@@ -15,6 +17,8 @@ import jakarta.persistence.Transient;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "cliente")
@@ -66,6 +70,14 @@ public class Cliente {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "responsavel_id")
     private Usuario responsavel;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "cliente_tag",
+            joinColumns = @JoinColumn(name = "cliente_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    private Set<Tag> tags = new HashSet<>();
 
     @Column
     private String indicacao;
@@ -222,6 +234,14 @@ public class Cliente {
 
     public void setResponsavel(Usuario responsavel) {
         this.responsavel = responsavel;
+    }
+
+    public Set<Tag> getTags() {
+        return tags;
+    }
+
+    public void setTags(Set<Tag> tags) {
+        this.tags = tags != null ? tags : new HashSet<>();
     }
 
     public String getIndicacao() {

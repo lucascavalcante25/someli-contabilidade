@@ -10,5 +10,6 @@ public interface NotificationMapper {
 
     @Mapping(source = "clienteObrigacao.id", target = "clienteObrigacaoId")
     @Mapping(source = "clienteObrigacao.cliente.id", target = "clienteId")
+    @Mapping(source = "ocorrencia.id", target = "ocorrenciaId")
     NotificationDTO toDto(Notification notification);
 }

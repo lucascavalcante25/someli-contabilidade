@@ -46,6 +46,15 @@ public class UsuarioController {
         return ResponseEntity.ok(usuarios);
     }
 
+    @GetMapping("/ativos")
+    public ResponseEntity<List<UsuarioDTO>> listarAtivos() {
+        List<UsuarioDTO> usuarios = usuarioService.listarAtivosParaSelecao()
+                .stream()
+                .map(usuarioMapper::toDto)
+                .toList();
+        return ResponseEntity.ok(usuarios);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<UsuarioDTO> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(usuarioMapper.toDto(usuarioService.buscarPorId(id)));

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Pencil, Trash2, X, Eye, EyeOff, Check, User } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Eye, EyeOff, Check, User, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL } from '@/lib/api';
@@ -7,10 +7,38 @@ import { apiFetch } from '@/lib/http';
 import { useAuth } from '@/contexts/AuthContext';
 import TableScroll from '@/components/shared/TableScroll';
 import ModalShell from '@/components/shared/ModalShell';
+import HintTooltip from '@/components/shared/HintTooltip';
 import AppSelect from '@/components/shared/AppSelect';
 import { Checkbox } from '@/components/ui/checkbox';
+import { PERFIS, Permissoes } from '@/lib/permissions';
 
-type Perfil = 'ADMIN' | 'CONTADOR' | 'OPERADOR';
+const PERMISSAO_HELP: Record<string, string> = {
+  ADMINISTRACAO_VISUALIZAR: 'Libera telas e ações administrativas do sistema.',
+  ALCADA_GLOBAL: 'Vê e opera todos os clientes, sem restrição de carteira.',
+  ALCADA_SETOR: 'Amplia o acesso dentro do setor em que é responsável.',
+  CLIENTES_VISUALIZAR: 'Permite listar e abrir fichas de clientes da alçada.',
+  CLIENTES_CADASTRAR: 'Permite criar novos clientes no escritório.',
+  CLIENTES_EDITAR: 'Permite alterar dados cadastrais e tags do cliente.',
+  CLIENTES_EXCLUIR: 'Permite remover clientes (ação irreversível).',
+  CLIENTES_RESPONSAVEIS_EDITAR: 'Define responsáveis por setor (fiscal, DP, etc.).',
+  OBRIGACOES_VISUALIZAR: 'Consulta obrigações e ocorrências.',
+  OBRIGACOES_CRIAR: 'Cria vínculos e aplica obrigações em massa.',
+  OBRIGACOES_EDITAR: 'Altera vencimentos e status operacionais.',
+  OBRIGACOES_CONCLUIR: 'Marca ocorrências como concluídas/entregues.',
+  OBRIGACOES_EXCLUIR: 'Remove vínculos de obrigações.',
+  OBRIGACOES_REABRIR: 'Reabre ocorrências já finalizadas.',
+  OBRIGACOES_TIPOS_GERENCIAR: 'Gerencia o catálogo de tipos de obrigação.',
+  FINANCEIRO_VISUALIZAR: 'Acessa resumo e lançamentos financeiros.',
+  HONORARIO_VISUALIZAR: 'Exibe valores de honorário (informação sensível).',
+  HONORARIO_EDITAR: 'Altera honorários dos clientes.',
+  DESPESAS_VISUALIZAR: 'Consulta despesas do escritório.',
+  DESPESAS_EDITAR: 'Lança e edita despesas.',
+  USUARIOS_VISUALIZAR: 'Lista funcionários/usuários internos.',
+  USUARIOS_PERMISSOES: 'Edita permissões granulares de outros usuários.',
+  VISAO_GERENCIAL: 'Indicadores gerenciais no Meu Trabalho.',
+};
+
+type Perfil = typeof PERFIS[number];
 
 interface Usuario {
   id: number;
@@ -36,20 +64,31 @@ interface UsuarioFormData {
   fotoPreview?: string;
 }
 
-const perfilColors: Record<Perfil, string> = {
+const perfilColors: Record<string, string> = {
   ADMIN: 'bg-primary/10 text-primary',
+  SOCIO: 'bg-primary/10 text-primary',
+  GERENTE: 'bg-success/10 text-success',
+  SUPERVISOR_FISCAL: 'bg-success/10 text-success',
+  FISCAL: 'bg-success/10 text-success',
+  SUPERVISOR_DP: 'bg-warning/10 text-warning',
+  DEPARTAMENTO_PESSOAL: 'bg-warning/10 text-warning',
+  CONTABIL: 'bg-success/10 text-success',
+  FINANCEIRO: 'bg-destructive/10 text-destructive',
+  ATENDIMENTO: 'bg-muted text-muted-foreground',
+  ESTAGIARIO: 'bg-muted text-muted-foreground',
   CONTADOR: 'bg-success/10 text-success',
   OPERADOR: 'bg-warning/10 text-warning',
 };
 
 export default function Usuarios() {
   const apiBaseUrl = useMemo(() => API_BASE_URL, []);
-  const { user: currentUser, updateUser } = useAuth();
+  const { user: currentUser, updateUser, can } = useAuth();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Usuario | null>(null);
+  const [permsUser, setPermsUser] = useState<Usuario | null>(null);
 
   const getAuthHeaders = () => {
     return {
@@ -250,12 +289,18 @@ export default function Usuarios() {
             {!loading && usuarios.map(u => (
               <tr key={u.id} className="border-t border-border hover:bg-muted/30 transition-colors">
                 <td className="px-3 sm:px-4 py-3 font-medium min-w-[100px] max-w-[160px] sm:max-w-none">
-                  <span className="block truncate" title={u.nome}>{u.nome}</span>
+                  <HintTooltip content={u.nome} enabled={!!u.nome && u.nome.length > 22}>
+                    <span className="block truncate">{u.nome}</span>
+                  </HintTooltip>
                   <span className="sm:hidden text-[11px] text-muted-foreground tabular-nums">{formatCpf(u.cpf)}</span>
                 </td>
                 <td className="px-3 sm:px-4 py-3 tabular-nums text-muted-foreground whitespace-nowrap hidden sm:table-cell">{formatCpf(u.cpf)}</td>
                 <td className="px-3 sm:px-4 py-3 hidden md:table-cell text-muted-foreground">{u.telefone}</td>
-                <td className="px-3 sm:px-4 py-3 hidden md:table-cell text-muted-foreground truncate max-w-[120px]" title={u.email}>{u.email}</td>
+                <td className="px-3 sm:px-4 py-3 hidden md:table-cell text-muted-foreground truncate max-w-[120px]">
+                  <HintTooltip content={u.email} enabled={!!u.email && u.email.length > 18}>
+                    <span className="block truncate">{u.email}</span>
+                  </HintTooltip>
+                </td>
                 <td className="px-3 sm:px-4 py-3 text-center whitespace-nowrap">
                   <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${perfilColors[u.perfil as Perfil]}`}>
                     {u.perfil}
@@ -263,8 +308,38 @@ export default function Usuarios() {
                 </td>
                 <td className="px-3 sm:px-4 py-3 whitespace-nowrap">
                   <div className="flex items-center justify-center gap-1">
-                    <button onClick={() => { setEditing(u); setShowForm(true); }} className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"><Pencil size={14} /></button>
-                    <button onClick={() => void handleDelete(u.id)} className="p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
+                    <HintTooltip content="Editar">
+                      <button
+                        type="button"
+                        onClick={() => { setEditing(u); setShowForm(true); }}
+                        className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                        aria-label="Editar"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                    </HintTooltip>
+                    {can(Permissoes.USUARIOS_PERMISSOES) && (
+                      <HintTooltip content="Permissões">
+                        <button
+                          type="button"
+                          onClick={() => setPermsUser(u)}
+                          className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                          aria-label="Permissões"
+                        >
+                          <Shield size={14} />
+                        </button>
+                      </HintTooltip>
+                    )}
+                    <HintTooltip content="Excluir">
+                      <button
+                        type="button"
+                        onClick={() => void handleDelete(u.id)}
+                        className="p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"
+                        aria-label="Excluir"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </HintTooltip>
                   </div>
                 </td>
               </tr>
@@ -282,6 +357,14 @@ export default function Usuarios() {
             loading={saving}
             onSave={(form) => void handleSave(form, editing?.id)}
             maskCpf={maskCpf}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {permsUser && (
+          <PermissoesModal
+            usuario={permsUser}
+            onClose={() => setPermsUser(null)}
           />
         )}
       </AnimatePresence>
@@ -409,13 +492,16 @@ function UsuarioFormModal({
                   }
                 }}
               />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-0 right-0 p-1.5 rounded-full bg-primary text-primary-foreground hover:opacity-90"
-              >
-                <Pencil size={12} />
-              </button>
+              <HintTooltip content="Alterar foto">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute bottom-0 right-0 p-1.5 rounded-full bg-primary text-primary-foreground hover:opacity-90"
+                  aria-label="Alterar foto"
+                >
+                  <Pencil size={12} />
+                </button>
+              </HintTooltip>
             </div>
             <p className="text-xs text-muted-foreground">JPG, PNG ou GIF (opcional)</p>
           </div>
@@ -440,11 +526,7 @@ function UsuarioFormModal({
             <AppSelect
               value={form.perfil || 'OPERADOR'}
               onChange={(v) => update('perfil', v as Perfil)}
-              options={[
-                { value: 'ADMIN', label: 'Admin' },
-                { value: 'CONTADOR', label: 'Contador' },
-                { value: 'OPERADOR', label: 'Operador' },
-              ]}
+              options={PERFIS.map(p => ({ value: p, label: p.replace(/_/g, ' ') }))}
             />
           </div>
           <div className="flex items-center gap-2.5">
@@ -459,9 +541,16 @@ function UsuarioFormModal({
             <label className="label-text">Senha {usuario ? '(opcional na edição)' : ''}</label>
             <div className="relative">
               <input type={showPass ? 'text' : 'password'} value={form.senha || ''} onChange={e => update('senha', e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all" />
-              <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
+              <HintTooltip content={showPass ? 'Ocultar senha' : 'Mostrar senha'}>
+                <button
+                  type="button"
+                  onClick={() => setShowPass(!showPass)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  aria-label={showPass ? 'Ocultar senha' : 'Mostrar senha'}
+                >
+                  {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </HintTooltip>
             </div>
             {senha && (
               <div className="space-y-2 mt-2">
@@ -497,3 +586,183 @@ function UsuarioFormModal({
     </ModalShell>
   );
 }
+
+function PermissoesModal({ usuario, onClose }: { usuario: Usuario; onClose: () => void }) {
+  const [catalogo, setCatalogo] = useState<{ codigo: string; modulo: string; descricao: string }[]>([]);
+  const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
+  const [alcadaGlobal, setAlcadaGlobal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const [catRes, userRes] = await Promise.all([
+          apiFetch(`${API_BASE_URL}/permissoes/catalogo`),
+          apiFetch(`${API_BASE_URL}/permissoes/usuarios/${usuario.id}`),
+        ]);
+        if (!cancelled && catRes.ok) {
+          const data = await catRes.json();
+          setCatalogo(Array.isArray(data) ? data : []);
+        }
+        if (!cancelled && userRes.ok) {
+          const data = await userRes.json();
+          setSelecionadas(new Set(data.efetivas || []));
+          setAlcadaGlobal(!!data.alcadaGlobal);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [usuario.id]);
+
+  const toggle = (codigo: string) => {
+    setSelecionadas(prev => {
+      const next = new Set(prev);
+      if (next.has(codigo)) next.delete(codigo);
+      else next.add(codigo);
+      return next;
+    });
+  };
+
+  const aplicarPerfil = async () => {
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/permissoes/perfil/${usuario.perfil}`);
+      if (!res.ok) throw new Error('Falha ao carregar perfil');
+      const data = await res.json();
+      setSelecionadas(new Set(Array.isArray(data) ? data : []));
+      toast.success(`Permissões do perfil ${usuario.perfil} aplicadas (ainda não salvas)`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erro');
+    }
+  };
+
+  const resetar = async () => {
+    setSaving(true);
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/permissoes/usuarios/${usuario.id}/reset`, { method: 'PUT' });
+      if (!res.ok) throw new Error('Falha ao resetar');
+      const data = await res.json();
+      setSelecionadas(new Set(data.efetivas || []));
+      setAlcadaGlobal(!!data.alcadaGlobal);
+      toast.success('Permissões resetadas para o perfil');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erro');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const salvar = async () => {
+    setSaving(true);
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/permissoes/usuarios/${usuario.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          permissoes: Array.from(selecionadas),
+          alcadaGlobal,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Falha ao salvar');
+      }
+      toast.success('Permissões atualizadas');
+      onClose();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erro');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const porModulo = catalogo.reduce<Record<string, typeof catalogo>>((acc, p) => {
+    (acc[p.modulo] ||= []).push(p);
+    return acc;
+  }, {});
+
+  return (
+    <ModalShell onClose={onClose} maxWidth="lg" fixedSize>
+      <div className="mb-3 flex shrink-0 items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">Permissões de Acesso</h2>
+          <p className="text-sm text-muted-foreground">{usuario.nome} · {usuario.perfil}</p>
+        </div>
+        <HintTooltip content="Fechar sem salvar">
+          <button onClick={onClose} className="rounded p-1 hover:bg-muted" aria-label="Fechar">
+            <X size={18} />
+          </button>
+        </HintTooltip>
+      </div>
+
+      {loading ? (
+        <p className="py-8 text-center text-sm text-muted-foreground">Carregando…</p>
+      ) : (
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+          <div className="flex flex-wrap gap-2">
+            <HintTooltip content="Copia as permissões padrão do perfil (CONTADOR, FISCAL…) sem salvar ainda">
+              <button type="button" onClick={() => void aplicarPerfil()} className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted">
+                Copiar do perfil
+              </button>
+            </HintTooltip>
+            <HintTooltip content="Remove customizações e restaura imediatamente as permissões do perfil">
+              <button type="button" onClick={() => void resetar()} className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted">
+                Resetar para perfil
+              </button>
+            </HintTooltip>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <Checkbox checked={alcadaGlobal} onCheckedChange={(c) => setAlcadaGlobal(c === true)} className="h-5 w-5" />
+            <HintTooltip content="Com alçada global o usuário enxerga toda a carteira, não só os clientes em que é responsável">
+              <label className="cursor-help text-sm">Alçada global (todos os clientes)</label>
+            </HintTooltip>
+          </div>
+          {Object.entries(porModulo).map(([modulo, perms]) => (
+            <div key={modulo} className="space-y-2 rounded-md border border-border p-3">
+              <HintTooltip content={`Grupo de permissões do módulo ${modulo}`}>
+                <p className="cursor-help text-xs font-semibold uppercase tracking-wide text-muted-foreground">{modulo}</p>
+              </HintTooltip>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {perms.map((p) => (
+                  <HintTooltip
+                    key={p.codigo}
+                    content={PERMISSAO_HELP[p.codigo] || p.descricao || p.codigo}
+                    side="right"
+                  >
+                    <label className="flex cursor-pointer items-start gap-2 text-sm">
+                      <Checkbox
+                        checked={selecionadas.has(p.codigo)}
+                        onCheckedChange={() => toggle(p.codigo)}
+                        className="mt-0.5 h-4 w-4"
+                      />
+                      <span>
+                        <span className="font-medium">{p.codigo}</span>
+                        <span className="block text-xs text-muted-foreground">{p.descricao}</span>
+                      </span>
+                    </label>
+                  </HintTooltip>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-4 flex shrink-0 justify-end gap-2 border-t pt-3">
+        <HintTooltip content="Descarta alterações desta tela">
+          <button onClick={onClose} className="rounded-md px-4 py-2 text-sm text-muted-foreground hover:bg-muted">Cancelar</button>
+        </HintTooltip>
+        <HintTooltip content="Grava permissões e alçada deste usuário">
+          <button disabled={saving || loading} onClick={() => void salvar()} className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-60">
+            {saving ? 'Salvando…' : 'Salvar permissões'}
+          </button>
+        </HintTooltip>
+      </div>
+    </ModalShell>
+  );
+}
+

@@ -7,6 +7,7 @@ import { User, Lock, Eye, EyeOff } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api';
 import BrandLogo from '@/components/BrandLogo';
 import TypewriterText from '@/components/shared/TypewriterText';
+import HintTooltip from '@/components/shared/HintTooltip';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import {
   formatarMensagemLogin,
@@ -264,15 +265,17 @@ export default function Login() {
                     autoComplete="current-password"
                     disabled={loading}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowSenha((v) => !v)}
-                    className="login-input-toggle"
-                    aria-label={showSenha ? 'Ocultar senha' : 'Mostrar senha'}
-                    disabled={loading}
-                  >
-                    {showSenha ? <EyeOff size={18} strokeWidth={2} /> : <Eye size={18} strokeWidth={2} />}
-                  </button>
+                  <HintTooltip content={showSenha ? 'Ocultar senha' : 'Mostrar senha'}>
+                    <button
+                      type="button"
+                      onClick={() => setShowSenha((v) => !v)}
+                      className="login-input-toggle"
+                      aria-label={showSenha ? 'Ocultar senha' : 'Mostrar senha'}
+                      disabled={loading}
+                    >
+                      {showSenha ? <EyeOff size={18} strokeWidth={2} /> : <Eye size={18} strokeWidth={2} />}
+                    </button>
+                  </HintTooltip>
                 </div>
               </div>
 

@@ -16,7 +16,7 @@ public class CorsConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource(
-            @Value("${ALLOWED_ORIGINS:http://localhost:4200,http://localhost:5173,https://someli-contabilidade.vercel.app}") String allowedOrigins
+            @Value("${ALLOWED_ORIGINS:http://localhost:4200,http://localhost:5173,http://localhost:5174,http://127.0.0.1:4200,https://someli-contabilidade.vercel.app}") String allowedOrigins
     ) {
         CorsConfiguration configuration = new CorsConfiguration();
         List<String> origins = Arrays.stream(allowedOrigins.split(","))

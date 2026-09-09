@@ -1,4 +1,5 @@
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
+import HintTooltip from '@/components/shared/HintTooltip';
 
 export type SortRule<K extends string = string> = { key: K; dir: 'asc' | 'desc' };
 
@@ -27,26 +28,28 @@ export default function SortableTh<K extends string>({
 
   return (
     <th className={`label-text px-3 sm:px-4 py-2.5 ${textAlign} whitespace-nowrap ${className}`}>
-      <button
-        type="button"
-        onClick={(e) => onSort(sortKey, e.shiftKey)}
-        className={`inline-flex items-center gap-1.5 max-w-full group transition-colors ${alignClass} ${
-          active ? 'text-foreground' : 'text-inherit hover:text-foreground'
-        }`}
-        title="Clique para ordenar · Shift+clique para combinar"
-      >
-        <span className="truncate">{label}</span>
-        {active ? (
-          <span className="inline-flex items-center gap-0.5 shrink-0 text-primary">
-            {dir === 'asc' ? <ArrowUp size={13} strokeWidth={2.5} /> : <ArrowDown size={13} strokeWidth={2.5} />}
-            {sortRules.length > 1 ? (
-              <span className="text-[9px] font-bold tabular-nums">{idx + 1}</span>
-            ) : null}
-          </span>
-        ) : (
-          <ArrowUpDown size={13} strokeWidth={2.25} className="opacity-55 group-hover:opacity-100 shrink-0 text-primary" />
-        )}
-      </button>
+      <HintTooltip content="Clique para ordenar · Shift+clique para combinar">
+        <button
+          type="button"
+          onClick={(e) => onSort(sortKey, e.shiftKey)}
+          className={`inline-flex items-center gap-1.5 max-w-full group transition-colors ${alignClass} ${
+            active ? 'text-foreground' : 'text-inherit hover:text-foreground'
+          }`}
+          aria-label={`Ordenar por ${label}`}
+        >
+          <span className="truncate">{label}</span>
+          {active ? (
+            <span className="inline-flex items-center gap-0.5 shrink-0 text-primary">
+              {dir === 'asc' ? <ArrowUp size={13} strokeWidth={2.5} /> : <ArrowDown size={13} strokeWidth={2.5} />}
+              {sortRules.length > 1 ? (
+                <span className="text-[9px] font-bold tabular-nums">{idx + 1}</span>
+              ) : null}
+            </span>
+          ) : (
+            <ArrowUpDown size={13} strokeWidth={2.25} className="opacity-55 group-hover:opacity-100 shrink-0 text-primary" />
+          )}
+        </button>
+      </HintTooltip>
     </th>
   );
 }

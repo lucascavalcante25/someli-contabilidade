@@ -25,6 +25,7 @@ public class ClienteDTO {
     private Integer mesesPendentes;
     private java.util.List<String> mesesPendentesDetalhe;
     private java.math.BigDecimal valorPendente;
+    private java.util.List<TagDTO> tags;
 
     public Long getId() {
         return id;
@@ -192,5 +193,13 @@ public class ClienteDTO {
 
     public void setValorPendente(java.math.BigDecimal valorPendente) {
         this.valorPendente = valorPendente;
+    }
+
+    public java.util.List<TagDTO> getTags() {
+        return tags;
+    }
+
+    public void setTags(java.util.List<TagDTO> tags) {
+        this.tags = tags;
     }
 }

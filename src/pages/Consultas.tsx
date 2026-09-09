@@ -71,6 +71,10 @@ export default function Consultas() {
   const [result, setResult] = useState<CnpjResult | null>(null);
   const [uf, setUf] = useState('CE');
   const [sintegraResult, setSintegraResult] = useState<{ situacaoIE: string; regime: string; ultimaAtualizacao: string } | null>(null);
+  const [cep, setCep] = useState('');
+  const [cepResult, setCepResult] = useState<Record<string, unknown> | null>(null);
+  const [feriados, setFeriados] = useState<{ date: string }[]>([]);
+  const [loadingCep, setLoadingCep] = useState(false);
   const navigate = useNavigate();
 
   const buildApiError = async (response: Response) => {
@@ -184,11 +188,51 @@ export default function Consultas() {
     setUf('CE');
   };
 
+  const maskCep = (v: string) => {
+    const nums = v.replace(/\D/g, '').slice(0, 8);
+    return nums.replace(/(\d{5})(\d)/, '$1-$2');
+  };
+
+  const consultarCep = async () => {
+    const nums = cep.replace(/\D/g, '');
+    if (nums.length !== 8) {
+      toast.error('CEP inválido');
+      return;
+    }
+    setLoadingCep(true);
+    setCepResult(null);
+    try {
+      const response = await apiFetch(`${apiBaseUrl}/integracoes/cep/${nums}`);
+      if (!response.ok) throw new Error(await buildApiError(response));
+      setCepResult(await response.json());
+      toast.success('CEP consultado (BrasilAPI)');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao consultar CEP');
+    } finally {
+      setLoadingCep(false);
+    }
+  };
+
+  const carregarFeriados = async () => {
+    setLoadingCep(true);
+    try {
+      const ano = new Date().getFullYear();
+      const response = await apiFetch(`${apiBaseUrl}/integracoes/feriados/${ano}`);
+      if (!response.ok) throw new Error(await buildApiError(response));
+      setFeriados(await response.json());
+      toast.success(`Feriados nacionais ${ano}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao carregar feriados');
+    } finally {
+      setLoadingCep(false);
+    }
+  };
+
   return (
     <div className="page-shell">
       <div>
         <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Consultas</h1>
-        <p className="text-sm text-muted-foreground mt-1">Consulta pública de empresas</p>
+        <p className="text-sm text-muted-foreground mt-1">CNPJ, Sintegra, CEP e feriados (fontes gratuitas)</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
@@ -267,6 +311,66 @@ export default function Consultas() {
                 <span className="font-medium tabular-nums">{sintegraResult.ultimaAtualizacao}</span>
               </div>
             </motion.div>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
+        <div className="card-surface p-4 sm:p-5 min-w-0">
+          <h3 className="text-sm font-semibold mb-4">Consulta CEP (BrasilAPI)</h3>
+          <div className="space-y-2">
+            <input
+              value={cep}
+              onChange={(e) => setCep(maskCep(e.target.value))}
+              placeholder="00000-000"
+              className="w-full min-w-0 rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all tabular-nums"
+            />
+            <button
+              onClick={() => void consultarCep()}
+              disabled={loadingCep}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {loadingCep ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+              Consultar CEP
+            </button>
+          </div>
+          {cepResult && (
+            <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="mt-4 space-y-2 text-sm">
+              {[
+                ['Logradouro', String(cepResult.street || cepResult.logradouro || '—')],
+                ['Bairro', String(cepResult.neighborhood || cepResult.bairro || '—')],
+                ['Cidade', String(cepResult.city || cepResult.localidade || '—')],
+                ['UF', String(cepResult.state || cepResult.uf || '—')],
+              ].map(([label, value]) => (
+                <div key={label} className="flex justify-between py-1.5 border-b border-border">
+                  <span className="text-muted-foreground">{label}</span>
+                  <span className="font-medium text-right ml-4">{value}</span>
+                </div>
+              ))}
+            </motion.div>
+          )}
+        </div>
+
+        <div className="card-surface p-4 sm:p-5 min-w-0">
+          <h3 className="text-sm font-semibold mb-4">Feriados nacionais (BrasilAPI)</h3>
+          <p className="text-sm text-muted-foreground mb-3">
+            Usados automaticamente para ajustar vencimentos de obrigações para o próximo dia útil.
+          </p>
+          <button
+            onClick={() => void carregarFeriados()}
+            disabled={loadingCep}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-md border border-input px-4 py-2.5 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
+          >
+            Carregar feriados {new Date().getFullYear()}
+          </button>
+          {feriados.length > 0 && (
+            <ul className="mt-4 max-h-48 overflow-y-auto text-sm space-y-1">
+              {feriados.map((f) => (
+                <li key={f.date} className="flex justify-between border-b border-border/60 py-1">
+                  <span className="tabular-nums">{f.date.split('-').reverse().join('/')}</span>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       </div>
