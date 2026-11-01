@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '@/lib/api';
+import { ENABLE_SINTEGRA } from '@/lib/constants';
 import { apiFetch } from '@/lib/http';
 import AppSelect from '@/components/shared/AppSelect';
 
@@ -232,12 +233,14 @@ export default function Consultas() {
     <div className="page-shell">
       <div>
         <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Consultas</h1>
-        <p className="text-sm text-muted-foreground mt-1">CNPJ, Sintegra, CEP e feriados (fontes gratuitas)</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          {ENABLE_SINTEGRA ? 'CNPJ, Sintegra, CEP e feriados (fontes gratuitas)' : 'CNPJ, CEP e feriados (fontes gratuitas)'}
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
         {/* CNPJ */}
-        <div className="card-surface p-4 sm:p-5 min-w-0">
+        <div className={`card-surface p-4 sm:p-5 min-w-0 ${ENABLE_SINTEGRA ? '' : 'lg:col-span-2'}`}>
           <h3 className="text-sm font-semibold mb-4">Consulta CNPJ</h3>
           <div className="space-y-2">
             <input
@@ -266,7 +269,8 @@ export default function Consultas() {
           </div>
         </div>
 
-        {/* Sintegra */}
+        {/* Sintegra: desativada enquanto a conta InfoSimples estiver bloqueada (VITE_ENABLE_SINTEGRA). */}
+        {ENABLE_SINTEGRA && (
         <div className="card-surface p-4 sm:p-5 min-w-0">
           <h3 className="text-sm font-semibold mb-4">Consulta Sintegra</h3>
           <div className="space-y-2">
@@ -313,6 +317,7 @@ export default function Consultas() {
             </motion.div>
           )}
         </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">

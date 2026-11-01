@@ -13,16 +13,15 @@ As falhas 1 a 5 e a parte de rotas da falha 6 foram corrigidas em 01/11/2026, co
 | 3 | Download de documento não validava alçada | `ClienteDocumentoService.obterArquivo` | Corrigida: exige alçada sobre o cliente |
 | 4 | Tipos de obrigação podiam ser alterados sem permissão | `ObrigacaoService` | Corrigida: exige `OBRIGACOES_TIPOS_GERENCIAR` |
 | 5 | Usuário inativo continuava logando | `AuthService.login`, `JwtAuthenticationFilter` | Corrigida: login recusado e token antigo sem efeito |
-| 6 | Token InfoSimples versionado e rota Sintegra pública: consumia crédito sem login | `application.yml`, `SecurityConfig` | Parcial: Sintegra e CNPJ exigem login. O token continua no `application.yml` porque a produção depende dele (ver abaixo) |
+| 6 | Token InfoSimples versionado e rota Sintegra pública: consumia crédito sem login | `application.yml`, `SecurityConfig` | Corrigida no código: Sintegra e CNPJ exigem login, Sintegra desligada por flag e token removido do `application.yml`. O token antigo segue no histórico do Git: revogar ao recuperar a conta |
 
-### Passos para encerrar a falha 6
+### Religar a Sintegra
 
-O `docker-compose` não repassa `INFOSIMPLES_TOKEN`, então a produção usa o valor padrão do `application.yml`. Remover esse valor antes de configurar a VPS derruba a Sintegra. Ordem segura:
+A InfoSimples está desligada porque a conta foi bloqueada. Para religar com ela:
 
-1. Gerar um token novo no painel da InfoSimples.
-2. Acrescentar `INFOSIMPLES_TOKEN=<novo>` ao `deploy/contabo/.env` da VPS.
-3. Repassar a variável em `deploy/contabo/docker-compose.yml`, remover o valor padrão do `application.yml` e fazer o deploy.
-4. Testar uma consulta Sintegra e só então revogar o token antigo.
+1. Gerar um token novo e revogar o antigo.
+2. Acrescentar `INFOSIMPLES_ENABLED=true` e `INFOSIMPLES_TOKEN=<novo>` ao `deploy/contabo/.env` da VPS e repassar as duas variáveis em `deploy/contabo/docker-compose.yml`.
+3. Usar `VITE_ENABLE_SINTEGRA=true` no `.env.production` e fazer o deploy.
 
 ## Altas
 
@@ -58,7 +57,7 @@ O `docker-compose` não repassa `INFOSIMPLES_TOKEN`, então a produção usa o v
 
 | Item | Situação |
 |---|---|
-| Backend | 59 testes passando; 18 classes de teste para 29 services e 24 controllers |
+| Backend | 61 testes passando; 19 classes de teste para 29 services e 24 controllers |
 | Front | 11 testes passando em 4 arquivos |
 | Testes de API com segurança (401/403) | Praticamente inexistentes |
 | E2E | Não existe; `playwright.config.ts` depende de pacote não instalado |
@@ -81,7 +80,7 @@ Testadas as 8 rotas principais e a ficha do cliente em 375px, e as 8 rotas em 12
 
 ## Ordem de correção
 
-1. Encerrar a falha 6 com a troca do token.
+1. Definir o substituto da Sintegra.
 2. Corrigir `USUARIOS_EDITAR`, que permite promover usuário a ADMIN.
 3. Falha 7: CI com testes antes do deploy.
 4. Falhas 8, 9 e 11, e atualização das dependências.

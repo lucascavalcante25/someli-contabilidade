@@ -7,3 +7,10 @@ export const PAGE_SIZE = 30;
  */
 export const ENABLE_XML_IMPORT =
   String(import.meta.env.VITE_ENABLE_XML_IMPORT ?? 'false').toLowerCase() === 'true';
+
+/**
+ * Consulta Sintegra (InfoSimples) — desativada enquanto a conta estiver bloqueada.
+ * Reativar: VITE_ENABLE_SINTEGRA=true no .env e INFOSIMPLES_ENABLED=true na API.
+ */
+export const ENABLE_SINTEGRA =
+  String(import.meta.env.VITE_ENABLE_SINTEGRA ?? 'false').toLowerCase() === 'true';

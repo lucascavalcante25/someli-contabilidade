@@ -26,11 +26,17 @@ public class SintegraService {
     @Value("${infosimples.token}")
     private String infosimplesToken;
 
+    @Value("${infosimples.enabled:false}")
+    private boolean habilitada;
+
     public SintegraService(SintegraIntegration sintegraIntegration) {
         this.sintegraIntegration = sintegraIntegration;
     }
 
     public SintegraDTO consultarSintegra(SintegraRequestDTO request) {
+        if (!habilitada) {
+            throw new ExternalApiException(HttpStatus.SERVICE_UNAVAILABLE, "Consulta Sintegra temporariamente desativada.");
+        }
         if (request == null) {
             throw new ExternalApiException(HttpStatus.BAD_REQUEST, "Payload da consulta SINTEGRA é obrigatório.");
         }

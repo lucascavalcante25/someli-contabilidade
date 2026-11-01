@@ -11,7 +11,7 @@ O SOMELI é plataforma do **escritório contábil** (carteira, alçada, obrigaç
 | **Import XML NFe/NFSe** (upload local) | **Sim** | Conferência fiscal por cliente/competência | **Feito agora** |
 | **BrasilAPI** (CEP, feriados, dia útil) | **Sim** (limites públicos) | Ajuste de vencimento / endereço | Já tem |
 | **ReceitaWS** (CNPJ) | Freemium (rate limit) | Cadastro / consulta CNPJ | Já tem |
-| **Sintegra** (InfoSimples) | Pago por consulta (token) | Consulta IE | Já tem (token config) |
+| **Sintegra** (InfoSimples) | Pago por consulta (token) | Consulta IE | Desligada (conta bloqueada); religar conforme `docs/AUDITORIA.md` |
 | **OFX/CSV Nubank** (export do app) | **Sim** (export manual) | Conciliação honorários / caixa do escritório | Planejado |
 | **Open Finance / Pluggy / Belvo** | **Paga** | Extrato automático multi-banco | Planejado (só com orçamento) |
 | **Asaas / Iugu** | Freemium → pago | Boleto/Pix de honorário do escritório | Stub webhook + doc ([ASAAS_COBRANCA.md](./ASAAS_COBRANCA.md)); live = próximo ciclo |

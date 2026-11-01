@@ -57,6 +57,8 @@ receitaws:
     url: ${RECEITAWS_API_URL:https://www.receitaws.com.br/v1/cnpj/}
 
 infosimples:
-  token: ${INFOSIMPLES_TOKEN:Kst6NquxRVjb5A_c9nRyOkU3IasEIjKs1RBN2fkJ}
+  # Desligado: conta InfoSimples bloqueada. Religar com INFOSIMPLES_ENABLED=true e INFOSIMPLES_TOKEN.
+  enabled: ${INFOSIMPLES_ENABLED:false}
+  token: ${INFOSIMPLES_TOKEN:}
   api:
     url: ${INFOSIMPLES_API_URL:https://api.infosimples.com/api/v2/consultas/sintegra/unificada}
