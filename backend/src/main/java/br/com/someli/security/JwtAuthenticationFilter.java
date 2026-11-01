@@ -54,6 +54,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String cpf = jwtService.extrairCpf(token);
             if (cpf != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 Usuario usuario = usuarioService.buscarPorCpf(cpf);
+                if (!Boolean.TRUE.equals(usuario.getAtivo())) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
                 var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + usuario.getPerfil().name()));
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                         usuario.getCpf(),

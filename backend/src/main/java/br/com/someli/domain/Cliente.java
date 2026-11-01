@@ -92,6 +92,17 @@ public class Cliente {
     @Column(name = "regime_tributario", length = 40)
     private String regimeTributario;
 
+    /** Vencimento do certificado digital (A1/A3) — só metadado operacional. */
+    @Column(name = "certificado_vencimento")
+    private LocalDate certificadoVencimento;
+
+    /** A1 | A3 */
+    @Column(name = "certificado_tipo", length = 10)
+    private String certificadoTipo;
+
+    @Column(name = "certificado_observacao", length = 500)
+    private String certificadoObservacao;
+
     /** Quantidade de meses sem pagamento desde o início da cobrança até o mês atual (não persistido). */
     @Transient
     private Integer mesesPendentes;
@@ -278,6 +289,30 @@ public class Cliente {
 
     public void setRegimeTributario(String regimeTributario) {
         this.regimeTributario = regimeTributario;
+    }
+
+    public LocalDate getCertificadoVencimento() {
+        return certificadoVencimento;
+    }
+
+    public void setCertificadoVencimento(LocalDate certificadoVencimento) {
+        this.certificadoVencimento = certificadoVencimento;
+    }
+
+    public String getCertificadoTipo() {
+        return certificadoTipo;
+    }
+
+    public void setCertificadoTipo(String certificadoTipo) {
+        this.certificadoTipo = certificadoTipo;
+    }
+
+    public String getCertificadoObservacao() {
+        return certificadoObservacao;
+    }
+
+    public void setCertificadoObservacao(String certificadoObservacao) {
+        this.certificadoObservacao = certificadoObservacao;
     }
 
     public Integer getMesesPendentes() {

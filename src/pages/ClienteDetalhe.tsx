@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Pencil, Trash2, X, FileText, ClipboardList, File, Download, Loader2, Image, FileSpreadsheet, PowerOff, Power, ListChecks } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, X, FileText, ClipboardList, File, Download, Loader2, Image, FileSpreadsheet, PowerOff, Power, ListChecks, Shield, BadgeDollarSign, Radar } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -20,6 +20,7 @@ import OcorrenciaWorkList, { type OcorrenciaItem } from '@/components/obrigacoes
 import HintTooltip from '@/components/shared/HintTooltip';
 import { cn } from '@/lib/utils';
 import { ENABLE_XML_IMPORT } from '@/lib/constants';
+import { certificadoBadgeClass, certificadoStatusLabel, formatCertificadoResumo } from '@/lib/certificado';
 
 type TipoObrigacao = 'FISCAL' | 'LICENCA' | 'OUTROS';
 type StatusObrigacao = 'em_dia' | 'a_vencer' | 'atrasado' | 'proximo_vencimento';
@@ -109,6 +110,24 @@ interface Cliente {
   regimeTributario?: string;
   ativo?: boolean;
   dataFimCobranca?: string;
+  certificadoVencimento?: string;
+  certificadoTipo?: string;
+  certificadoObservacao?: string;
+  certificadoStatus?: string;
+  certificadoDiasRestantes?: number;
+  tags?: { id: number; nome: string; cor?: string }[];
+}
+
+interface RadarCompetencia {
+  competencia: string;
+  qtdEntrada: number;
+  qtdSaida: number;
+  qtdSemClassificacao: number;
+  valorEntrada: number;
+  valorSaida: number;
+  totalXml: number;
+  status: string;
+  observacao?: string;
 }
 
 export type ClienteDetalhePanelProps = {
@@ -136,6 +155,8 @@ export function ClienteDetalhePanel({
   const [obrigacoesInativas, setObrigacoesInativas] = useState<ClienteObrigacao[]>([]);
   const [documentos, setDocumentos] = useState<ClienteDocumento[]>([]);
   const [ocorrencias, setOcorrencias] = useState<OcorrenciaItem[]>([]);
+  const [radar, setRadar] = useState<RadarCompetencia[]>([]);
+  const [tagsCliente, setTagsCliente] = useState<{ id: number; nome: string; cor?: string }[]>([]);
   const [obrigacoesCatalogo, setObrigacoesCatalogo] = useState<Obrigacao[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploadingDoc, setUploadingDoc] = useState(false);
@@ -188,7 +209,21 @@ export function ClienteDetalhePanel({
         regimeTributario: data.regimeTributario || undefined,
         ativo: data.ativo !== false,
         dataFimCobranca: data.dataFimCobranca ? String(data.dataFimCobranca).slice(0, 10) : undefined,
+        certificadoVencimento: data.certificadoVencimento ? String(data.certificadoVencimento).slice(0, 10) : undefined,
+        certificadoTipo: data.certificadoTipo || undefined,
+        certificadoObservacao: data.certificadoObservacao || undefined,
+        certificadoStatus: data.certificadoStatus || undefined,
+        certificadoDiasRestantes: data.certificadoDiasRestantes != null ? Number(data.certificadoDiasRestantes) : undefined,
       });
+      setTagsCliente(
+        Array.isArray(data.tags)
+          ? data.tags.map((t: any) => ({
+              id: Number(t.id),
+              nome: String(t.nome || ''),
+              cor: t.cor ? String(t.cor) : undefined,
+            }))
+          : [],
+      );
     } catch {
       toast.error('Cliente não encontrado');
       // Só fecha se ainda não carregou dados (evita fechar o modal ao trocar de aba)
@@ -230,6 +265,8 @@ export function ClienteDetalhePanel({
         tipoArquivo: d.tipoArquivo || '',
         dataUpload: d.dataUpload || '',
         descricao: d.descricao || '',
+        competencia: d.competencia ? String(d.competencia) : undefined,
+        categoria: d.categoria ? String(d.categoria) : undefined,
       })));
     } catch {
       setDocumentos([]);
@@ -245,6 +282,33 @@ export function ClienteDetalhePanel({
       setOcorrencias(Array.isArray(data) ? data : []);
     } catch {
       setOcorrencias([]);
+    }
+  }, [apiBaseUrl, id]);
+
+  const carregarRadar = useCallback(async () => {
+    if (!id) return;
+    try {
+      const res = await apiFetch(`${apiBaseUrl}/clientes/${id}/notas-fiscais/radar`, { headers: getAuthHeaders() });
+      if (!res.ok) {
+        setRadar([]);
+        return;
+      }
+      const data = await res.json();
+      setRadar(
+        (Array.isArray(data) ? data : []).map((r: any) => ({
+          competencia: String(r.competencia || ''),
+          qtdEntrada: Number(r.qtdEntrada ?? 0),
+          qtdSaida: Number(r.qtdSaida ?? 0),
+          qtdSemClassificacao: Number(r.qtdSemClassificacao ?? 0),
+          valorEntrada: Number(r.valorEntrada ?? 0),
+          valorSaida: Number(r.valorSaida ?? 0),
+          totalXml: Number(r.totalXml ?? 0),
+          status: String(r.status || 'SEM_XML'),
+          observacao: r.observacao ? String(r.observacao) : undefined,
+        })),
+      );
+    } catch {
+      setRadar([]);
     }
   }, [apiBaseUrl, id]);
 
@@ -267,8 +331,9 @@ export function ClienteDetalhePanel({
     void carregarObrigacoes();
     void carregarDocumentos();
     void carregarOcorrencias();
+    void carregarRadar();
     void carregarCatalogo();
-  }, [carregarObrigacoes, carregarDocumentos, carregarOcorrencias, carregarCatalogo]);
+  }, [carregarObrigacoes, carregarDocumentos, carregarOcorrencias, carregarRadar, carregarCatalogo]);
 
   const handleSaveObrigacao = async (form: ClienteObrigacaoForm, clienteObrigacaoId?: number) => {
     if (!id) return;
@@ -588,6 +653,35 @@ export function ClienteDetalhePanel({
         : '—',
       hint: 'Define elegibilidade aos pacotes de obrigações (MEI / Simples / Presumido). Sem regime, templates por regime não incluem o cliente.',
     },
+    {
+      label: 'Certificado digital',
+      value: (
+        <span className="inline-flex flex-wrap items-center gap-1.5">
+          <span
+            className={cn(
+              'text-[10px] px-1.5 py-0.5 rounded font-medium',
+              certificadoBadgeClass(cliente.certificadoStatus),
+            )}
+          >
+            {certificadoStatusLabel(cliente.certificadoStatus)}
+          </span>
+          <span>
+            {formatCertificadoResumo({
+              status: cliente.certificadoStatus,
+              vencimento: cliente.certificadoVencimento,
+              tipo: cliente.certificadoTipo,
+              diasRestantes: cliente.certificadoDiasRestantes,
+            })}
+          </span>
+        </span>
+      ),
+      hint: 'Metadado operacional (A1/A3 + vencimento). Sem arquivo/senha. Alerta a 30 dias no Dashboard.',
+    },
+    {
+      label: 'Obs. certificado',
+      value: cliente.certificadoObservacao || '—',
+      hint: 'Anotação livre sobre renovação ou localização do token.',
+    },
     { label: 'Responsável', value: cliente.responsavelNome || '—', hint: 'Responsável legado do cadastro (além dos setores).' },
     { label: 'Indicação', value: cliente.indicacao || '—', hint: 'Origem ou observação comercial do cliente.' },
     { label: 'Cliente ativo', value: cliente.ativo === false ? 'Não' : 'Sim', hint: 'Clientes inativos saem da operação normal de cobrança.' },
@@ -693,6 +787,87 @@ export function ClienteDetalhePanel({
           </div>
         </div>
       )}
+
+      {/* Ficha 360° — atalhos operacionais (estilo painel Emitte, sem emissor) */}
+      {(() => {
+        const hoje = new Date();
+        hoje.setHours(12, 0, 0, 0);
+        const obrAVencer = obrigacoes.filter((o) => {
+          if (!o.dataVencimento) return false;
+          const d = new Date(o.dataVencimento + 'T12:00:00');
+          const diff = (d.getTime() - hoje.getTime()) / 86400000;
+          return diff >= 0 && diff <= 30;
+        }).length;
+        const obrAtrasadas = obrigacoes.filter((o) => o.status === 'atrasado').length;
+        const ocorrAbertas = ocorrencias.filter((o) => {
+          const st = String((o as any).status || '').toUpperCase();
+          return st && !['CONCLUIDA', 'CONCLUÍDA', 'CANCELADA'].includes(st);
+        }).length;
+        const competenciaAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+        const docsComp = documentos.filter((d) => d.competencia === competenciaAtual).length;
+        const regua =
+          cliente.status === 'em_dia'
+            ? { label: 'Em dia', hint: 'Honorário quitado / sem atraso' }
+            : cliente.status === 'pendente'
+              ? { label: 'Lembrete', hint: 'Mês em aberto dentro do vencimento' }
+              : { label: 'Cobrança', hint: 'Honorário em atraso — régua local (Asaas live = próximo ciclo)' };
+
+        return (
+          <div className="card-surface p-3 sm:p-4 mb-3 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-sm font-semibold">Painel 360°</p>
+                <p className="text-xs text-muted-foreground">Atalhos da operação deste cliente</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+              <button type="button" className="rounded-md bg-muted/40 p-2.5 text-left hover:bg-muted/60 transition-colors" onClick={() => setTab('dados')}>
+                <p className="label-text flex items-center gap-1"><BadgeDollarSign size={12} /> Honorário</p>
+                <p className="text-sm font-semibold truncate">{cliente.honorario == null ? '—' : mascarar(formatCurrency(cliente.honorario))}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Régua: {regua.label}</p>
+              </button>
+              <button type="button" className="rounded-md bg-muted/40 p-2.5 text-left hover:bg-muted/60 transition-colors" onClick={() => setTab('obrigacoes')}>
+                <p className="label-text">Obrigações</p>
+                <p className="text-sm font-semibold tabular-nums">
+                  {obrAtrasadas > 0 ? <span className="text-destructive">{obrAtrasadas} atrasada(s)</span> : `${obrAVencer} a vencer`}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{obrigacoes.length} vínculo(s)</p>
+              </button>
+              <button type="button" className="rounded-md bg-muted/40 p-2.5 text-left hover:bg-muted/60 transition-colors" onClick={() => setTab('ocorrencias')}>
+                <p className="label-text">Ocorrências</p>
+                <p className="text-sm font-semibold tabular-nums">{ocorrAbertas} aberta(s)</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{ocorrencias.length} no período</p>
+              </button>
+              <button type="button" className="rounded-md bg-muted/40 p-2.5 text-left hover:bg-muted/60 transition-colors" onClick={() => setTab('documentos')}>
+                <p className="label-text">Docs competência</p>
+                <p className="text-sm font-semibold tabular-nums">{docsComp}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{competenciaAtual}</p>
+              </button>
+              <button type="button" className="rounded-md bg-muted/40 p-2.5 text-left hover:bg-muted/60 transition-colors" onClick={() => setTab('dados')}>
+                <p className="label-text">Tags</p>
+                <p className="text-sm font-semibold tabular-nums">{tagsCliente.length || '—'}</p>
+                <div className="flex flex-wrap gap-0.5 mt-0.5">
+                  {tagsCliente.slice(0, 2).map((t) => (
+                    <span key={t.id} className="text-[9px] truncate max-w-[72px]" style={{ color: t.cor }}>{t.nome.replace(/_/g, ' ')}</span>
+                  ))}
+                </div>
+              </button>
+              <button type="button" className="rounded-md bg-muted/40 p-2.5 text-left hover:bg-muted/60 transition-colors" onClick={() => setTab('dados')}>
+                <p className="label-text flex items-center gap-1"><Shield size={12} /> Certificado</p>
+                <span className={cn('inline-block text-[10px] px-1.5 py-0.5 rounded font-medium mt-0.5', certificadoBadgeClass(cliente.certificadoStatus))}>
+                  {certificadoStatusLabel(cliente.certificadoStatus)}
+                </span>
+                <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                  {cliente.certificadoVencimento
+                    ? new Date(cliente.certificadoVencimento + 'T12:00:00').toLocaleDateString('pt-BR')
+                    : 'Não informado'}
+                </p>
+              </button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">{regua.hint}</p>
+          </div>
+        );
+      })()}
 
       <Tabs
         value={tab}
@@ -934,6 +1109,69 @@ export function ClienteDetalhePanel({
 
         <TabsContent value="documentos" className="mt-4">
           <div className="flex flex-col gap-4">
+            {radar.length > 0 && (
+              <div className="card-surface p-4 space-y-3">
+                <div className="flex items-start gap-2">
+                  <Radar size={16} className="mt-0.5 text-primary shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold">Radar fiscal (XML importado)</p>
+                    <p className="text-xs text-muted-foreground">
+                      Resumo por competência a partir de XMLs já salvos — sem SEFAZ.
+                      {ENABLE_XML_IMPORT ? '' : ' Upload permanece desligado; só leitura dos dados existentes.'}
+                    </p>
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm min-w-[520px]">
+                    <thead>
+                      <tr className="bg-muted/40">
+                        <th className="label-text px-3 py-2 text-left">Competência</th>
+                        <th className="label-text px-3 py-2 text-right">Entradas</th>
+                        <th className="label-text px-3 py-2 text-right">Saídas</th>
+                        <th className="label-text px-3 py-2 text-right">XML</th>
+                        <th className="label-text px-3 py-2 text-left">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {radar.map((r) => (
+                        <tr key={r.competencia} className="border-t border-border">
+                          <td className="px-3 py-2 tabular-nums font-medium">{r.competencia}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">
+                            {r.qtdEntrada}
+                            {r.valorEntrada > 0 ? (
+                              <span className="block text-[10px] text-muted-foreground">{mascarar(formatCurrency(r.valorEntrada))}</span>
+                            ) : null}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">
+                            {r.qtdSaida}
+                            {r.valorSaida > 0 ? (
+                              <span className="block text-[10px] text-muted-foreground">{mascarar(formatCurrency(r.valorSaida))}</span>
+                            ) : null}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">{r.totalXml}</td>
+                          <td className="px-3 py-2">
+                            <span
+                              className={cn(
+                                'text-[10px] px-1.5 py-0.5 rounded font-medium',
+                                r.status === 'OK' && 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
+                                r.status === 'PARCIAL' && 'bg-warning/15 text-warning',
+                                r.status === 'SEM_XML' && 'bg-muted text-muted-foreground',
+                              )}
+                            >
+                              {r.status === 'SEM_XML' ? 'Faltou XML' : r.status === 'PARCIAL' ? 'Parcial' : 'OK'}
+                            </span>
+                            {r.observacao ? (
+                              <span className="block text-[10px] text-muted-foreground mt-0.5">{r.observacao}</span>
+                            ) : null}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-col gap-3">
               <DocumentoUploadForm
                 onUpload={handleUploadDocumento}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Users, DollarSign, Clock, Receipt, TrendingUp, AlertTriangle, Calendar, AlertCircle } from 'lucide-react';
+import { Users, DollarSign, Clock, Receipt, TrendingUp, AlertTriangle, Calendar, AlertCircle, ShieldAlert, BadgeDollarSign } from 'lucide-react';
 import StatCard from '@/components/shared/StatCard';
 import ToggleValoresButton from '@/components/shared/ToggleValoresButton';
 import { formatCurrency, getGreeting } from '@/data/mockData';
@@ -14,6 +14,7 @@ import { motion } from 'framer-motion';
 import OcorrenciaWorkList from '@/components/obrigacoes/OcorrenciaWorkList';
 import ModalShell from '@/components/shared/ModalShell';
 import { ClienteDetalhePanel } from '@/pages/ClienteDetalhe';
+import { certificadoBadgeClass, certificadoStatusLabel } from '@/lib/certificado';
 
 const CHART_COLORS = ['hsl(var(--primary))', 'hsl(var(--sidebar-primary))', 'hsl(var(--accent))'];
 
@@ -65,6 +66,26 @@ interface ObrigacoesDashboard {
   atrasadas: { id: number; obrigacaoNome: string; dataVencimento: string; clienteId: number }[];
 }
 
+interface AlertasOperacionais {
+  obrigacoesVencendoHoje: number;
+  obrigacoesVencendoEmBreve: number;
+  obrigacoesAtrasadas: number;
+  dasPgdasAbertas: number;
+  certificadosVencendo: number;
+  certificadosVencidos: number;
+  inadimplentes: number;
+  certificados: {
+    clienteId: number;
+    razaoSocial: string;
+    certificadoVencimento?: string;
+    certificadoTipo?: string;
+    status: string;
+    diasRestantes?: number;
+  }[];
+  dasPgdasItens: { id: number; clienteId: number; clienteNome?: string; obrigacaoNome?: string; dataVencimento?: string }[];
+  inadimplentesItens: { id: number; razaoSocial: string; mesesPendentes?: number; valorPendente?: number }[];
+}
+
 export default function Dashboard() {
   const { user, can } = useAuth();
   const { mascarar, visiveis } = useValoresVisibilidade();
@@ -76,6 +97,7 @@ export default function Dashboard() {
   const [resumo, setResumo] = useState<ResumoFinanceiro | null>(null);
   const [chartData, setChartData] = useState<GraficoItem[]>([]);
   const [obrigacoesDashboard, setObrigacoesDashboard] = useState<ObrigacoesDashboard | null>(null);
+  const [alertas, setAlertas] = useState<AlertasOperacionais | null>(null);
   const [meuTrabalho, setMeuTrabalho] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [viewClienteId, setViewClienteId] = useState<number | null>(null);
@@ -90,6 +112,7 @@ export default function Dashboard() {
         apiFetch(`${apiBaseUrl}/clientes`, { headers: getAuthHeaders() }),
         apiFetch(`${apiBaseUrl}/meu-trabalho`, { headers: getAuthHeaders() }),
         apiFetch(`${apiBaseUrl}/obrigacoes/dashboard`, { headers: getAuthHeaders() }),
+        apiFetch(`${apiBaseUrl}/alertas-operacionais`, { headers: getAuthHeaders() }),
       ];
       if (podeFinanceiro) {
         fetches.push(
@@ -102,8 +125,9 @@ export default function Dashboard() {
       const resClientes = results[0];
       const resMeu = results[1];
       const resObrigacoes = results[2];
-      const resResumo = podeFinanceiro ? results[3] : null;
-      const resGrafico = podeFinanceiro ? results[4] : null;
+      const resAlertas = results[3];
+      const resResumo = podeFinanceiro ? results[4] : null;
+      const resGrafico = podeFinanceiro ? results[5] : null;
 
       if (resClientes.ok) {
         const data = await resClientes.json();
@@ -157,11 +181,30 @@ export default function Dashboard() {
       } else {
         setObrigacoesDashboard({ vencendoHoje: [], vencendoEmBreve: [], atrasadas: [] });
       }
+
+      if (resAlertas.ok) {
+        const data = await resAlertas.json();
+        setAlertas({
+          obrigacoesVencendoHoje: Number(data.obrigacoesVencendoHoje ?? 0),
+          obrigacoesVencendoEmBreve: Number(data.obrigacoesVencendoEmBreve ?? 0),
+          obrigacoesAtrasadas: Number(data.obrigacoesAtrasadas ?? 0),
+          dasPgdasAbertas: Number(data.dasPgdasAbertas ?? 0),
+          certificadosVencendo: Number(data.certificadosVencendo ?? 0),
+          certificadosVencidos: Number(data.certificadosVencidos ?? 0),
+          inadimplentes: Number(data.inadimplentes ?? 0),
+          certificados: Array.isArray(data.certificados) ? data.certificados : [],
+          dasPgdasItens: Array.isArray(data.dasPgdasItens) ? data.dasPgdasItens : [],
+          inadimplentesItens: Array.isArray(data.inadimplentesItens) ? data.inadimplentesItens : [],
+        });
+      } else {
+        setAlertas(null);
+      }
     } catch {
       setClientes([]);
       setResumo(null);
       setChartData([]);
       setObrigacoesDashboard(null);
+      setAlertas(null);
       setMeuTrabalho(null);
     } finally {
       setLoading(false);
@@ -256,7 +299,7 @@ export default function Dashboard() {
             <h2 className="text-base font-semibold">Meu Trabalho</h2>
             <p className="text-sm text-muted-foreground">Obrigações e pendências da sua carteira</p>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3">
             <div className="rounded-md bg-muted/40 p-3">
               <p className="label-text">Vence hoje</p>
               <p className="text-xl font-semibold tabular-nums">{meuTrabalho.vencendoHoje}</p>
@@ -274,8 +317,16 @@ export default function Dashboard() {
               <p className="text-xl font-semibold tabular-nums">{meuTrabalho.aguardandoCliente}</p>
             </div>
             <div className="rounded-md bg-muted/40 p-3">
-              <p className="label-text">Notificações</p>
-              <p className="text-xl font-semibold tabular-nums">{meuTrabalho.notificacoesNaoLidas}</p>
+              <p className="label-text">Cert. vencendo</p>
+              <p className="text-xl font-semibold tabular-nums text-warning">{meuTrabalho.certificadosVencendo ?? 0}</p>
+            </div>
+            <div className="rounded-md bg-muted/40 p-3">
+              <p className="label-text">Cert. vencidos</p>
+              <p className="text-xl font-semibold tabular-nums text-destructive">{meuTrabalho.certificadosVencidos ?? 0}</p>
+            </div>
+            <div className="rounded-md bg-muted/40 p-3">
+              <p className="label-text">Inadimplentes</p>
+              <p className="text-xl font-semibold tabular-nums">{meuTrabalho.inadimplentes ?? 0}</p>
             </div>
             <div className="rounded-md bg-muted/40 p-3">
               <p className="label-text">Minha carteira</p>
@@ -336,59 +387,141 @@ export default function Dashboard() {
         </div>
       )}
 
-      {obrigacoesDashboard && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 }}
-            className="card-surface p-5 cursor-pointer hover:ring-2 hover:ring-warning/30 transition-all"
-            onClick={() => navigate('/clientes')}
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="label-text">Obrigações vencendo hoje</p>
-                <p className="text-xl font-semibold tabular-nums">{obrigacoesDashboard.vencendoHoje.length}</p>
+      {(alertas || obrigacoesDashboard) && (
+        <div className="card-surface p-4 sm:p-5 space-y-4">
+          <div>
+            <h2 className="text-base font-semibold">Central de alertas</h2>
+            <p className="text-sm text-muted-foreground">
+              Obrigações, DAS/PGDAS, certificados e inadimplentes — visão unificada da operação
+            </p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <button type="button" className="rounded-md bg-muted/40 p-3 text-left hover:bg-muted/60 transition-colors" onClick={() => navigate('/clientes')}>
+              <div className="flex items-center justify-between gap-2">
+                <p className="label-text">Vence hoje</p>
+                <Calendar size={14} className="text-warning shrink-0" />
               </div>
-              <div className="rounded-lg bg-warning/10 p-2.5">
-                <Calendar size={18} className="text-warning" />
+              <p className="text-xl font-semibold tabular-nums">{alertas?.obrigacoesVencendoHoje ?? obrigacoesDashboard?.vencendoHoje.length ?? 0}</p>
+            </button>
+            <button type="button" className="rounded-md bg-muted/40 p-3 text-left hover:bg-muted/60 transition-colors" onClick={() => navigate('/clientes')}>
+              <div className="flex items-center justify-between gap-2">
+                <p className="label-text">Em breve</p>
+                <AlertTriangle size={14} className="text-primary shrink-0" />
+              </div>
+              <p className="text-xl font-semibold tabular-nums">{alertas?.obrigacoesVencendoEmBreve ?? obrigacoesDashboard?.vencendoEmBreve.length ?? 0}</p>
+            </button>
+            <button type="button" className="rounded-md bg-muted/40 p-3 text-left hover:bg-muted/60 transition-colors" onClick={() => navigate('/clientes')}>
+              <div className="flex items-center justify-between gap-2">
+                <p className="label-text">Atrasadas</p>
+                <AlertCircle size={14} className="text-destructive shrink-0" />
+              </div>
+              <p className="text-xl font-semibold tabular-nums text-destructive">{alertas?.obrigacoesAtrasadas ?? obrigacoesDashboard?.atrasadas.length ?? 0}</p>
+            </button>
+            <button type="button" className="rounded-md bg-muted/40 p-3 text-left hover:bg-muted/60 transition-colors" onClick={() => navigate('/clientes')}>
+              <div className="flex items-center justify-between gap-2">
+                <p className="label-text">DAS / PGDAS</p>
+                <Receipt size={14} className="text-primary shrink-0" />
+              </div>
+              <p className="text-xl font-semibold tabular-nums">{alertas?.dasPgdasAbertas ?? 0}</p>
+            </button>
+            <button type="button" className="rounded-md bg-muted/40 p-3 text-left hover:bg-muted/60 transition-colors" onClick={() => navigate('/clientes')}>
+              <div className="flex items-center justify-between gap-2">
+                <p className="label-text">Certificados</p>
+                <ShieldAlert size={14} className="text-warning shrink-0" />
+              </div>
+              <p className="text-xl font-semibold tabular-nums">
+                {(alertas?.certificadosVencendo ?? 0) + (alertas?.certificadosVencidos ?? 0)}
+              </p>
+            </button>
+            <button type="button" className="rounded-md bg-muted/40 p-3 text-left hover:bg-muted/60 transition-colors" onClick={() => navigate('/clientes')}>
+              <div className="flex items-center justify-between gap-2">
+                <p className="label-text">Inadimplentes</p>
+                <BadgeDollarSign size={14} className="text-destructive shrink-0" />
+              </div>
+              <p className="text-xl font-semibold tabular-nums">{alertas?.inadimplentes ?? 0}</p>
+            </button>
+          </div>
+
+          {alertas && (alertas.certificados.length > 0 || alertas.dasPgdasItens.length > 0 || alertas.inadimplentesItens.length > 0) && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 border-t border-border pt-4">
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Certificados</p>
+                {alertas.certificados.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">Nenhum alerta de certificado</p>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {alertas.certificados.slice(0, 6).map((c) => (
+                      <li key={c.clienteId}>
+                        <button
+                          type="button"
+                          className="w-full text-left text-sm rounded-md px-2 py-1.5 hover:bg-muted/50 transition-colors"
+                          onClick={() => setViewClienteId(c.clienteId)}
+                        >
+                          <span className="font-medium truncate block">{c.razaoSocial}</span>
+                          <span className={`inline-block text-[10px] px-1.5 py-0.5 rounded mt-0.5 ${certificadoBadgeClass(c.status)}`}>
+                            {certificadoStatusLabel(c.status)}
+                            {c.certificadoVencimento
+                              ? ` · ${new Date(c.certificadoVencimento + 'T12:00:00').toLocaleDateString('pt-BR')}`
+                              : ''}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">DAS / PGDAS abertos</p>
+                {alertas.dasPgdasItens.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">Nenhuma ocorrência tipada aberta</p>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {alertas.dasPgdasItens.slice(0, 6).map((o) => (
+                      <li key={o.id}>
+                        <button
+                          type="button"
+                          className="w-full text-left text-sm rounded-md px-2 py-1.5 hover:bg-muted/50 transition-colors"
+                          onClick={() => o.clienteId && setViewClienteId(o.clienteId)}
+                        >
+                          <span className="font-medium truncate block">{o.clienteNome || `Cliente #${o.clienteId}`}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {o.obrigacaoNome}
+                            {o.dataVencimento
+                              ? ` · ${new Date(o.dataVencimento + 'T12:00:00').toLocaleDateString('pt-BR')}`
+                              : ''}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Inadimplentes</p>
+                {alertas.inadimplentesItens.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">Nenhum cliente em atraso</p>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {alertas.inadimplentesItens.slice(0, 6).map((c) => (
+                      <li key={c.id}>
+                        <button
+                          type="button"
+                          className="w-full text-left text-sm rounded-md px-2 py-1.5 hover:bg-muted/50 transition-colors"
+                          onClick={() => setViewClienteId(c.id)}
+                        >
+                          <span className="font-medium truncate block">{c.razaoSocial}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {c.mesesPendentes != null ? `${c.mesesPendentes} mês(es)` : 'Em atraso'}
+                            {c.valorPendente != null ? ` · ${mascarar(formatCurrency(Number(c.valorPendente)))}` : ''}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="card-surface p-5 cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all"
-            onClick={() => navigate('/clientes')}
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="label-text">Obrigações vencendo em breve</p>
-                <p className="text-xl font-semibold tabular-nums">{obrigacoesDashboard.vencendoEmBreve.length}</p>
-              </div>
-              <div className="rounded-lg bg-primary/10 p-2.5">
-                <AlertTriangle size={18} className="text-primary" />
-              </div>
-            </div>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-            className="card-surface p-5 cursor-pointer hover:ring-2 hover:ring-destructive/30 transition-all"
-            onClick={() => navigate('/clientes')}
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="label-text">Obrigações atrasadas</p>
-                <p className="text-xl font-semibold tabular-nums">{obrigacoesDashboard.atrasadas.length}</p>
-              </div>
-              <div className="rounded-lg bg-destructive/10 p-2.5">
-                <AlertCircle size={18} className="text-destructive" />
-              </div>
-            </div>
-          </motion.div>
+          )}
         </div>
       )}
 

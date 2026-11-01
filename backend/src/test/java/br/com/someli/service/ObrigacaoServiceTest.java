@@ -4,8 +4,10 @@ import br.com.someli.domain.Cliente;
 import br.com.someli.domain.ClienteObrigacao;
 import br.com.someli.domain.Obrigacao;
 import br.com.someli.domain.ObrigacaoOcorrencia;
+import br.com.someli.domain.PermissaoCodigo;
 import br.com.someli.dto.CreateObrigacaoRequestDTO;
 import br.com.someli.dto.UpdateObrigacaoRequestDTO;
+import br.com.someli.exception.AcessoNegadoException;
 import br.com.someli.mapper.ObrigacaoOcorrenciaMapper;
 import br.com.someli.repository.ObrigacaoRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,11 +27,45 @@ import static org.mockito.Mockito.*;
 class ObrigacaoServiceTest {
 
     @Mock ObrigacaoRepository repository;
+    @Mock AuthorizationService authorizationService;
     ObrigacaoService service;
 
     @BeforeEach
     void setUp() {
-        service = new ObrigacaoService(repository);
+        service = new ObrigacaoService(repository, authorizationService);
+    }
+
+    private void negarGerenciarTipos() {
+        doThrow(new AcessoNegadoException("Sem permissão"))
+                .when(authorizationService).requirePermission(PermissaoCodigo.OBRIGACOES_TIPOS_GERENCIAR);
+    }
+
+    @Test
+    void criar_semPermissao_negaENaoPersiste() {
+        negarGerenciarTipos();
+
+        CreateObrigacaoRequestDTO req = new CreateObrigacaoRequestDTO();
+        req.setNome("eSocial");
+
+        assertThrows(AcessoNegadoException.class, () -> service.criar(req));
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void atualizar_semPermissao_negaENaoPersiste() {
+        negarGerenciarTipos();
+
+        assertThrows(AcessoNegadoException.class,
+                () -> service.atualizar(1L, new UpdateObrigacaoRequestDTO()));
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void remover_semPermissao_negaENaoExclui() {
+        negarGerenciarTipos();
+
+        assertThrows(AcessoNegadoException.class, () -> service.remover(1L));
+        verify(repository, never()).delete(any());
     }
 
     @Test

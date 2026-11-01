@@ -1,10 +1,13 @@
 package br.com.someli.service;
 
+import br.com.someli.domain.CertificadoDigitalStatus;
+import br.com.someli.domain.Cliente;
 import br.com.someli.domain.ObrigacaoOcorrencia;
 import br.com.someli.domain.PermissaoCodigo;
 import br.com.someli.domain.SetorResponsabilidade;
 import br.com.someli.domain.StatusObrigacaoOcorrencia;
 import br.com.someli.domain.Usuario;
+import br.com.someli.dto.CertificadoAlertaDTO;
 import br.com.someli.dto.MeuTrabalhoDTO;
 import br.com.someli.dto.ObrigacaoOcorrenciaDTO;
 import br.com.someli.repository.ClienteRepository;
@@ -32,17 +35,20 @@ public class MeuTrabalhoService {
     private final NotificationRepository notificationRepository;
     private final ClienteResponsavelRepository clienteResponsavelRepository;
     private final ClienteRepository clienteRepository;
+    private final ClienteService clienteService;
     private final AuthorizationService authorizationService;
 
     public MeuTrabalhoService(ObrigacaoOcorrenciaRepository ocorrenciaRepository,
                               NotificationRepository notificationRepository,
                               ClienteResponsavelRepository clienteResponsavelRepository,
                               ClienteRepository clienteRepository,
+                              ClienteService clienteService,
                               AuthorizationService authorizationService) {
         this.ocorrenciaRepository = ocorrenciaRepository;
         this.notificationRepository = notificationRepository;
         this.clienteResponsavelRepository = clienteResponsavelRepository;
         this.clienteRepository = clienteRepository;
+        this.clienteService = clienteService;
         this.authorizationService = authorizationService;
     }
 
@@ -89,11 +95,54 @@ public class MeuTrabalhoService {
         dto.getObrigacoesProximas().addAll(proximas.stream().limit(24).map(this::toDto).toList());
         dto.setObrigacoesAtrasadas(atrasadas.stream().limit(24).map(this::toDto).toList());
 
+        preencherAlertasCliente(dto, hoje, alcadaSet);
+
         if (authorizationService.hasPermission(u, PermissaoCodigo.VISAO_GERENCIAL)
                 || authorizationService.hasAlcadaGlobal(u)) {
             dto.setVisaoGerencial(montarVisaoGerencial());
         }
         return dto;
+    }
+
+    private void preencherAlertasCliente(MeuTrabalhoDTO dto, LocalDate hoje, Set<Long> alcadaSet) {
+        List<Cliente> clientes = clienteRepository.findAllWithResponsavel().stream()
+                .filter(c -> Boolean.TRUE.equals(c.getAtivo()))
+                .filter(c -> alcadaSet == null || alcadaSet.contains(c.getId()))
+                .toList();
+
+        YearMonth atual = YearMonth.now();
+        Map<Long, Set<YearMonth>> pagos = clienteService.indexarPagamentosPagos();
+        Map<Long, Set<YearMonth>> naoCobraveis = clienteService.indexarMesesNaoCobraveis();
+
+        List<CertificadoAlertaDTO> certs = new ArrayList<>();
+        long inad = 0;
+        for (Cliente c : clientes) {
+            clienteService.enriquecerStatusPagamento(
+                    c, atual, hoje,
+                    pagos.getOrDefault(c.getId(), Set.of()),
+                    naoCobraveis.getOrDefault(c.getId(), Set.of()));
+            if ("atrasado".equalsIgnoreCase(c.getStatus())
+                    || (c.getMesesPendentes() != null && c.getMesesPendentes() > 0)) {
+                inad++;
+            }
+            CertificadoDigitalStatus st = CertificadoDigitalStatus.de(
+                    c.getCertificadoVencimento(), hoje, CertificadoDigitalStatus.DIAS_ALERTA_PADRAO);
+            if (st == CertificadoDigitalStatus.VENCENDO || st == CertificadoDigitalStatus.VENCIDO) {
+                CertificadoAlertaDTO a = new CertificadoAlertaDTO();
+                a.setClienteId(c.getId());
+                a.setRazaoSocial(c.getRazaoSocial());
+                a.setCnpj(c.getCnpj());
+                a.setCertificadoVencimento(c.getCertificadoVencimento());
+                a.setCertificadoTipo(c.getCertificadoTipo());
+                a.setStatus(st.name());
+                a.setDiasRestantes(CertificadoDigitalStatus.diasRestantes(c.getCertificadoVencimento(), hoje));
+                certs.add(a);
+            }
+        }
+        dto.setInadimplentes(inad);
+        dto.setCertificadosVencendo(certs.stream().filter(c -> "VENCENDO".equals(c.getStatus())).count());
+        dto.setCertificadosVencidos(certs.stream().filter(c -> "VENCIDO".equals(c.getStatus())).count());
+        dto.setCertificadosAlertas(certs.stream().limit(20).toList());
     }
 
     private MeuTrabalhoDTO.VisaoGerencialDTO montarVisaoGerencial() {

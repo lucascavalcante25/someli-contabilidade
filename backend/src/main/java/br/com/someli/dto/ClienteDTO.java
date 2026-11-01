@@ -23,6 +23,12 @@ public class ClienteDTO {
     private String formaPagamento;
     private Boolean ativo;
     private String regimeTributario;
+    private LocalDate certificadoVencimento;
+    private String certificadoTipo;
+    private String certificadoObservacao;
+    /** OK | VENCENDO | VENCIDO | NAO_INFORMADO — calculado */
+    private String certificadoStatus;
+    private Long certificadoDiasRestantes;
     private Integer mesesPendentes;
     private java.util.List<String> mesesPendentesDetalhe;
     private java.math.BigDecimal valorPendente;
@@ -178,6 +184,46 @@ public class ClienteDTO {
 
     public void setRegimeTributario(String regimeTributario) {
         this.regimeTributario = regimeTributario;
+    }
+
+    public LocalDate getCertificadoVencimento() {
+        return certificadoVencimento;
+    }
+
+    public void setCertificadoVencimento(LocalDate certificadoVencimento) {
+        this.certificadoVencimento = certificadoVencimento;
+    }
+
+    public String getCertificadoTipo() {
+        return certificadoTipo;
+    }
+
+    public void setCertificadoTipo(String certificadoTipo) {
+        this.certificadoTipo = certificadoTipo;
+    }
+
+    public String getCertificadoObservacao() {
+        return certificadoObservacao;
+    }
+
+    public void setCertificadoObservacao(String certificadoObservacao) {
+        this.certificadoObservacao = certificadoObservacao;
+    }
+
+    public String getCertificadoStatus() {
+        return certificadoStatus;
+    }
+
+    public void setCertificadoStatus(String certificadoStatus) {
+        this.certificadoStatus = certificadoStatus;
+    }
+
+    public Long getCertificadoDiasRestantes() {
+        return certificadoDiasRestantes;
+    }
+
+    public void setCertificadoDiasRestantes(Long certificadoDiasRestantes) {
+        this.certificadoDiasRestantes = certificadoDiasRestantes;
     }
 
     public Integer getMesesPendentes() {

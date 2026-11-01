@@ -295,6 +295,16 @@ public class ClienteService {
             String regime = br.com.someli.domain.RegimeTributario.normalizar(request.getRegimeTributario());
             cliente.setRegimeTributario(regime);
         }
+        cliente.setCertificadoVencimento(request.getCertificadoVencimento());
+        String tipoCert = trimOrNull(request.getCertificadoTipo());
+        if (tipoCert != null) {
+            tipoCert = tipoCert.toUpperCase(Locale.ROOT);
+            if (!"A1".equals(tipoCert) && !"A3".equals(tipoCert)) {
+                throw new RegraNegocioException("Tipo de certificado deve ser A1 ou A3");
+            }
+        }
+        cliente.setCertificadoTipo(tipoCert);
+        cliente.setCertificadoObservacao(trimOrNull(request.getCertificadoObservacao()));
     }
 
     private Usuario resolverResponsavel(Long responsavelId) {

@@ -1,6 +1,7 @@
 package br.com.someli.controller;
 
 import br.com.someli.dto.NotaFiscalImportDTO;
+import br.com.someli.dto.RadarFiscalCompetenciaDTO;
 import br.com.someli.service.NotaFiscalImportService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +32,12 @@ public class NotaFiscalImportController {
             @PathVariable Long clienteId,
             @RequestParam(value = "competencia", required = false) String competencia) {
         return ResponseEntity.ok(service.listarPorCliente(clienteId, competencia));
+    }
+
+    /** Radar fiscal leve (leitura) — não reativa upload; só resume XMLs já importados. */
+    @GetMapping("/clientes/{clienteId}/notas-fiscais/radar")
+    public ResponseEntity<List<RadarFiscalCompetenciaDTO>> radar(@PathVariable Long clienteId) {
+        return ResponseEntity.ok(service.radarPorCliente(clienteId));
     }
 
     @PostMapping("/clientes/{clienteId}/notas-fiscais/importar")

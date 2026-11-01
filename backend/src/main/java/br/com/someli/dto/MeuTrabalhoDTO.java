@@ -9,8 +9,12 @@ public class MeuTrabalhoDTO {
     private long aguardandoCliente;
     private long notificacoesNaoLidas;
     private long empresasNaCarteira;
+    private long certificadosVencendo;
+    private long certificadosVencidos;
+    private long inadimplentes;
     private List<ObrigacaoOcorrenciaDTO> obrigacoesProximas;
     private List<ObrigacaoOcorrenciaDTO> obrigacoesAtrasadas;
+    private List<CertificadoAlertaDTO> certificadosAlertas;
     private VisaoGerencialDTO visaoGerencial;
 
     public long getVencendoHoje() { return vencendoHoje; }
@@ -25,6 +29,14 @@ public class MeuTrabalhoDTO {
     public void setNotificacoesNaoLidas(long notificacoesNaoLidas) { this.notificacoesNaoLidas = notificacoesNaoLidas; }
     public long getEmpresasNaCarteira() { return empresasNaCarteira; }
     public void setEmpresasNaCarteira(long empresasNaCarteira) { this.empresasNaCarteira = empresasNaCarteira; }
+    public long getCertificadosVencendo() { return certificadosVencendo; }
+    public void setCertificadosVencendo(long certificadosVencendo) { this.certificadosVencendo = certificadosVencendo; }
+    public long getCertificadosVencidos() { return certificadosVencidos; }
+    public void setCertificadosVencidos(long certificadosVencidos) { this.certificadosVencidos = certificadosVencidos; }
+    public long getInadimplentes() { return inadimplentes; }
+    public void setInadimplentes(long inadimplentes) { this.inadimplentes = inadimplentes; }
+    public List<CertificadoAlertaDTO> getCertificadosAlertas() { return certificadosAlertas; }
+    public void setCertificadosAlertas(List<CertificadoAlertaDTO> certificadosAlertas) { this.certificadosAlertas = certificadosAlertas; }
     public List<ObrigacaoOcorrenciaDTO> getObrigacoesProximas() { return obrigacoesProximas; }
     public void setObrigacoesProximas(List<ObrigacaoOcorrenciaDTO> obrigacoesProximas) { this.obrigacoesProximas = obrigacoesProximas; }
     public List<ObrigacaoOcorrenciaDTO> getObrigacoesAtrasadas() { return obrigacoesAtrasadas; }

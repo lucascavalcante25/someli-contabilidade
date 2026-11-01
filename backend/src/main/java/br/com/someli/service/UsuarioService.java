@@ -120,11 +120,16 @@ public class UsuarioService {
     }
 
     public void remover(Long id) {
+        authorizationService.requirePermission(PermissaoCodigo.USUARIOS_DESATIVAR);
         Usuario usuario = buscarPorId(id);
         usuarioRepository.delete(Objects.requireNonNull(usuario));
+        auditLogService.registrar("USUARIO_EXCLUIR", "USUARIO", String.valueOf(id), usuario.getNome(), null);
     }
 
     public Usuario uploadFoto(Long id, MultipartFile file) throws IOException {
+        if (!id.equals(authorizationService.currentUser().getId())) {
+            authorizationService.requirePermission(PermissaoCodigo.USUARIOS_EDITAR);
+        }
         Usuario usuario = buscarPorId(id);
         String nomeOriginal = file.getOriginalFilename() != null ? file.getOriginalFilename() : "foto";
         String extensao = ".jpg";

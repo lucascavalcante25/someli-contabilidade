@@ -51,6 +51,13 @@ public class CreateClienteRequestDTO {
     /** MEI | SIMPLES_NACIONAL | LUCRO_PRESUMIDO | LUCRO_REAL | OUTRO */
     private String regimeTributario;
 
+    private LocalDate certificadoVencimento;
+    /** A1 | A3 */
+    @Size(max = 10, message = "Tipo de certificado inválido")
+    private String certificadoTipo;
+    @Size(max = 500, message = "Observação do certificado muito longa")
+    private String certificadoObservacao;
+
     public String getCnpj() {
         return cnpj;
     }
@@ -177,5 +184,29 @@ public class CreateClienteRequestDTO {
 
     public void setRegimeTributario(String regimeTributario) {
         this.regimeTributario = regimeTributario;
+    }
+
+    public LocalDate getCertificadoVencimento() {
+        return certificadoVencimento;
+    }
+
+    public void setCertificadoVencimento(LocalDate certificadoVencimento) {
+        this.certificadoVencimento = certificadoVencimento;
+    }
+
+    public String getCertificadoTipo() {
+        return certificadoTipo;
+    }
+
+    public void setCertificadoTipo(String certificadoTipo) {
+        this.certificadoTipo = certificadoTipo;
+    }
+
+    public String getCertificadoObservacao() {
+        return certificadoObservacao;
+    }
+
+    public void setCertificadoObservacao(String certificadoObservacao) {
+        this.certificadoObservacao = certificadoObservacao;
     }
 }

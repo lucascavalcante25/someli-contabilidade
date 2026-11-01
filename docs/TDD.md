@@ -24,6 +24,6 @@ npm run test:backend     # backend (Maven/JUnit)
 npm run test:all         # ambos
 ```
 
-## Regra no Cursor
+## Regra do projeto
 
-Arquivo `.cursor/rules/tdd-someli.mdc` — o agente segue TDD em regras de negócio, segurança e integrações.
+A definição de pronto e o checklist de segurança ficam no `CLAUDE.md`, na raiz do repositório.

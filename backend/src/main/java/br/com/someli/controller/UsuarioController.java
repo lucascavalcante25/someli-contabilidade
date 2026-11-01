@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -79,13 +80,8 @@ public class UsuarioController {
     }
 
     @PostMapping("/{id}/foto")
-    public ResponseEntity<UsuarioDTO> uploadFoto(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
-        try {
-            UsuarioDTO usuario = usuarioMapper.toDto(usuarioService.uploadFoto(id, file));
-            return ResponseEntity.ok(usuario);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+    public ResponseEntity<UsuarioDTO> uploadFoto(@PathVariable Long id, @RequestParam("file") MultipartFile file) throws IOException {
+        return ResponseEntity.ok(usuarioMapper.toDto(usuarioService.uploadFoto(id, file)));
     }
 
     @GetMapping("/{id}/foto")

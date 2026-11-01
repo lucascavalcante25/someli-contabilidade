@@ -128,6 +128,7 @@ public class ClienteDocumentoService {
 
     public Resource obterArquivo(Long documentoId) throws MalformedURLException {
         ClienteDocumento doc = buscarPorId(documentoId);
+        authorizationService.requireCompanyAccess(doc.getCliente().getId());
         Path filePath = basePath.resolve(doc.getUrlArquivo()).normalize();
         Resource resource = new UrlResource(filePath.toUri());
         if (!resource.exists() || !resource.isReadable()) {

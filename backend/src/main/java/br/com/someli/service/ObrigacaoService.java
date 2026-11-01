@@ -1,6 +1,7 @@
 package br.com.someli.service;
 
 import br.com.someli.domain.Obrigacao;
+import br.com.someli.domain.PermissaoCodigo;
 import br.com.someli.dto.CreateObrigacaoRequestDTO;
 import br.com.someli.dto.UpdateObrigacaoRequestDTO;
 import br.com.someli.exception.ObrigacaoNaoEncontradaException;
@@ -14,9 +15,12 @@ import java.util.Objects;
 public class ObrigacaoService {
 
     private final ObrigacaoRepository obrigacaoRepository;
+    private final AuthorizationService authorizationService;
 
-    public ObrigacaoService(ObrigacaoRepository obrigacaoRepository) {
+    public ObrigacaoService(ObrigacaoRepository obrigacaoRepository,
+                            AuthorizationService authorizationService) {
         this.obrigacaoRepository = obrigacaoRepository;
+        this.authorizationService = authorizationService;
     }
 
     public List<Obrigacao> listarTodas() {
@@ -29,6 +33,7 @@ public class ObrigacaoService {
     }
 
     public Obrigacao criar(CreateObrigacaoRequestDTO request) {
+        authorizationService.requirePermission(PermissaoCodigo.OBRIGACOES_TIPOS_GERENCIAR);
         Obrigacao obrigacao = new Obrigacao();
         obrigacao.setNome(request.getNome().trim());
         obrigacao.setTipo(request.getTipo());
@@ -39,6 +44,7 @@ public class ObrigacaoService {
     }
 
     public Obrigacao atualizar(Long id, UpdateObrigacaoRequestDTO request) {
+        authorizationService.requirePermission(PermissaoCodigo.OBRIGACOES_TIPOS_GERENCIAR);
         Obrigacao obrigacao = buscarPorId(id);
         if (request.getNome() != null) obrigacao.setNome(request.getNome().trim());
         if (request.getTipo() != null) obrigacao.setTipo(request.getTipo());
@@ -49,6 +55,7 @@ public class ObrigacaoService {
     }
 
     public void remover(Long id) {
+        authorizationService.requirePermission(PermissaoCodigo.OBRIGACOES_TIPOS_GERENCIAR);
         obrigacaoRepository.delete(buscarPorId(id));
     }
 

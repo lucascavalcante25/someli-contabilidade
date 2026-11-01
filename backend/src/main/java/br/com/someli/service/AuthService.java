@@ -51,6 +51,10 @@ public class AuthService {
             LOGGER.warn("Login invalido para CPF {}", cpfNormalizado);
             throw new SenhaInvalidaException("Senha invalida");
         }
+        if (!Boolean.TRUE.equals(usuario.getAtivo())) {
+            LOGGER.warn("Login recusado para usuario inativo id={}", usuario.getId());
+            throw new SenhaInvalidaException("Senha invalida");
+        }
 
         String token = jwtService.gerarToken(usuario);
         LOGGER.info("Login realizado com sucesso para CPF {}", cpfNormalizado);

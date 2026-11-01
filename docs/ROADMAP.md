@@ -9,10 +9,12 @@ Plano de evolução do sistema interno da **SOMELI Assessoria Contábil**, organ
 | Área | Status |
 |------|--------|
 | Autenticação por CPF/senha | ✅ |
-| Gestão de clientes (razão social, CNPJ, honorário, responsável, ativo/inativo) | ✅ |
+| Gestão de clientes (razão social, CNPJ, honorário, responsável, ativo/inativo, certificado digital) | ✅ |
 | Controle financeiro (receitas, despesas, resumo, gráficos) | ✅ |
 | Pagamentos e status de adimplência | ✅ |
 | Obrigações fiscais por cliente (vencimentos, alertas no dashboard) | ✅ |
+| Central de alertas operacionais + ficha 360° do cliente | ✅ |
+| Radar fiscal leve (XML importado por competência) | ✅ |
 | Usuários e perfis | ✅ |
 | PWA mobile (ícone, manifest, responsivo) | ✅ |
 | API própria + Postgres na VPS | ✅ |

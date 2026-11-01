@@ -31,6 +31,7 @@ class MeuTrabalhoServiceTest {
     @Mock NotificationRepository notificationRepository;
     @Mock ClienteResponsavelRepository clienteResponsavelRepository;
     @Mock ClienteRepository clienteRepository;
+    @Mock ClienteService clienteService;
     @Mock AuthorizationService authorizationService;
 
     MeuTrabalhoService service;
@@ -39,7 +40,10 @@ class MeuTrabalhoServiceTest {
     void setUp() {
         service = new MeuTrabalhoService(
                 ocorrenciaRepository, notificationRepository,
-                clienteResponsavelRepository, clienteRepository, authorizationService);
+                clienteResponsavelRepository, clienteRepository, clienteService, authorizationService);
+        lenient().when(clienteRepository.findAllWithResponsavel()).thenReturn(List.of());
+        lenient().when(clienteService.indexarPagamentosPagos()).thenReturn(java.util.Map.of());
+        lenient().when(clienteService.indexarMesesNaoCobraveis()).thenReturn(java.util.Map.of());
     }
 
     private ObrigacaoOcorrencia ocorrencia(long id, long clienteId, String setor, LocalDate venc) {

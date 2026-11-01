@@ -19,6 +19,7 @@ import HintTooltip from '@/components/shared/HintTooltip';
 import ToggleValoresButton from '@/components/shared/ToggleValoresButton';
 import { useValoresVisibilidade } from '@/contexts/ValoresVisibilidadeContext';
 import { PAGE_SIZE } from '@/lib/constants';
+import { certificadoBadgeClass, certificadoStatusLabel } from '@/lib/certificado';
 import { ClienteDetalhePanel } from '@/pages/ClienteDetalhe';
 
 type TipoPagamento = 'pessoa_fisica' | 'pessoa_juridica' | 'terceiros';
@@ -48,6 +49,11 @@ interface Cliente {
   valorPendente?: number;
   dataFimCobranca?: string;
   tags?: { id: number; nome: string; cor?: string; automatica?: boolean }[];
+  certificadoVencimento?: string;
+  certificadoTipo?: string;
+  certificadoObservacao?: string;
+  certificadoStatus?: string;
+  certificadoDiasRestantes?: number;
 }
 
 const REGIME_OPTIONS = [
@@ -133,6 +139,9 @@ interface ClienteFormData {
   formaPagamento?: string;
   regimeTributario?: string;
   ativo?: boolean;
+  certificadoVencimento?: string;
+  certificadoTipo?: string;
+  certificadoObservacao?: string;
   clienteObrigacoes: ClienteObrigacaoFormItem[];
 }
 
@@ -218,6 +227,11 @@ function normalizeClienteFromApi(raw: any): Cliente {
           cor: t.cor ? String(t.cor) : undefined,
         }))
       : [],
+    certificadoVencimento: raw.certificadoVencimento ? String(raw.certificadoVencimento).slice(0, 10) : undefined,
+    certificadoTipo: raw.certificadoTipo ? String(raw.certificadoTipo) : undefined,
+    certificadoObservacao: raw.certificadoObservacao ? String(raw.certificadoObservacao) : undefined,
+    certificadoStatus: raw.certificadoStatus ? String(raw.certificadoStatus) : undefined,
+    certificadoDiasRestantes: raw.certificadoDiasRestantes != null ? Number(raw.certificadoDiasRestantes) : undefined,
   };
 }
 
@@ -231,6 +245,7 @@ export default function Clientes() {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
   const [tagFilter, setTagFilter] = useState('');
+  const [certFilter, setCertFilter] = useState('');
   const [tagOptions, setTagOptions] = useState<{ id: number; nome: string }[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
@@ -377,7 +392,12 @@ export default function Clientes() {
         c.email.toLowerCase().includes(q) ||
         (c.tags || []).some((t) => t.nome.toLowerCase().includes(q));
       const matchTag = !tagFilter || (c.tags || []).some((t) => String(t.id) === tagFilter);
-      return matchText && matchTag;
+      const st = c.certificadoStatus || 'NAO_INFORMADO';
+      const matchCert =
+        !certFilter ||
+        (certFilter === 'alerta' && (st === 'VENCENDO' || st === 'VENCIDO')) ||
+        st === certFilter;
+      return matchText && matchTag && matchCert;
     });
     const rules = sortRules.length
       ? sortRules
@@ -389,7 +409,7 @@ export default function Clientes() {
       }
       return a.razaoSocial.localeCompare(b.razaoSocial, 'pt-BR', { sensitivity: 'base' });
     });
-  }, [clientes, search, tagFilter, sortRules]);
+  }, [clientes, search, tagFilter, certFilter, sortRules]);
 
   const paginated = filtered.slice((currentPage - 1) * perPage, currentPage * perPage);
 
@@ -516,6 +536,9 @@ export default function Clientes() {
         formaPagamento: form.formaPagamento || null,
         regimeTributario: form.regimeTributario?.trim() || '',
         ativo: form.ativo !== false,
+        certificadoVencimento: form.certificadoVencimento || null,
+        certificadoTipo: form.certificadoTipo?.trim() || null,
+        certificadoObservacao: form.certificadoObservacao?.trim() || null,
       };
 
       const response = await apiFetch(
@@ -624,6 +647,21 @@ export default function Clientes() {
               ...tagOptions.map((t) => ({ value: String(t.id), label: t.nome })),
             ]}
           />
+          <AppSelect
+            value={certFilter}
+            onChange={(v) => { setCertFilter(v); setCurrentPage(1); }}
+            allowEmpty
+            placeholder="Certificado"
+            className="sm:w-44"
+            options={[
+              { value: '', label: 'Certificado: todos' },
+              { value: 'alerta', label: 'Vencendo / vencido' },
+              { value: 'VENCIDO', label: 'Vencido' },
+              { value: 'VENCENDO', label: 'Vencendo (30d)' },
+              { value: 'OK', label: 'Em dia' },
+              { value: 'NAO_INFORMADO', label: 'Não informado' },
+            ]}
+          />
         </div>
         <p className="text-[11px] text-muted-foreground sm:text-right">
           Clique no cabeçalho para ordenar · <kbd className="px-1 rounded border border-border text-[10px]">Shift</kbd>+clique para combinar critérios
@@ -677,21 +715,24 @@ export default function Clientes() {
                     <HintTooltip content={c.razaoSocial} enabled={!!c.razaoSocial && c.razaoSocial.length > 28}>
                       <span className={`block truncate ${c.ativo === false ? 'line-through text-muted-foreground' : ''}`}>{c.razaoSocial}</span>
                     </HintTooltip>
-                    {(c.tags || []).length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {c.tags!.slice(0, 3).map((t) => (
-                          <span
-                            key={t.id}
-                            title={t.automatica ? 'Tag automática' : 'Tag manual'}
-                            className="text-[10px] px-1.5 py-0.5 rounded border border-border/80 inline-flex items-center gap-0.5"
-                            style={{ borderColor: t.cor || undefined, color: t.cor || undefined }}
-                          >
-                            {t.nome.replace(/_/g, ' ')}
-                            {t.automatica ? <span className="opacity-60">·</span> : null}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {(c.certificadoStatus === 'VENCIDO' || c.certificadoStatus === 'VENCENDO') && (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${certificadoBadgeClass(c.certificadoStatus)}`}>
+                          {certificadoStatusLabel(c.certificadoStatus)}
+                        </span>
+                      )}
+                      {(c.tags || []).slice(0, 3).map((t) => (
+                        <span
+                          key={t.id}
+                          title={t.automatica ? 'Tag automática' : 'Tag manual'}
+                          className="text-[10px] px-1.5 py-0.5 rounded border border-border/80 inline-flex items-center gap-0.5"
+                          style={{ borderColor: t.cor || undefined, color: t.cor || undefined }}
+                        >
+                          {t.nome.replace(/_/g, ' ')}
+                          {t.automatica ? <span className="opacity-60">·</span> : null}
+                        </span>
+                      ))}
+                    </div>
                     {c.ativo === false && <span className="text-[10px] uppercase text-muted-foreground">(inativo)</span>}
                     <span className="sm:hidden text-[11px] text-muted-foreground tabular-nums block truncate">{c.cnpj ? maskCnpj(c.cnpj) : '—'}</span>
                   </td>
@@ -899,6 +940,9 @@ function ClienteFormModal({
     formaPagamento: cliente?.formaPagamento ?? prefill?.formaPagamento ?? '',
     regimeTributario: cliente?.regimeTributario ?? prefill?.regimeTributario ?? '',
     ativo: cliente?.ativo !== false,
+    certificadoVencimento: cliente?.certificadoVencimento ?? prefill?.certificadoVencimento ?? '',
+    certificadoTipo: cliente?.certificadoTipo ?? prefill?.certificadoTipo ?? '',
+    certificadoObservacao: cliente?.certificadoObservacao ?? prefill?.certificadoObservacao ?? '',
     clienteObrigacoes: [],
   });
 
@@ -912,9 +956,47 @@ function ClienteFormModal({
 
   useEffect(() => {
     if (cliente) {
-      setForm(prev => ({ ...prev, cnpj: maskCnpj(cliente.cnpj), razaoSocial: cliente.razaoSocial, nomeFantasia: cliente.nomeFantasia, proprietario: cliente.proprietario, telefone: cliente.telefone, email: cliente.email, honorario: cliente.honorario, diaVencimento: cliente.diaVencimento, tipoPagamento: cliente.tipoPagamento, status: cliente.status, dataInicioCobranca: cliente.dataInicioCobranca ?? getPrimeiroDiaMesAtual(), responsavelId: cliente.responsavelId, indicacao: cliente.indicacao ?? '', formaPagamento: cliente.formaPagamento ?? '', regimeTributario: cliente.regimeTributario ?? '', ativo: cliente.ativo !== false }));
+      setForm(prev => ({
+        ...prev,
+        cnpj: maskCnpj(cliente.cnpj),
+        razaoSocial: cliente.razaoSocial,
+        nomeFantasia: cliente.nomeFantasia,
+        proprietario: cliente.proprietario,
+        telefone: cliente.telefone,
+        email: cliente.email,
+        honorario: cliente.honorario,
+        diaVencimento: cliente.diaVencimento,
+        tipoPagamento: cliente.tipoPagamento,
+        status: cliente.status,
+        dataInicioCobranca: cliente.dataInicioCobranca ?? getPrimeiroDiaMesAtual(),
+        responsavelId: cliente.responsavelId,
+        indicacao: cliente.indicacao ?? '',
+        formaPagamento: cliente.formaPagamento ?? '',
+        regimeTributario: cliente.regimeTributario ?? '',
+        ativo: cliente.ativo !== false,
+        certificadoVencimento: cliente.certificadoVencimento ?? '',
+        certificadoTipo: cliente.certificadoTipo ?? '',
+        certificadoObservacao: cliente.certificadoObservacao ?? '',
+      }));
     } else if (prefill) {
-      setForm(prev => ({ ...prev, cnpj: prefill.cnpj || '', razaoSocial: prefill.razaoSocial || '', nomeFantasia: prefill.nomeFantasia || '', proprietario: prefill.proprietario || '', telefone: prefill.telefone || '', email: prefill.email || '', honorario: prefill.honorario ?? 0, diaVencimento: prefill.diaVencimento ?? 10, tipoPagamento: (prefill.tipoPagamento || 'pessoa_juridica') as TipoPagamento, status: (prefill.status || 'em_dia') as StatusCliente, dataInicioCobranca: prefill.dataInicioCobranca ?? getPrimeiroDiaMesAtual(), regimeTributario: prefill.regimeTributario || '' }));
+      setForm(prev => ({
+        ...prev,
+        cnpj: prefill.cnpj || '',
+        razaoSocial: prefill.razaoSocial || '',
+        nomeFantasia: prefill.nomeFantasia || '',
+        proprietario: prefill.proprietario || '',
+        telefone: prefill.telefone || '',
+        email: prefill.email || '',
+        honorario: prefill.honorario ?? 0,
+        diaVencimento: prefill.diaVencimento ?? 10,
+        tipoPagamento: (prefill.tipoPagamento || 'pessoa_juridica') as TipoPagamento,
+        status: (prefill.status || 'em_dia') as StatusCliente,
+        dataInicioCobranca: prefill.dataInicioCobranca ?? getPrimeiroDiaMesAtual(),
+        regimeTributario: prefill.regimeTributario || '',
+        certificadoVencimento: prefill.certificadoVencimento || '',
+        certificadoTipo: prefill.certificadoTipo || '',
+        certificadoObservacao: prefill.certificadoObservacao || '',
+      }));
     }
   }, [cliente, prefill]);
 
@@ -1186,6 +1268,48 @@ function ClienteFormModal({
                 allowEmpty
                 placeholder="Não informado"
                 options={REGIME_OPTIONS}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="label-text flex items-center gap-1.5">
+                Venc. certificado
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex cursor-help text-muted-foreground hover:text-foreground"><Info size={14} /></span>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-[240px]">
+                    Controle operacional do certificado digital (A1/A3). Não armazena arquivo nem senha. Alerta a 30 dias.
+                  </TooltipContent>
+                </Tooltip>
+              </label>
+              <DateField
+                value={form.certificadoVencimento || ''}
+                onChange={(v) => update('certificadoVencimento', v)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="label-text">Tipo certificado</label>
+              <AppSelect
+                value={form.certificadoTipo || ''}
+                onChange={(v) => update('certificadoTipo', v)}
+                allowEmpty
+                placeholder="Não informado"
+                options={[
+                  { value: '', label: 'Não informado' },
+                  { value: 'A1', label: 'A1' },
+                  { value: 'A3', label: 'A3' },
+                ]}
+              />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <label className="label-text">Obs. certificado</label>
+              <input
+                type="text"
+                value={form.certificadoObservacao || ''}
+                onChange={(e) => update('certificadoObservacao', e.target.value)}
+                placeholder="Ex.: renovar com o sócio, token no cofre..."
+                maxLength={500}
+                className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all"
               />
             </div>
             <div className="space-y-1.5">
