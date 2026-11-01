@@ -34,10 +34,13 @@ public class ClienteDocumentoController {
     }
 
     @GetMapping("/{clienteId}/documentos")
-    public ResponseEntity<List<ClienteDocumentoDTO>> listar(@PathVariable Long clienteId) {
-        List<ClienteDocumentoDTO> dtos = documentoService.listarPorCliente(clienteId).stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
+    public ResponseEntity<List<ClienteDocumentoDTO>> listar(
+            @PathVariable Long clienteId,
+            @RequestParam(value = "competencia", required = false) String competencia) {
+        List<ClienteDocumento> docs = competencia != null && !competencia.isBlank()
+                ? documentoService.listarPorClienteECompetencia(clienteId, competencia)
+                : documentoService.listarPorCliente(clienteId);
+        List<ClienteDocumentoDTO> dtos = docs.stream().map(this::toDto).collect(Collectors.toList());
         return ResponseEntity.ok(dtos);
     }
 
@@ -45,8 +48,16 @@ public class ClienteDocumentoController {
     public ResponseEntity<ClienteDocumentoDTO> upload(
             @PathVariable Long clienteId,
             @RequestParam("file") MultipartFile file,
-            @RequestParam(value = "descricao", required = false) String descricao) throws IOException {
-        ClienteDocumento doc = documentoService.upload(clienteId, file, descricao);
+            @RequestParam(value = "descricao", required = false) String descricao,
+            @RequestParam(value = "competencia", required = false) String competencia,
+            @RequestParam(value = "setor", required = false) String setor,
+            @RequestParam(value = "categoria", required = false) String categoria,
+            @RequestParam(value = "compartilhadoComCliente", required = false, defaultValue = "false") boolean compartilhado
+    ) throws IOException {
+        ClienteDocumento doc = documentoService.upload(
+                clienteId, file, descricao, competencia, setor,
+                categoria != null ? categoria : "GERAL",
+                "INTERNO", compartilhado);
         return ResponseEntity.status(HttpStatus.CREATED).body(toDto(doc));
     }
 
@@ -97,6 +108,11 @@ public class ClienteDocumentoController {
         dto.setTipoArquivo(doc.getTipoArquivo());
         dto.setDataUpload(doc.getDataUpload());
         dto.setDescricao(doc.getDescricao());
+        dto.setCompetencia(doc.getCompetencia());
+        dto.setSetor(doc.getSetor());
+        dto.setCategoria(doc.getCategoria());
+        dto.setOrigem(doc.getOrigem());
+        dto.setCompartilhadoComCliente(Boolean.TRUE.equals(doc.getCompartilhadoComCliente()));
         return dto;
     }
 }

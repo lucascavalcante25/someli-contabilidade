@@ -47,6 +47,19 @@ public class ObrigacaoOcorrencia {
     @JoinColumn(name = "concluida_por_id")
     private Usuario concluidaPor;
 
+    /** Checklist mínimo do fechamento: documentos do cliente OK */
+    @Column(name = "docs_ok", nullable = false)
+    private Boolean docsOk = Boolean.FALSE;
+
+    @Column(nullable = false)
+    private Boolean apurado = Boolean.FALSE;
+
+    @Column(nullable = false)
+    private Boolean transmitido = Boolean.FALSE;
+
+    @Column(name = "guia_enviada", nullable = false)
+    private Boolean guiaEnviada = Boolean.FALSE;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -59,6 +72,10 @@ public class ObrigacaoOcorrencia {
         if (createdAt == null) createdAt = now;
         if (updatedAt == null) updatedAt = now;
         if (status == null) status = StatusObrigacaoOcorrencia.PENDENTE;
+        if (docsOk == null) docsOk = Boolean.FALSE;
+        if (apurado == null) apurado = Boolean.FALSE;
+        if (transmitido == null) transmitido = Boolean.FALSE;
+        if (guiaEnviada == null) guiaEnviada = Boolean.FALSE;
     }
 
     @PreUpdate
@@ -82,6 +99,14 @@ public class ObrigacaoOcorrencia {
     public void setConcluidaEm(LocalDateTime concluidaEm) { this.concluidaEm = concluidaEm; }
     public Usuario getConcluidaPor() { return concluidaPor; }
     public void setConcluidaPor(Usuario concluidaPor) { this.concluidaPor = concluidaPor; }
+    public Boolean getDocsOk() { return docsOk; }
+    public void setDocsOk(Boolean docsOk) { this.docsOk = docsOk; }
+    public Boolean getApurado() { return apurado; }
+    public void setApurado(Boolean apurado) { this.apurado = apurado; }
+    public Boolean getTransmitido() { return transmitido; }
+    public void setTransmitido(Boolean transmitido) { this.transmitido = transmitido; }
+    public Boolean getGuiaEnviada() { return guiaEnviada; }
+    public void setGuiaEnviada(Boolean guiaEnviada) { this.guiaEnviada = guiaEnviada; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

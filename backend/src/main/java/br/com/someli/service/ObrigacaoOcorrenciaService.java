@@ -6,6 +6,7 @@ import br.com.someli.domain.ObrigacaoOcorrenciaEvento;
 import br.com.someli.domain.PeriodicidadeObrigacao;
 import br.com.someli.domain.StatusObrigacaoOcorrencia;
 import br.com.someli.domain.Usuario;
+import br.com.someli.dto.UpdateChecklistRequestDTO;
 import br.com.someli.exception.RegraNegocioException;
 import br.com.someli.repository.ClienteObrigacaoRepository;
 import br.com.someli.repository.ObrigacaoOcorrenciaEventoRepository;
@@ -226,5 +227,46 @@ public class ObrigacaoOcorrenciaService {
     public List<ObrigacaoOcorrenciaEvento> historico(Long ocorrenciaId) {
         buscar(ocorrenciaId);
         return eventoRepository.findByOcorrenciaIdOrderByCreatedAtAsc(ocorrenciaId);
+    }
+
+    /**
+     * Checklist mínimo: docs OK → apurado → transmitido → guia enviada ao cliente.
+     */
+    @Transactional
+    public ObrigacaoOcorrencia atualizarChecklist(Long id, UpdateChecklistRequestDTO req) {
+        authorizationService.requirePermission(br.com.someli.domain.PermissaoCodigo.OBRIGACOES_EDITAR);
+        ObrigacaoOcorrencia oo = buscar(id);
+        if (req == null) {
+            throw new RegraNegocioException("Checklist inválido");
+        }
+        StringBuilder mudancas = new StringBuilder();
+        if (req.getDocsOk() != null && !req.getDocsOk().equals(oo.getDocsOk())) {
+            oo.setDocsOk(req.getDocsOk());
+            mudancas.append("docsOk=").append(req.getDocsOk()).append("; ");
+        }
+        if (req.getApurado() != null && !req.getApurado().equals(oo.getApurado())) {
+            oo.setApurado(req.getApurado());
+            mudancas.append("apurado=").append(req.getApurado()).append("; ");
+        }
+        if (req.getTransmitido() != null && !req.getTransmitido().equals(oo.getTransmitido())) {
+            oo.setTransmitido(req.getTransmitido());
+            mudancas.append("transmitido=").append(req.getTransmitido()).append("; ");
+        }
+        if (req.getGuiaEnviada() != null && !req.getGuiaEnviada().equals(oo.getGuiaEnviada())) {
+            oo.setGuiaEnviada(req.getGuiaEnviada());
+            mudancas.append("guiaEnviada=").append(req.getGuiaEnviada()).append("; ");
+        }
+        oo = ocorrenciaRepository.save(oo);
+        if (!mudancas.isEmpty()) {
+            registrarEvento(oo, authorizationService.currentUser(), "CHECKLIST",
+                    null, oo.getStatus(), "Checklist: " + mudancas);
+            // Avança status operacional se ainda pendente e algum passo marcado
+            if (StatusObrigacaoOcorrencia.PENDENTE.equals(oo.getStatus())
+                    && (Boolean.TRUE.equals(oo.getDocsOk()) || Boolean.TRUE.equals(oo.getApurado())
+                    || Boolean.TRUE.equals(oo.getTransmitido()) || Boolean.TRUE.equals(oo.getGuiaEnviada()))) {
+                return atualizarStatus(id, StatusObrigacaoOcorrencia.EM_ANDAMENTO);
+            }
+        }
+        return oo;
     }
 }

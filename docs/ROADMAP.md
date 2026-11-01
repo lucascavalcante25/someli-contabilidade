@@ -105,11 +105,11 @@ A SOMELI não precisa substituir Domínio/Alterdata no SPED e na escrituração.
 | # | Entrega | Complexidade |
 |---|---------|--------------|
 | 3.1 | Calendário fiscal unificado (por cliente, regime, estado) | 🟡 Média |
-| 3.2 | Checklist por obrigação (documentos recebidos, enviado, protocolado) | 🟡 Média |
+| 3.2 | Checklist por obrigação (documentos recebidos, enviado, protocolado) | ✅ Feito (mínimo operacional) |
 | 3.3 | Atribuição de tarefas entre Hemerson / equipe com prazo | 🟡 Média |
 | 3.4 | Notificações push/e-mail: vence hoje, atrasou, cliente sem documento | 🟡 Média |
 | 3.5 | Tempo gasto por cliente (opcional, para precificar honorários) | 🟡 Média |
-| 3.6 | Templates de obrigações por regime (Simples, Presumido, MEI) | 🔴 Alta |
+| 3.6 | Templates de obrigações por regime (Simples, Presumido, MEI) | ✅ Feito |
 
 **Critério de conclusão:** Nenhuma obrigação crítica passa sem alerta; responsável sempre visível.
 
@@ -139,7 +139,7 @@ A SOMELI não precisa substituir Domínio/Alterdata no SPED e na escrituração.
 |---|---------|-------------|
 | 5.1 | Rentabilidade por cliente (honorário − tempo − custo estimado) | 🟡 Média |
 | 5.2 | Indicadores: churn, ticket médio, crescimento M/M | 🟢 Baixa |
-| 5.3 | Integração leitura de NF-e (XML via certificado ou e-mail) | 🔴 Alta |
+| 5.3 | Integração leitura de NF-e (XML via certificado ou e-mail) | ✅ Import XML local (certificado/e-mail = futuro) |
 | 5.4 | API aberta para exportar lançamentos → Domínio/Alterdata | 🔴 Alta |
 | 5.5 | Assistente IA: responde dúvidas internas sobre prazos e processos | 🟡 Média |
 | 5.6 | App nativo (opcional; PWA já cobre 80%) | 🟡 Média |

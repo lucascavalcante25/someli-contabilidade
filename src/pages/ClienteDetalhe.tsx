@@ -19,6 +19,7 @@ import ClienteTagsSection from '@/components/ClienteTagsSection';
 import OcorrenciaWorkList, { type OcorrenciaItem } from '@/components/obrigacoes/OcorrenciaWorkList';
 import HintTooltip from '@/components/shared/HintTooltip';
 import { cn } from '@/lib/utils';
+import { ENABLE_XML_IMPORT } from '@/lib/constants';
 
 type TipoObrigacao = 'FISCAL' | 'LICENCA' | 'OUTROS';
 type StatusObrigacao = 'em_dia' | 'a_vencer' | 'atrasado' | 'proximo_vencimento';
@@ -56,6 +57,8 @@ interface ClienteDocumento {
   tipoArquivo: string;
   dataUpload: string;
   descricao: string;
+  competencia?: string;
+  categoria?: string;
 }
 
 function maskCnpj(value: string): string {
@@ -103,6 +106,7 @@ interface Cliente {
   responsavelNome?: string;
   indicacao?: string;
   formaPagamento?: string;
+  regimeTributario?: string;
   ativo?: boolean;
   dataFimCobranca?: string;
 }
@@ -181,6 +185,7 @@ export function ClienteDetalhePanel({
         responsavelNome: data.responsavelNome || undefined,
         indicacao: data.indicacao || undefined,
         formaPagamento: data.formaPagamento || undefined,
+        regimeTributario: data.regimeTributario || undefined,
         ativo: data.ativo !== false,
         dataFimCobranca: data.dataFimCobranca ? String(data.dataFimCobranca).slice(0, 10) : undefined,
       });
@@ -398,13 +403,15 @@ export function ClienteDetalhePanel({
     setShowForm(true);
   };
 
-  const handleUploadDocumento = async (file: File, descricao: string) => {
+  const handleUploadDocumento = async (file: File, descricao: string, competencia?: string, categoria?: string) => {
     if (!id || !file) return;
     setUploadingDoc(true);
     try {
       const formData = new FormData();
       formData.append('file', file);
       if (descricao.trim()) formData.append('descricao', descricao.trim());
+      if (competencia?.trim()) formData.append('competencia', competencia.trim());
+      if (categoria?.trim()) formData.append('categoria', categoria.trim());
       const token = localStorage.getItem('someli_token');
       const res = await fetch(`${apiBaseUrl}/clientes/${id}/documentos`, {
         method: 'POST',
@@ -420,6 +427,38 @@ export function ClienteDetalhePanel({
       toast.success('Documento enviado');
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Erro ao enviar documento');
+    } finally {
+      setUploadingDoc(false);
+    }
+  };
+
+  const handleImportXml = async (files: FileList | null, competencia?: string) => {
+    if (!id || !files || files.length === 0) return;
+    setUploadingDoc(true);
+    try {
+      const formData = new FormData();
+      Array.from(files).forEach((f) => formData.append('files', f));
+      if (competencia?.trim()) formData.append('competencia', competencia.trim());
+      const token = localStorage.getItem('someli_token');
+      const res = await fetch(`${apiBaseUrl}/clientes/${id}/notas-fiscais/importar`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.message || 'Falha no import XML');
+      }
+      const itens = await res.json();
+      toast.success(`${Array.isArray(itens) ? itens.length : 0} XML(s) processado(s)`);
+      // Recarrega documentos (XML vira documento da competência)
+      const docsRes = await apiFetch(`${apiBaseUrl}/clientes/${id}/documentos`, { headers: { 'Content-Type': 'application/json' } });
+      if (docsRes.ok) {
+        const docs = await docsRes.json();
+        setDocumentos(Array.isArray(docs) ? docs : []);
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao importar XML');
     } finally {
       setUploadingDoc(false);
     }
@@ -510,6 +549,13 @@ export function ClienteDetalhePanel({
     boleto: 'Boleto',
     pix: 'PIX',
   };
+  const regimeLabel: Record<string, string> = {
+    MEI: 'MEI',
+    SIMPLES_NACIONAL: 'Simples Nacional',
+    LUCRO_PRESUMIDO: 'Lucro Presumido',
+    LUCRO_REAL: 'Lucro Real',
+    OUTRO: 'Outro',
+  };
 
   const dadosFields: { label: string; value: ReactNode; hint: string }[] = [
     { label: 'CNPJ', value: cliente.cnpj ? maskCnpj(cliente.cnpj) : '—', hint: 'Cadastro Nacional da Pessoa Jurídica da empresa.' },
@@ -535,6 +581,13 @@ export function ClienteDetalhePanel({
         : '—',
       hint: 'Meio usado na cobrança (Pix, boleto, etc.).',
     },
+    {
+      label: 'Regime tributário',
+      value: cliente.regimeTributario
+        ? regimeLabel[cliente.regimeTributario] || cliente.regimeTributario.replace(/_/g, ' ')
+        : '—',
+      hint: 'Define elegibilidade aos pacotes de obrigações (MEI / Simples / Presumido). Sem regime, templates por regime não incluem o cliente.',
+    },
     { label: 'Responsável', value: cliente.responsavelNome || '—', hint: 'Responsável legado do cadastro (além dos setores).' },
     { label: 'Indicação', value: cliente.indicacao || '—', hint: 'Origem ou observação comercial do cliente.' },
     { label: 'Cliente ativo', value: cliente.ativo === false ? 'Não' : 'Sim', hint: 'Clientes inativos saem da operação normal de cobrança.' },
@@ -554,6 +607,55 @@ export function ClienteDetalhePanel({
   ];
 
   const isModal = variant === 'modal';
+  const tabTriggerClassName = (value: typeof tab) =>
+    cn(
+      'flex w-full items-center justify-center gap-1 px-2 py-2 text-xs sm:gap-2 sm:text-sm',
+      // Estilo ativo explícito (não depende só de data-state — ver HintTooltip + TabsTrigger).
+      tab === value &&
+        '!bg-primary !font-semibold !text-primary-foreground shadow-sm',
+    );
+
+  const tabItems: { value: typeof tab; hint: string; label: ReactNode }[] = [
+    {
+      value: 'dados',
+      hint: 'Cadastro, responsáveis por setor e tags',
+      label: (
+        <>
+          <FileText size={16} className="shrink-0" /> <span className="truncate">Dados</span>
+        </>
+      ),
+    },
+    {
+      value: 'obrigacoes',
+      hint: 'Vínculos de obrigações recorrentes deste cliente',
+      label: (
+        <>
+          <ClipboardList size={16} className="shrink-0" />{' '}
+          <span className="truncate">Obrig. ({obrigacoes.length})</span>
+        </>
+      ),
+    },
+    {
+      value: 'ocorrencias',
+      hint: 'Ocorrências do período: status e histórico de eventos',
+      label: (
+        <>
+          <ListChecks size={16} className="shrink-0" />{' '}
+          <span className="truncate">Ocorr. ({ocorrencias.length})</span>
+        </>
+      ),
+    },
+    {
+      value: 'documentos',
+      hint: 'Arquivos compartilhados ou internos do cliente',
+      label: (
+        <>
+          <File size={16} className="shrink-0" />{' '}
+          <span className="truncate">Docs ({documentos.length})</span>
+        </>
+      ),
+    },
+  ];
 
   return (
     <div className={cn(isModal ? 'flex h-full min-h-0 flex-col' : 'page-shell')}>
@@ -598,26 +700,16 @@ export function ClienteDetalhePanel({
         className={cn('w-full min-w-0 max-w-full', isModal && 'flex min-h-0 flex-1 flex-col')}
       >
         <TabsList className={cn('grid h-auto w-full shrink-0 grid-cols-4', isModal && 'sticky top-0 z-10')}>
-          <HintTooltip content="Cadastro, responsáveis por setor e tags">
-            <TabsTrigger value="dados" className="flex items-center justify-center gap-1 px-2 py-2 text-xs sm:gap-2 sm:text-sm">
-              <FileText size={16} className="shrink-0" /> <span className="truncate">Dados</span>
-            </TabsTrigger>
-          </HintTooltip>
-          <HintTooltip content="Vínculos de obrigações recorrentes deste cliente">
-            <TabsTrigger value="obrigacoes" className="flex items-center justify-center gap-1 px-2 py-2 text-xs sm:gap-2 sm:text-sm">
-              <ClipboardList size={16} className="shrink-0" /> <span className="truncate">Obrig. ({obrigacoes.length})</span>
-            </TabsTrigger>
-          </HintTooltip>
-          <HintTooltip content="Ocorrências do período: status e histórico de eventos">
-            <TabsTrigger value="ocorrencias" className="flex items-center justify-center gap-1 px-2 py-2 text-xs sm:gap-2 sm:text-sm">
-              <ListChecks size={16} className="shrink-0" /> <span className="truncate">Ocorr. ({ocorrencias.length})</span>
-            </TabsTrigger>
-          </HintTooltip>
-          <HintTooltip content="Arquivos compartilhados ou internos do cliente">
-            <TabsTrigger value="documentos" className="flex items-center justify-center gap-1 px-2 py-2 text-xs sm:gap-2 sm:text-sm">
-              <File size={16} className="shrink-0" /> <span className="truncate">Docs ({documentos.length})</span>
-            </TabsTrigger>
-          </HintTooltip>
+          {tabItems.map((item) => (
+            <HintTooltip key={item.value} content={item.hint}>
+              {/* Wrapper: TooltipTrigger asChild não pode fundir data-state no TabsTrigger. */}
+              <span className="min-w-0">
+                <TabsTrigger value={item.value} className={tabTriggerClassName(item.value)}>
+                  {item.label}
+                </TabsTrigger>
+              </span>
+            </HintTooltip>
+          ))}
         </TabsList>
 
         <div className={cn(isModal && 'mt-3 min-h-0 flex-1 overflow-y-auto pr-1')}>
@@ -842,19 +934,38 @@ export function ClienteDetalhePanel({
 
         <TabsContent value="documentos" className="mt-4">
           <div className="flex flex-col gap-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex flex-col gap-3">
               <DocumentoUploadForm
                 onUpload={handleUploadDocumento}
                 loading={uploadingDoc}
               />
-              {documentos.length > 0 && (
-                <button
-                  onClick={() => void handleDownloadAllDocumentos()}
-                  className="flex items-center gap-2 rounded-md border border-input bg-background px-4 py-2.5 text-sm font-medium hover:bg-muted shrink-0"
-                >
-                  <Download size={16} /> Baixar todos
-                </button>
-              )}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                {/* Import XML NFe/NFSe: desativado até demanda do escritório (ENABLE_XML_IMPORT / VITE_ENABLE_XML_IMPORT). */}
+                {ENABLE_XML_IMPORT && (
+                  <>
+                    <label className="text-sm text-muted-foreground shrink-0">Importar XML NFe/NFSe</label>
+                    <input
+                      type="file"
+                      accept=".xml,application/xml,text/xml"
+                      multiple
+                      disabled={uploadingDoc}
+                      onChange={(e) => {
+                        void handleImportXml(e.target.files);
+                        e.target.value = '';
+                      }}
+                      className="text-sm file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:bg-secondary file:text-secondary-foreground file:text-sm file:font-medium"
+                    />
+                  </>
+                )}
+                {documentos.length > 0 && (
+                  <button
+                    onClick={() => void handleDownloadAllDocumentos()}
+                    className="flex items-center gap-2 rounded-md border border-input bg-background px-4 py-2.5 text-sm font-medium hover:bg-muted shrink-0 sm:ml-auto"
+                  >
+                    <Download size={16} /> Baixar todos
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="card-surface overflow-hidden">
@@ -864,6 +975,7 @@ export function ClienteDetalhePanel({
                     <tr className="bg-muted/50">
                       <th className="label-text px-4 py-3 text-left w-10"></th>
                       <th className="label-text px-4 py-3 text-left">Nome do arquivo</th>
+                      <th className="label-text px-4 py-3 text-left hidden md:table-cell">Competência</th>
                       <th className="label-text px-4 py-3 text-left hidden md:table-cell">Descrição</th>
                       <th className="label-text px-4 py-3 text-left">Data upload</th>
                       <th className="label-text px-4 py-3 text-center">Ações</th>
@@ -872,7 +984,7 @@ export function ClienteDetalhePanel({
                   <tbody>
                     {documentos.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                        <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
                           Nenhum documento. Envie um arquivo acima.
                         </td>
                       </tr>
@@ -890,6 +1002,9 @@ export function ClienteDetalhePanel({
                             <HintTooltip content={doc.nomeArquivo} enabled={!!doc.nomeArquivo && doc.nomeArquivo.length > 20}>
                               <span className="block truncate">{doc.nomeArquivo}</span>
                             </HintTooltip>
+                          </td>
+                          <td className="px-4 py-3 hidden md:table-cell text-muted-foreground tabular-nums text-xs">
+                            {doc.competencia || '—'}
                           </td>
                           <td className="px-4 py-3 hidden md:table-cell text-muted-foreground truncate max-w-[150px]">
                             <HintTooltip content={doc.descricao || ''} enabled={!!doc.descricao && doc.descricao.length > 18}>
@@ -936,9 +1051,20 @@ export function ClienteDetalhePanel({
   );
 }
 
-function DocumentoUploadForm({ onUpload, loading }: { onUpload: (file: File, descricao: string) => void; loading: boolean }) {
+function DocumentoUploadForm({
+  onUpload,
+  loading,
+}: {
+  onUpload: (file: File, descricao: string, competencia?: string, categoria?: string) => void;
+  loading: boolean;
+}) {
   const [file, setFile] = useState<File | null>(null);
   const [descricao, setDescricao] = useState('');
+  const [competencia, setCompetencia] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const [categoria, setCategoria] = useState('GERAL');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -947,7 +1073,7 @@ function DocumentoUploadForm({ onUpload, loading }: { onUpload: (file: File, des
       toast.error('Selecione um arquivo');
       return;
     }
-    onUpload(file, descricao);
+    onUpload(file, descricao, competencia, categoria);
     setFile(null);
     setDescricao('');
     fileInputRef.current?.form?.reset();
@@ -955,13 +1081,33 @@ function DocumentoUploadForm({ onUpload, loading }: { onUpload: (file: File, des
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 flex-1">
+    <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row flex-wrap gap-3 flex-1">
       <input
         ref={fileInputRef}
         type="file"
         onChange={e => setFile(e.target.files?.[0] ?? null)}
         className="text-sm file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:bg-primary file:text-primary-foreground file:text-sm file:font-medium"
       />
+      <input
+        type="month"
+        value={competencia}
+        onChange={e => setCompetencia(e.target.value)}
+        className="rounded-md border border-input bg-background px-3 py-2.5 text-sm w-full sm:w-40"
+        title="Competência"
+      />
+      <select
+        value={categoria}
+        onChange={e => setCategoria(e.target.value)}
+        className="rounded-md border border-input bg-background px-3 py-2.5 text-sm w-full sm:w-36"
+      >
+        <option value="GERAL">Geral</option>
+        <option value="EXTRATO">Extrato</option>
+        <option value="NF">NF</option>
+        <option value="FOLHA">Folha</option>
+        <option value="GUIA">Guia</option>
+        <option value="CERTIDAO">Certidão</option>
+        <option value="OUTROS">Outros</option>
+      </select>
       <input
         type="text"
         value={descricao}

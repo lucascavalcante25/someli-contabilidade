@@ -21,6 +21,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,12 +30,13 @@ class TagServiceTest {
     @Mock TagRepository tagRepository;
     @Mock ClienteRepository clienteRepository;
     @Mock AuthorizationService authorizationService;
+    @Mock TagSyncService tagSyncService;
 
     TagService service;
 
     @BeforeEach
     void setUp() {
-        service = new TagService(tagRepository, clienteRepository, authorizationService);
+        service = new TagService(tagRepository, clienteRepository, authorizationService, tagSyncService);
     }
 
     @Test
@@ -50,7 +52,7 @@ class TagServiceTest {
     }
 
     @Test
-    void substituirTags_substituiConjunto() {
+    void substituirTags_ignoraAutomaticasEResync() {
         doNothing().when(authorizationService).requirePermission(PermissaoCodigo.CLIENTES_EDITAR);
         doNothing().when(authorizationService).requireCompanyAccess(1L);
 
@@ -62,17 +64,35 @@ class TagServiceTest {
         Tag mei = new Tag();
         mei.setId(10L);
         mei.setNome("MEI");
-        mei.setCor("#7C3AED");
+        mei.setAutomatica(false);
+
+        Tag inad = new Tag();
+        inad.setId(11L);
+        inad.setNome("INADIMPLENTE");
+        inad.setAutomatica(true);
+        inad.setRegra("INADIMPLENTE");
+
         when(tagRepository.findById(10L)).thenReturn(Optional.of(mei));
+        when(tagRepository.findById(11L)).thenReturn(Optional.of(inad));
         when(clienteRepository.save(any(Cliente.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(tagSyncService.sincronizarCliente(1L)).thenReturn(true);
+
+        // Após sync, cliente fica com MEI + INAD (automática reaplicada)
+        Cliente apos = new Cliente();
+        apos.setId(1L);
+        apos.setTags(new HashSet<>(Set.of(mei, inad)));
+        when(clienteRepository.findByIdWithResponsavel(1L))
+                .thenReturn(Optional.of(c))
+                .thenReturn(Optional.of(apos));
 
         UpdateClienteTagsRequestDTO req = new UpdateClienteTagsRequestDTO();
-        req.setTagIds(List.of(10L));
+        req.setTagIds(List.of(10L, 11L)); // 11 automática deve ser ignorada no save manual
 
         var result = service.substituirTagsDoCliente(1L, req);
-        assertEquals(1, result.size());
-        assertEquals("MEI", result.get(0).getNome());
         assertEquals(1, c.getTags().size());
+        assertTrue(c.getTags().contains(mei));
+        verify(tagSyncService).sincronizarCliente(1L);
+        assertEquals(2, result.size());
     }
 
     @Test
@@ -82,5 +102,6 @@ class TagServiceTest {
         when(clienteRepository.findByIdWithResponsavel(99L)).thenReturn(Optional.empty());
 
         assertThrows(ClienteNaoEncontradoException.class, () -> service.listarPorCliente(99L));
+        verify(tagSyncService, never()).sincronizarCliente(anyLong());
     }
 }

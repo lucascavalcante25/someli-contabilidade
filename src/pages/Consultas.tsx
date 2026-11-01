@@ -73,7 +73,7 @@ export default function Consultas() {
   const [sintegraResult, setSintegraResult] = useState<{ situacaoIE: string; regime: string; ultimaAtualizacao: string } | null>(null);
   const [cep, setCep] = useState('');
   const [cepResult, setCepResult] = useState<Record<string, unknown> | null>(null);
-  const [feriados, setFeriados] = useState<{ date: string }[]>([]);
+  const [feriados, setFeriados] = useState<{ date: string; name?: string; type?: string }[]>([]);
   const [loadingCep, setLoadingCep] = useState(false);
   const navigate = useNavigate();
 
@@ -366,8 +366,11 @@ export default function Consultas() {
           {feriados.length > 0 && (
             <ul className="mt-4 max-h-48 overflow-y-auto text-sm space-y-1">
               {feriados.map((f) => (
-                <li key={f.date} className="flex justify-between border-b border-border/60 py-1">
-                  <span className="tabular-nums">{f.date.split('-').reverse().join('/')}</span>
+                <li key={f.date} className="flex gap-2 border-b border-border/60 py-1">
+                  <span className="tabular-nums shrink-0">
+                    {f.date.split('-').reverse().join('/')}
+                    {f.name ? ` — ${f.name}` : ''}
+                  </span>
                 </li>
               ))}
             </ul>

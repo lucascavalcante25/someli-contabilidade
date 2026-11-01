@@ -19,6 +19,10 @@ public class ObrigacaoOcorrenciaDTO {
     private String periodicidade;
     private LocalDateTime concluidaEm;
     private String concluidaPorNome;
+    private Boolean docsOk;
+    private Boolean apurado;
+    private Boolean transmitido;
+    private Boolean guiaEnviada;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -50,4 +54,12 @@ public class ObrigacaoOcorrenciaDTO {
     public void setConcluidaEm(LocalDateTime concluidaEm) { this.concluidaEm = concluidaEm; }
     public String getConcluidaPorNome() { return concluidaPorNome; }
     public void setConcluidaPorNome(String concluidaPorNome) { this.concluidaPorNome = concluidaPorNome; }
+    public Boolean getDocsOk() { return docsOk; }
+    public void setDocsOk(Boolean docsOk) { this.docsOk = docsOk; }
+    public Boolean getApurado() { return apurado; }
+    public void setApurado(Boolean apurado) { this.apurado = apurado; }
+    public Boolean getTransmitido() { return transmitido; }
+    public void setTransmitido(Boolean transmitido) { this.transmitido = transmitido; }
+    public Boolean getGuiaEnviada() { return guiaEnviada; }
+    public void setGuiaEnviada(Boolean guiaEnviada) { this.guiaEnviada = guiaEnviada; }
 }

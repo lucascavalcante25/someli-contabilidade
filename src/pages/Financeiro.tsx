@@ -456,7 +456,7 @@ export default function Financeiro() {
             <button
               key={m}
               onClick={() => selecionarMes(i)}
-              className={`shrink-0 px-3 py-2 rounded-md text-xs font-medium transition-colors ${selectedMonth === i ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}`}
+              className={`shrink-0 px-3 py-2 rounded-md text-xs font-medium transition-colors ${selectedMonth === i ? 'bg-primary font-semibold text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}
             >
               {m}
             </button>

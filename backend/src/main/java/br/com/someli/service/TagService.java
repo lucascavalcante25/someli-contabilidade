@@ -23,13 +23,16 @@ public class TagService {
     private final TagRepository tagRepository;
     private final ClienteRepository clienteRepository;
     private final AuthorizationService authorizationService;
+    private final TagSyncService tagSyncService;
 
     public TagService(TagRepository tagRepository,
                       ClienteRepository clienteRepository,
-                      AuthorizationService authorizationService) {
+                      AuthorizationService authorizationService,
+                      TagSyncService tagSyncService) {
         this.tagRepository = tagRepository;
         this.clienteRepository = clienteRepository;
         this.authorizationService = authorizationService;
+        this.tagSyncService = tagSyncService;
     }
 
     @Transactional(readOnly = true)
@@ -47,6 +50,9 @@ public class TagService {
         return c.getTags().stream().map(this::toDto).toList();
     }
 
+    /**
+     * Substitui apenas tags manuais. Tags automáticas são reaplicadas pelas regras de estado.
+     */
     @Transactional
     public List<TagDTO> substituirTagsDoCliente(Long clienteId, UpdateClienteTagsRequestDTO request) {
         authorizationService.requirePermission(PermissaoCodigo.CLIENTES_EDITAR);
@@ -54,21 +60,35 @@ public class TagService {
         Cliente c = clienteRepository.findByIdWithResponsavel(clienteId)
                 .orElseThrow(() -> new ClienteNaoEncontradoException("Cliente não encontrado"));
 
-        Set<Tag> novas = new HashSet<>();
+        Set<Tag> manuais = new HashSet<>();
         if (request != null && request.getTagIds() != null) {
             for (Long tagId : request.getTagIds()) {
                 if (tagId == null) continue;
                 Tag tag = tagRepository.findById(tagId)
                         .orElseThrow(() -> new RegraNegocioException("Tag não encontrada: " + tagId));
-                novas.add(tag);
+                if (Boolean.TRUE.equals(tag.getAutomatica())) {
+                    // Ignora tentativa de gravar tag automática manualmente
+                    continue;
+                }
+                manuais.add(tag);
             }
         }
-        c.setTags(novas);
+        c.setTags(manuais);
         clienteRepository.save(c);
-        return novas.stream().map(this::toDto).collect(Collectors.toList());
+        tagSyncService.sincronizarCliente(clienteId);
+
+        Cliente atualizado = clienteRepository.findByIdWithResponsavel(clienteId)
+                .orElseThrow(() -> new ClienteNaoEncontradoException("Cliente não encontrado"));
+        return atualizado.getTags().stream().map(this::toDto).collect(Collectors.toList());
     }
 
     public TagDTO toDto(Tag tag) {
-        return new TagDTO(tag.getId(), tag.getNome(), tag.getCor());
+        return new TagDTO(
+                tag.getId(),
+                tag.getNome(),
+                tag.getCor(),
+                Boolean.TRUE.equals(tag.getAutomatica()),
+                tag.getRegra()
+        );
     }
 }

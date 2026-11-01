@@ -41,6 +41,16 @@ app:
   jwt:
     secret: ${JWT_SECRET:ZmFrZV9zdXBlcl9zZWNyZXRfZmFrZV9zdXBlcl9zZWNyZXRfZmFrZV9zdXBlcl9zZWNyZXQ=}
     expiration-hours: ${JWT_EXPIRATION_HOURS:72}
+  tags:
+    # NOVO_CLIENTE some após N dias desde data_inicio_cobranca (fallback: data_criacao)
+    novo-cliente-dias: ${TAG_NOVO_CLIENTE_DIAS:90}
+    # Alternativa: some após N competências cobradas (0 = desliga essa regra; dias prevalece se ambos)
+    novo-cliente-competencias: ${TAG_NOVO_CLIENTE_COMPETENCIAS:3}
+
+integra-contador:
+  enabled: false
+  consumer-key: ${INTEGRA_CONSUMER_KEY:}
+  consumer-secret: ${INTEGRA_CONSUMER_SECRET:}
 
 receitaws:
   api:

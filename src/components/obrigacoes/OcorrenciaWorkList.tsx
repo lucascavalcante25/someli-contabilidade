@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
@@ -19,7 +18,14 @@ export interface OcorrenciaItem {
   competencia?: string;
   dataVencimento?: string;
   status?: string;
+  docsOk?: boolean;
+  apurado?: boolean;
+  transmitido?: boolean;
+  guiaEnviada?: boolean;
 }
+
+type ChecklistField = 'docsOk' | 'apurado' | 'transmitido' | 'guiaEnviada';
+type ChecklistPatch = Partial<Pick<OcorrenciaItem, ChecklistField>>;
 
 const STATUS_OPTIONS = [
   { value: 'PENDENTE', label: 'Pendente' },
@@ -59,6 +65,8 @@ interface Props {
   atrasadas?: OcorrenciaItem[];
   proximas?: OcorrenciaItem[];
   onUpdated?: () => void;
+  /** Abre a ficha do cliente in-place (ex.: modal no Dashboard). */
+  onOpenCliente?: (clienteId: number) => void;
   /** Modo simples (só uma lista), usado na ficha do cliente */
   items?: OcorrenciaItem[];
   emptyMessage?: string;
@@ -72,11 +80,13 @@ export default function OcorrenciaWorkList({
   emptyMessage = 'Nenhuma ocorrência.',
   showCliente = true,
   onUpdated,
+  onOpenCliente,
 }: Props) {
-  const navigate = useNavigate();
   const [busyId, setBusyId] = useState<number | null>(null);
   const [eventosId, setEventosId] = useState<number | null>(null);
   const [eventos, setEventos] = useState<any[]>([]);
+  /** Patches otimistas de checklist — evita refetch/reordenação da grade. */
+  const [checklistLocal, setChecklistLocal] = useState<Record<number, ChecklistPatch>>({});
 
   const modoPainel = items == null;
   const listaAtrasadas = modoPainel ? atrasadas : (items || []).filter(isAtrasada);
@@ -87,11 +97,18 @@ export default function OcorrenciaWorkList({
     filtroManual ?? (listaAtrasadas.length > 0 ? 'urgentes' : 'proximas');
 
   const lista = useMemo(() => {
-    if (!modoPainel) return items || [];
-    if (filtro === 'urgentes') return listaAtrasadas;
-    if (filtro === 'proximas') return listaProximas;
-    return [...listaAtrasadas, ...listaProximas];
-  }, [modoPainel, filtro, items, atrasadas, proximas, listaAtrasadas, listaProximas]);
+    const base = !modoPainel
+      ? items || []
+      : filtro === 'urgentes'
+        ? listaAtrasadas
+        : filtro === 'proximas'
+          ? listaProximas
+          : [...listaAtrasadas, ...listaProximas];
+    return base.map((o) => {
+      const patch = checklistLocal[o.id];
+      return patch ? { ...o, ...patch } : o;
+    });
+  }, [modoPainel, filtro, items, listaAtrasadas, listaProximas, checklistLocal]);
 
   const atualizarStatus = async (id: number, status: string) => {
     setBusyId(id);
@@ -111,6 +128,37 @@ export default function OcorrenciaWorkList({
       toast.error(e instanceof Error ? e.message : 'Erro ao atualizar');
     } finally {
       setBusyId(null);
+    }
+  };
+
+  const atualizarChecklist = async (id: number, patch: ChecklistPatch) => {
+    setChecklistLocal((prev) => ({
+      ...prev,
+      [id]: { ...prev[id], ...patch },
+    }));
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/ocorrencias/${id}/checklist`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.message || 'Falha ao atualizar checklist');
+      }
+      // Não chama onUpdated: evita remount/reordenação da fila inteira.
+    } catch (e) {
+      setChecklistLocal((prev) => {
+        const next = { ...prev };
+        const cur = { ...(next[id] || {}) };
+        for (const key of Object.keys(patch) as ChecklistField[]) {
+          delete cur[key];
+        }
+        if (Object.keys(cur).length === 0) delete next[id];
+        else next[id] = cur;
+        return next;
+      });
+      toast.error(e instanceof Error ? e.message : 'Erro no checklist');
     }
   };
 
@@ -163,12 +211,19 @@ export default function OcorrenciaWorkList({
               className={cn(
                 'rounded-md px-2 py-2 text-xs sm:text-sm font-medium transition-colors min-h-[40px]',
                 filtro === opt.id
-                  ? 'bg-background text-foreground shadow-sm'
+                  ? 'bg-primary font-semibold text-primary-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
               {opt.label}
-              <span className="ml-1 tabular-nums text-muted-foreground">({opt.count})</span>
+              <span
+                className={cn(
+                  'ml-1 tabular-nums',
+                  filtro === opt.id ? 'text-primary-foreground/80' : 'text-muted-foreground'
+                )}
+              >
+                ({opt.count})
+              </span>
             </button>
           ))}
         </div>
@@ -235,17 +290,22 @@ export default function OcorrenciaWorkList({
                   )}
                 </div>
 
-                {showCliente && (
-                  <HintTooltip content="Abrir ficha do cliente">
-                    <button
-                      type="button"
-                      className="mt-2 block w-full truncate text-left text-sm font-medium text-primary underline-offset-2 hover:underline"
-                      onClick={() => navigate(`/clientes/${o.clienteId}`)}
-                    >
+                {showCliente &&
+                  (onOpenCliente ? (
+                    <HintTooltip content="Abrir ficha do cliente">
+                      <button
+                        type="button"
+                        className="mt-2 block w-full truncate text-left text-sm font-medium text-primary underline-offset-2 hover:underline"
+                        onClick={() => onOpenCliente(o.clienteId)}
+                      >
+                        {o.clienteNome || `Cliente #${o.clienteId}`}
+                      </button>
+                    </HintTooltip>
+                  ) : (
+                    <p className="mt-2 truncate text-sm font-medium text-foreground">
                       {o.clienteNome || `Cliente #${o.clienteId}`}
-                    </button>
-                  </HintTooltip>
-                )}
+                    </p>
+                  ))}
 
                 <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
                   <p>
@@ -257,6 +317,27 @@ export default function OcorrenciaWorkList({
                 </div>
 
                 <div className="mt-auto pt-3 space-y-1.5">
+                  <div className="grid grid-cols-2 gap-1 text-[10px] text-muted-foreground">
+                    {(
+                      [
+                        ['docsOk', 'Docs OK', !!o.docsOk],
+                        ['apurado', 'Apurado', !!o.apurado],
+                        ['transmitido', 'Transmitido', !!o.transmitido],
+                        ['guiaEnviada', 'Guia enviada', !!o.guiaEnviada],
+                      ] as const
+                    ).map(([key, label, checked]) => (
+                      <label key={key} className="inline-flex items-center gap-1 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="size-3.5 rounded border-border"
+                          checked={checked}
+                          disabled={busyId === o.id}
+                          onChange={(e) => void atualizarChecklist(o.id, { [key]: e.target.checked })}
+                        />
+                        <span>{label}</span>
+                      </label>
+                    ))}
+                  </div>
                   <HintTooltip content="Altere o andamento desta obrigação">
                     <div className="w-full">
                       <AppSelect

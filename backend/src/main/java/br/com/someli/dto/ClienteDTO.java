@@ -22,6 +22,7 @@ public class ClienteDTO {
     private String indicacao;
     private String formaPagamento;
     private Boolean ativo;
+    private String regimeTributario;
     private Integer mesesPendentes;
     private java.util.List<String> mesesPendentesDetalhe;
     private java.math.BigDecimal valorPendente;
@@ -169,6 +170,14 @@ public class ClienteDTO {
 
     public void setAtivo(Boolean ativo) {
         this.ativo = ativo;
+    }
+
+    public String getRegimeTributario() {
+        return regimeTributario;
+    }
+
+    public void setRegimeTributario(String regimeTributario) {
+        this.regimeTributario = regimeTributario;
     }
 
     public Integer getMesesPendentes() {

@@ -12,6 +12,8 @@ import { apiFetch } from '@/lib/http';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { motion } from 'framer-motion';
 import OcorrenciaWorkList from '@/components/obrigacoes/OcorrenciaWorkList';
+import ModalShell from '@/components/shared/ModalShell';
+import { ClienteDetalhePanel } from '@/pages/ClienteDetalhe';
 
 const CHART_COLORS = ['hsl(var(--primary))', 'hsl(var(--sidebar-primary))', 'hsl(var(--accent))'];
 
@@ -19,6 +21,21 @@ function getAuthHeaders() {
   return {
     'Content-Type': 'application/json',
   };
+}
+
+/** Mantém a ordem visual anterior ao fazer merge após refresh parcial. */
+function preserveOrderById<T extends { id: number }>(prev: T[], next: T[]): T[] {
+  const nextMap = new Map(next.map((item) => [item.id, item]));
+  const ordered: T[] = [];
+  for (const item of prev) {
+    const updated = nextMap.get(item.id);
+    if (updated) {
+      ordered.push(updated);
+      nextMap.delete(item.id);
+    }
+  }
+  for (const item of nextMap.values()) ordered.push(item);
+  return ordered;
 }
 
 interface ClienteResumo {
@@ -61,6 +78,7 @@ export default function Dashboard() {
   const [obrigacoesDashboard, setObrigacoesDashboard] = useState<ObrigacoesDashboard | null>(null);
   const [meuTrabalho, setMeuTrabalho] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [viewClienteId, setViewClienteId] = useState<number | null>(null);
 
   const podeFinanceiro = can('FINANCEIRO_VISUALIZAR');
   const podeHonorario = can('HONORARIO_VISUALIZAR');
@@ -153,6 +171,31 @@ export default function Dashboard() {
   useEffect(() => {
     void carregarDados();
   }, [carregarDados]);
+
+  /** Refresh só da fila — sem setLoading (não desmonta a grade). */
+  const recarregarMeuTrabalho = useCallback(async () => {
+    try {
+      const res = await apiFetch(`${apiBaseUrl}/meu-trabalho`, { headers: getAuthHeaders() });
+      if (!res.ok) return;
+      const data = await res.json();
+      setMeuTrabalho((prev: any) => {
+        if (!prev) return data;
+        return {
+          ...data,
+          obrigacoesAtrasadas: preserveOrderById(
+            Array.isArray(prev.obrigacoesAtrasadas) ? prev.obrigacoesAtrasadas : [],
+            Array.isArray(data.obrigacoesAtrasadas) ? data.obrigacoesAtrasadas : [],
+          ),
+          obrigacoesProximas: preserveOrderById(
+            Array.isArray(prev.obrigacoesProximas) ? prev.obrigacoesProximas : [],
+            Array.isArray(data.obrigacoesProximas) ? data.obrigacoesProximas : [],
+          ),
+        };
+      });
+    } catch {
+      /* silencioso: status já mostrou toast no card */
+    }
+  }, [apiBaseUrl]);
 
   const totalClientes = clientes.length;
   const receitaTotal = resumo?.receitaTotal ?? clientes.reduce((s, c) => s + c.honorario, 0);
@@ -271,7 +314,8 @@ export default function Dashboard() {
             <OcorrenciaWorkList
               atrasadas={Array.isArray(meuTrabalho.obrigacoesAtrasadas) ? meuTrabalho.obrigacoesAtrasadas : []}
               proximas={Array.isArray(meuTrabalho.obrigacoesProximas) ? meuTrabalho.obrigacoesProximas : []}
-              onUpdated={() => void carregarDados()}
+              onUpdated={() => void recarregarMeuTrabalho()}
+              onOpenCliente={(id) => setViewClienteId(id)}
             />
           </div>
         </div>
@@ -403,6 +447,16 @@ export default function Dashboard() {
           </div>
         </motion.div>
       </div>
+      )}
+
+      {viewClienteId != null && (
+        <ModalShell onClose={() => setViewClienteId(null)} maxWidth="2xl" fixedSize>
+          <ClienteDetalhePanel
+            clienteId={viewClienteId}
+            variant="modal"
+            onClose={() => setViewClienteId(null)}
+          />
+        </ModalShell>
       )}
     </div>
   );

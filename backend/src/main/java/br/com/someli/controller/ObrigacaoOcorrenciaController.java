@@ -2,6 +2,7 @@ package br.com.someli.controller;
 
 import br.com.someli.domain.ObrigacaoOcorrenciaEvento;
 import br.com.someli.dto.ObrigacaoOcorrenciaDTO;
+import br.com.someli.dto.UpdateChecklistRequestDTO;
 import br.com.someli.mapper.ObrigacaoOcorrenciaMapper;
 import br.com.someli.service.ObrigacaoOcorrenciaService;
 import org.springframework.http.ResponseEntity;
@@ -36,6 +37,13 @@ public class ObrigacaoOcorrenciaController {
             @RequestBody Map<String, String> body) {
         String status = body.get("status");
         return ResponseEntity.ok(ObrigacaoOcorrenciaMapper.toDto(service.atualizarStatus(id, status)));
+    }
+
+    @PutMapping("/ocorrencias/{id}/checklist")
+    public ResponseEntity<ObrigacaoOcorrenciaDTO> atualizarChecklist(
+            @PathVariable Long id,
+            @RequestBody UpdateChecklistRequestDTO body) {
+        return ResponseEntity.ok(ObrigacaoOcorrenciaMapper.toDto(service.atualizarChecklist(id, body)));
     }
 
     @GetMapping("/ocorrencias/{id}/eventos")

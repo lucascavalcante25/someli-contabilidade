@@ -36,6 +36,10 @@ public final class ObrigacaoOcorrenciaMapper {
         if (oo.getConcluidaPor() != null) {
             dto.setConcluidaPorNome(oo.getConcluidaPor().getNome());
         }
+        dto.setDocsOk(Boolean.TRUE.equals(oo.getDocsOk()));
+        dto.setApurado(Boolean.TRUE.equals(oo.getApurado()));
+        dto.setTransmitido(Boolean.TRUE.equals(oo.getTransmitido()));
+        dto.setGuiaEnviada(Boolean.TRUE.equals(oo.getGuiaEnviada()));
         return dto;
     }
 }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Plus, Pencil, Trash2, X, Layers } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Plus, Pencil, Trash2, X, Layers, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL } from '@/lib/api';
@@ -10,6 +11,15 @@ import AppSelect from '@/components/shared/AppSelect';
 import DateField from '@/components/shared/DateField';
 import HintTooltip from '@/components/shared/HintTooltip';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+
+function labelRegime(regime: string): string {
+  return (regime || '').replace(/_/g, ' ');
+}
+
+function nomesDoTemplate(itens?: { obrigacaoNome?: string }[]): string[] {
+  return (itens || []).map((i) => i.obrigacaoNome).filter((n): n is string => !!n && n.trim().length > 0);
+}
 
 interface ObrigacaoTipo {
   id: number;
@@ -37,20 +47,78 @@ export default function ObrigacoesTipos() {
   const [editing, setEditing] = useState<ObrigacaoTipo | null>(null);
   const [showMassa, setShowMassa] = useState(false);
   const [massaTipo, setMassaTipo] = useState<ObrigacaoTipo | null>(null);
+  const [templates, setTemplates] = useState<
+    { codigo: string; nome: string; regime: string; descricao?: string; itens: { obrigacaoNome: string }[] }[]
+  >([]);
+  const [aplicandoTemplate, setAplicandoTemplate] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiFetch(`${apiBaseUrl}/obrigacoes`, { headers: { 'Content-Type': 'application/json' } });
+      const [res, resTpl] = await Promise.all([
+        apiFetch(`${apiBaseUrl}/obrigacoes`, { headers: { 'Content-Type': 'application/json' } }),
+        apiFetch(`${apiBaseUrl}/obrigacao-templates`, { headers: { 'Content-Type': 'application/json' } }),
+      ]);
       if (!res.ok) throw new Error('Erro ao carregar');
       const data = await res.json();
       setObrigacoes(Array.isArray(data) ? data : []);
+      if (resTpl.ok) {
+        const tpl = await resTpl.json();
+        setTemplates(Array.isArray(tpl) ? tpl : []);
+      }
     } catch {
       toast.error('Erro ao carregar tipos de obrigação');
     } finally {
       setLoading(false);
     }
   }, [apiBaseUrl]);
+
+  const aplicarTemplateRegime = async (codigo: string) => {
+    const tpl = templates.find((t) => t.codigo === codigo);
+    const nomesFallback = nomesDoTemplate(tpl?.itens);
+    const hoje = new Date();
+    const iso = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-20`;
+    setAplicandoTemplate(codigo);
+    try {
+      const res = await apiFetch(`${apiBaseUrl}/obrigacao-templates/${codigo}/aplicar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dataVencimento: iso, apenasDoRegime: true, clienteIds: [] }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.message || 'Falha ao aplicar template');
+      }
+      const body = await res.json();
+      const nomesLista = Array.isArray(body.obrigacaoNomes) && body.obrigacaoNomes.length > 0
+        ? body.obrigacaoNomes.map(String)
+        : nomesFallback;
+      const nomesTxt = nomesLista.length > 0 ? nomesLista.join(', ') : 'obrigações do pacote';
+      const criados = Number(body.vinculosCriados ?? 0);
+      const atingidos = Number(body.clientesAtingidos ?? 0);
+      const alvo = Number(body.clientesAlvo ?? 0);
+      const ignorados = Number(body.vinculosIgnorados ?? 0);
+      const regimeLabel = labelRegime(String(body.regime || tpl?.regime || ''));
+
+      if (criados === 0) {
+        toast.message(
+          `Nenhum vínculo novo em ${alvo} cliente(s) ${regimeLabel || 'do regime'}: já tinham ${nomesTxt}.`
+          + (ignorados > 0 ? ` (${ignorados} já existentes ignorados.)` : '')
+        );
+      } else {
+        toast.success(
+          `Aplicado a ${atingidos} cliente(s)${regimeLabel ? ` (${regimeLabel})` : ''}: ${nomesTxt}. `
+          + `${criados} vínculo(s) criado(s)`
+          + (ignorados > 0 ? `; ${ignorados} já existiam e foram ignorados` : '')
+          + '.'
+        );
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao aplicar template');
+    } finally {
+      setAplicandoTemplate(null);
+    }
+  };
 
   useEffect(() => {
     void carregar();
@@ -137,6 +205,83 @@ export default function ObrigacoesTipos() {
           </button>
         </div>
       </div>
+
+      {templates.length > 0 && (
+        <div className="card-surface p-4 space-y-3 mb-4">
+          <div className="space-y-1.5">
+            <p className="text-sm font-medium">Templates por regime</p>
+            <p className="text-sm text-muted-foreground">
+              Cada pacote cria vínculos de obrigações (e a 1ª ocorrência) nos clientes <strong className="font-medium text-foreground">ativos</strong> cujo
+              {' '}<strong className="font-medium text-foreground">regime tributário</strong> está cadastrado igual ao do card.
+              Quem já tem a obrigação ativa é ignorado (não duplica).
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Sem regime preenchido, o cliente não é elegível.
+              {' '}
+              <Link to="/clientes" className="text-primary hover:underline font-medium">
+                Abra Clientes → Editar
+              </Link>
+              {' '}e informe MEI, Simples Nacional ou Lucro Presumido.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {templates.map((t) => {
+              const nomes = nomesDoTemplate(t.itens);
+              const regimeTxt = labelRegime(t.regime);
+              return (
+                <div key={t.codigo} className="rounded-md border border-border p-3 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm font-semibold leading-snug">{t.nome}</p>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="shrink-0 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
+                          aria-label={`Ver obrigações do pacote ${t.nome}`}
+                        >
+                          <Info size={15} />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent align="end" className="w-72 space-y-2 p-3 text-sm">
+                        <p className="font-medium text-foreground">Obrigações neste pacote</p>
+                        {nomes.length > 0 ? (
+                          <ul className="list-disc pl-4 space-y-0.5 text-muted-foreground">
+                            {nomes.map((n) => (
+                              <li key={n}>{n}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-muted-foreground text-xs">Nenhum item cadastrado neste template.</p>
+                        )}
+                        <p className="text-[11px] text-muted-foreground leading-snug border-t border-border pt-2">
+                          Aplica estas obrigações a todos os clientes ativos com regime {regimeTxt}.
+                          Quem já tem a obrigação ativa é ignorado (não atualiza nem duplica).
+                        </p>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    {regimeTxt} · {nomes.length} obrigação{nomes.length === 1 ? '' : 'ões'}
+                  </p>
+                  {nomes.length > 0 && (
+                    <p className="text-[11px] text-muted-foreground line-clamp-2" title={nomes.join(', ')}>
+                      {nomes.join(' · ')}
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    disabled={aplicandoTemplate === t.codigo}
+                    onClick={() => void aplicarTemplateRegime(t.codigo)}
+                    className="w-full rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60"
+                  >
+                    {aplicandoTemplate === t.codigo ? 'Aplicando…' : 'Aplicar ao regime'}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="card-surface overflow-hidden max-w-full">
         <TableScroll>

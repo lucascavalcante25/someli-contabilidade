@@ -4,6 +4,7 @@ import br.com.someli.domain.Cliente;
 import br.com.someli.domain.ClienteDocumento;
 import br.com.someli.exception.ClienteDocumentoNaoEncontradoException;
 import br.com.someli.exception.ClienteNaoEncontradoException;
+import br.com.someli.exception.RegraNegocioException;
 import br.com.someli.repository.ClienteDocumentoRepository;
 import br.com.someli.repository.ClienteRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,18 +29,33 @@ public class ClienteDocumentoService {
 
     private final ClienteDocumentoRepository documentoRepository;
     private final ClienteRepository clienteRepository;
+    private final AuthorizationService authorizationService;
     private final Path basePath;
 
     public ClienteDocumentoService(ClienteDocumentoRepository documentoRepository,
                                   ClienteRepository clienteRepository,
+                                  AuthorizationService authorizationService,
                                   @Value("${app.upload.base-path:./data/uploads}") String basePathStr) {
         this.documentoRepository = documentoRepository;
         this.clienteRepository = clienteRepository;
+        this.authorizationService = authorizationService;
         this.basePath = Paths.get(basePathStr).toAbsolutePath().normalize();
     }
 
     public List<ClienteDocumento> listarPorCliente(Long clienteId) {
+        authorizationService.requireCompanyAccess(clienteId);
         return documentoRepository.findByClienteIdOrderByDataUploadDesc(clienteId);
+    }
+
+    public List<ClienteDocumento> listarPorClienteECompetencia(Long clienteId, String competencia) {
+        authorizationService.requireCompanyAccess(clienteId);
+        if (competencia == null || competencia.isBlank()) {
+            return listarPorCliente(clienteId);
+        }
+        if (!competencia.matches("\\d{4}-\\d{2}")) {
+            throw new RegraNegocioException("Competência deve estar no formato YYYY-MM");
+        }
+        return documentoRepository.findByClienteIdAndCompetenciaOrderByDataUploadDesc(clienteId, competencia);
     }
 
     public ClienteDocumento buscarPorId(Long id) {
@@ -49,8 +65,25 @@ public class ClienteDocumentoService {
 
     @Transactional
     public ClienteDocumento upload(Long clienteId, MultipartFile file, String descricao) throws IOException {
+        return upload(clienteId, file, descricao, null, null, "GERAL", "INTERNO", false);
+    }
+
+    @Transactional
+    public ClienteDocumento upload(Long clienteId,
+                                   MultipartFile file,
+                                   String descricao,
+                                   String competencia,
+                                   String setor,
+                                   String categoria,
+                                   String origem,
+                                   boolean compartilhadoComCliente) throws IOException {
+        authorizationService.requireCompanyAccess(clienteId);
         Cliente cliente = clienteRepository.findById(clienteId)
                 .orElseThrow(() -> new ClienteNaoEncontradoException("Cliente não encontrado"));
+
+        if (competencia != null && !competencia.isBlank() && !competencia.matches("\\d{4}-\\d{2}")) {
+            throw new RegraNegocioException("Competência deve estar no formato YYYY-MM");
+        }
 
         String nomeOriginal = file.getOriginalFilename() != null ? file.getOriginalFilename() : "arquivo";
         String extensao = "";
@@ -60,6 +93,9 @@ public class ClienteDocumentoService {
         }
         String nomeUnico = UUID.randomUUID().toString().replace("-", "") + extensao;
         Path clienteDir = basePath.resolve("clientes").resolve(clienteId.toString());
+        if (competencia != null && !competencia.isBlank()) {
+            clienteDir = clienteDir.resolve(competencia);
+        }
         Files.createDirectories(clienteDir);
         Path targetPath = clienteDir.resolve(nomeUnico);
 
@@ -68,7 +104,7 @@ public class ClienteDocumentoService {
         }
 
         String tipoArquivo = file.getContentType() != null ? file.getContentType() : "application/octet-stream";
-        String urlRelativa = "clientes/" + clienteId + "/" + nomeUnico;
+        String urlRelativa = basePath.relativize(targetPath).toString().replace('\\', '/');
 
         ClienteDocumento doc = new ClienteDocumento();
         doc.setCliente(cliente);
@@ -76,7 +112,18 @@ public class ClienteDocumentoService {
         doc.setTipoArquivo(tipoArquivo);
         doc.setUrlArquivo(urlRelativa);
         doc.setDescricao(descricao != null && !descricao.isBlank() ? descricao.trim() : null);
+        doc.setCompetencia(competencia != null && !competencia.isBlank() ? competencia : null);
+        doc.setSetor(setor);
+        doc.setCategoria(categoria != null ? categoria : "GERAL");
+        doc.setOrigem(origem != null ? origem : "INTERNO");
+        doc.setCompartilhadoComCliente(compartilhadoComCliente);
         return documentoRepository.save(doc);
+    }
+
+    @Transactional
+    public ClienteDocumento uploadXml(Long clienteId, MultipartFile file, String competencia,
+                                      String setor, String categoria) throws IOException {
+        return upload(clienteId, file, "Import XML NFe/NFSe", competencia, setor, categoria, "XML_IMPORT", false);
     }
 
     public Resource obterArquivo(Long documentoId) throws MalformedURLException {
@@ -101,6 +148,9 @@ public class ClienteDocumentoService {
                 Path filePath = basePath.resolve(doc.getUrlArquivo()).normalize();
                 if (Files.exists(filePath)) {
                     String baseName = doc.getNomeArquivo() != null ? doc.getNomeArquivo() : "doc_" + doc.getId();
+                    if (doc.getCompetencia() != null) {
+                        baseName = doc.getCompetencia() + "/" + baseName;
+                    }
                     String entryName = uniqueZipEntryName(baseName, usedNames);
                     zos.putNextEntry(new java.util.zip.ZipEntry(entryName));
                     Files.copy(filePath, zos);
@@ -112,7 +162,7 @@ public class ClienteDocumentoService {
     }
 
     private String uniqueZipEntryName(String name, java.util.Set<String> used) {
-        String safe = name.replace("..", "").replaceAll("[\\\\/]", "_");
+        String safe = name.replace("..", "").replaceAll("[\\\\]", "/");
         if (used.add(safe)) return safe;
         int i = 1;
         int dot = safe.lastIndexOf('.');
@@ -125,6 +175,7 @@ public class ClienteDocumentoService {
     @Transactional
     public void remover(Long documentoId) throws IOException {
         ClienteDocumento doc = buscarPorId(documentoId);
+        authorizationService.requireCompanyAccess(doc.getCliente().getId());
         Path filePath = basePath.resolve(doc.getUrlArquivo()).normalize();
         documentoRepository.delete(doc);
         if (Files.exists(filePath)) {

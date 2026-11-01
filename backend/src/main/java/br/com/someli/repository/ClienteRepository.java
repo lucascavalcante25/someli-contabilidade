@@ -20,4 +20,9 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
 
     @Query("SELECT DISTINCT c.id FROM Cliente c JOIN c.tags t WHERE t.id = :tagId")
     List<Long> findClienteIdsByTagId(@Param("tagId") Long tagId);
+
+    @Query("SELECT c.id FROM Cliente c WHERE c.regimeTributario = :regime AND c.ativo = TRUE")
+    List<Long> findAtivoIdsByRegime(@Param("regime") String regime);
+
+    Optional<Cliente> findByCnpj(String cnpj);
 }

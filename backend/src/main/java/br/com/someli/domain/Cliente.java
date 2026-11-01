@@ -88,6 +88,10 @@ public class Cliente {
     @Column(nullable = false)
     private Boolean ativo = Boolean.TRUE;
 
+    /** MEI | SIMPLES_NACIONAL | LUCRO_PRESUMIDO | LUCRO_REAL | OUTRO */
+    @Column(name = "regime_tributario", length = 40)
+    private String regimeTributario;
+
     /** Quantidade de meses sem pagamento desde o início da cobrança até o mês atual (não persistido). */
     @Transient
     private Integer mesesPendentes;
@@ -266,6 +270,14 @@ public class Cliente {
 
     public void setAtivo(Boolean ativo) {
         this.ativo = ativo;
+    }
+
+    public String getRegimeTributario() {
+        return regimeTributario;
+    }
+
+    public void setRegimeTributario(String regimeTributario) {
+        this.regimeTributario = regimeTributario;
     }
 
     public Integer getMesesPendentes() {

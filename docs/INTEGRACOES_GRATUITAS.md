@@ -1,72 +1,86 @@
 # Integrações e automações — SOMELI
 
-Foco: **gratuito** ou custo zero para começar. Evoluímos com TDD.
+Foco: **honestidade de custo**. Nem tudo que o mercado vende como “API” é gratuito — RFB/Serpro em especial **não**.
 
-O SOMELI é plataforma do **escritório contábil** (carteira, alçada, obrigações), não um ERP do cliente final. Isso muda o que “encaixa”.
+O SOMELI é plataforma do **escritório contábil** (carteira, alçada, obrigações), não um ERP do cliente final.
+
+## Tabela-mestre (gratuita / freemium / paga)
+
+| Integração | Gratuita? | Uso na Someli | Status |
+|------------|-----------|---------------|--------|
+| **Import XML NFe/NFSe** (upload local) | **Sim** | Conferência fiscal por cliente/competência | **Feito agora** |
+| **BrasilAPI** (CEP, feriados, dia útil) | **Sim** (limites públicos) | Ajuste de vencimento / endereço | Já tem |
+| **ReceitaWS** (CNPJ) | Freemium (rate limit) | Cadastro / consulta CNPJ | Já tem |
+| **Sintegra** (InfoSimples) | Pago por consulta (token) | Consulta IE | Já tem (token config) |
+| **OFX/CSV Nubank** (export do app) | **Sim** (export manual) | Conciliação honorários / caixa do escritório | Planejado |
+| **Open Finance / Pluggy / Belvo** | **Paga** | Extrato automático multi-banco | Planejado (só com orçamento) |
+| **Asaas / Iugu** | Freemium → pago | Boleto/Pix de honorário do escritório | Planejado (Trilha B) |
+| **Serpro Integra Contador** | **Paga / pós-paga oficial** | Transmissão/consulta obrigações RFB | Stub + doc (sem fingir API free) |
+| **Focus NFe / eNotas** (emissão) | Paga | Emissão NF do cliente | Fora de escopo agora |
+| **WhatsApp Business API** | Paga | Alertas “guia pronta / pendência” | Planejado |
+| **mailto / e-mail SMTP próprio** | Gratuito (infra própria) | Mesmos alertas sem Meta API | Planejado (MVP) |
+| **Pluga / Zapier** | Freemium | Atalhos, não substitui domínio | Evitar como núcleo |
+
+### Expectativa “espero que todas sejam gratuitas”
+
+O que **é** gratuito de verdade para o escritório:
+
+1. Importar arquivos que o cliente/banco/portal já entrega (XML, OFX, CSV, PDF).
+2. APIs públicas comunitárias com limite (BrasilAPI).
+3. Orquestração interna (templates, checklist, tags, ocorrências) — código próprio.
+
+O que **exige custo oficial** (não dá para maquiar):
+
+1. **Integra Contador / Serpro** — canal RFB para automação fiscal homologada.
+2. **Open Finance agregadores** (Pluggy etc.).
+3. **WhatsApp Business API** Meta.
+4. Gateways de cobrança em escala (Asaas/Iugu além do freemium).
 
 ## Fit dos 4 pilares (mercado SaaS contábil × SOMELI)
 
 | Pilar | Exemplos do mercado | Encaixa no SOMELI? | Prioridade |
 |-------|---------------------|--------------------|------------|
-| **Meios de pagamento** | Asaas, Iugu, PagBank, Stripe | **Parcial** — útil para **cobrar honorário** (boleto/Pix) e régua de inadimplência; Stripe é mais global/SaaS B2C | Média (depois do operacional) |
-| **ERP / e-commerce** | Omie, Conta Azul, Bling, Shopify, Hotmart | **Baixo agora** — o cliente já usa o escritório; importar balancete/NF de Omie/Bling é fase 2 se houver demanda paga de API | Baixa |
-| **Bancos / Open Finance** | Pluggy, Conta Simples, Inter, Cora, Nubank | **Alto valor, cuidado com custo** — Nubank sem API gratuita; Pluggy **pago**; Inter/Cora APIs abertas só para quem é cliente desses bancos; **OFX/CSV** encaixa 100% e é gratuito | Alta (OFX/CSV); Open Finance pago só com decisão explícita |
-| **NFe / NFSe** | Focus NFe, eNotas | **Alto** para escritório — ideal: **receber/importar XML** (gratuito) e depois API de emissão se o produto for “emite pelo portal” | Alta (import XML); emissão via API = pago |
-| **Produtividade** | Pluga, Zapier, Slack, WhatsApp | **Alto** — alertas de obrigação já existem in-app; WhatsApp/e-mail para “guia pronta / pendência” agrega muito; Zapier é atalho, não substitui domínio | Média-alta (webhooks depois) |
+| **Meios de pagamento** | Asaas, Iugu, PagBank | Parcial — honorário do escritório | Média (Trilha B) |
+| **ERP / e-commerce** | Omie, Conta Azul, Bling | Baixo agora | Baixa |
+| **Bancos / Open Finance** | Pluggy, Nubank | Alto valor; OFX/CSV gratis primeiro | Alta (OFX); Open Finance pago só com decisão |
+| **NFe / NFSe** | Focus, eNotas | Alto — **import XML gratis** agora; emissão = pago | Alta (import feito) |
+| **Produtividade** | WhatsApp, e-mail | Alto — mailto free / WA pago | Média-alta |
 
-### O que já cobre valor sem agregador pago
-
-- Consulta CNPJ (ReceitaWS) + Sintegra  
-- BrasilAPI (CEP, feriados → dia útil)  
-- Obrigações / ocorrências / notificações por alçada  
-- Aplicação em massa de obrigações  
-- Tags operacionais (VIP, MEI, INADIMPLENTE…) — base para filtros e automações  
-
-### O que adotar depois (ordem sugerida)
-
-1. Importador **OFX/CSV** (Nubank e demais bancos)  
-2. Importador **XML NFe/NFSe** (pasta/upload do cliente)  
-3. Cobrança de honorário via **Asaas/Iugu** (se quiser régua automática)  
-4. Alertas **e-mail / WhatsApp Business** (pendências e guias)  
-5. Open Finance (Pluggy etc.) **somente** se o escritório pagar a conexão  
-
-### Evitar por enquanto
-
-- Pluggy/Belvo sem orçamento  
-- Scraping Nubank  
-- Integração profunda Omie/Conta Azul sem caso de uso claro (o SOMELI já é o hub do escritório)
-
-## Nubank PJ — verdade prática
-
-| Caminho | Gratuito? | Viável agora? |
-|---------|-----------|---------------|
-| API Nubank pública | Não | Não |
-| Open Finance via Pluggy/Belvo | Não | Futuro pago |
-| Importação OFX/CSV do app | **Sim** | **Sim** |
-| Inter / Cora API | Sim (conta nesses bancos) | Opcional se houver clientes nesses bancos |
-
-## Endpoints internos de integração (já no produto)
+## Endpoints internos de integração
 
 | Rota | Uso |
 |------|-----|
 | `GET /integracoes/cep/{cep}` | BrasilAPI CEP |
 | `GET /integracoes/feriados/{ano}` | Feriados nacionais |
 | `GET /integracoes/dia-util?data=` | Ajuste para dia útil |
+| `GET /integracoes/integra-contador/status` | Stub Serpro (nunca finge ready) |
 | `GET /someli/api/consultaCNPJ/{cnpj}` | ReceitaWS |
 | `POST /someli/api/sintegra/consulta` | Sintegra |
+| `POST /clientes/{id}/notas-fiscais/importar` | Import XML lote |
+| `POST /notas-fiscais/importar` | Import XML global (vínculo por CNPJ) |
+| `POST /tags/sincronizar` | Resync tags inteligentes |
+| `GET/POST /obrigacao-templates` | Templates por regime |
+
+## Tags inteligentes (estado)
+
+| Tag | Tipo | Regra |
+|-----|------|-------|
+| `NOVO_CLIENTE` | Automática | Some após ~90 dias **e** após até 3 competências (config `app.tags.*`) desde `data_inicio_cobranca` (fallback `data_criacao`) |
+| `INADIMPLENTE` | Automática | Aparece com meses em atraso / status atrasado; some ao quitar |
+| `MEI` / regimes | Manual | Estável — não remove por tempo |
 
 ## Automações internas (maior ROI)
 
 1. Geração de ocorrências + notificações por alçada  
-2. Tags + filtros de carteira  
-3. Aplicação em massa de obrigações  
-4. Import OFX/CSV (ciclo bancário)  
+2. Tags inteligentes + filtros de carteira  
+3. Templates de obrigações por regime + aplicação em massa  
+4. Checklist na ocorrência  
 5. Import XML NFe/NFSe  
-6. Redistribuição de carteira / férias  
-7. Solicitações ao cliente  
+6. Import OFX/CSV (próximo)  
+7. Redistribuição de carteira / férias  
 
-## Como testar banco sem API (futuro)
+## Como testar banco sem API (futuro OFX)
 
-1. Exportar CSV/OFX  
+1. Exportar CSV/OFX do Nubank  
 2. Upload no SOMELI  
 3. Conciliação com honorários/pagamentos  

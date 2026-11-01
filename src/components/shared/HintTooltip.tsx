@@ -13,7 +13,13 @@ interface HintTooltipProps {
   asChild?: boolean;
 }
 
-/** Tooltip padronizado do SOMELI (acima de modais). */
+/**
+ * Tooltip padronizado do SOMELI (acima de modais).
+ *
+ * Não envolva TabsTrigger/Trigger com data-state próprio via asChild: o Tooltip
+ * sobrescreve data-state (closed/open) no mesmo nó e quebra estilos ativos.
+ * Prefira um wrapper (ex.: span) em torno do trigger, ou tooltip só no conteúdo interno.
+ */
 export default function HintTooltip({
   content,
   children,

@@ -40,11 +40,12 @@ public class IntegracaoController {
 
     @GetMapping("/feriados/{ano}")
     public ResponseEntity<List<Map<String, String>>> feriados(@PathVariable int ano) {
-        List<Map<String, String>> lista = diaUtilService.feriadosDoAno(ano).stream()
-                .sorted()
-                .map(d -> {
+        List<Map<String, String>> lista = brasilApiClient.listarFeriadosNacionais(ano).stream()
+                .map(f -> {
                     Map<String, String> m = new LinkedHashMap<>();
-                    m.put("date", d.toString());
+                    m.put("date", f.date);
+                    if (f.name != null && !f.name.isBlank()) m.put("name", f.name);
+                    if (f.type != null && !f.type.isBlank()) m.put("type", f.type);
                     return m;
                 })
                 .collect(Collectors.toList());

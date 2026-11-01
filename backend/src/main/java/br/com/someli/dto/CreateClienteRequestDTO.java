@@ -48,6 +48,8 @@ public class CreateClienteRequestDTO {
     private String indicacao;
     private String formaPagamento;
     private Boolean ativo;
+    /** MEI | SIMPLES_NACIONAL | LUCRO_PRESUMIDO | LUCRO_REAL | OUTRO */
+    private String regimeTributario;
 
     public String getCnpj() {
         return cnpj;
@@ -167,5 +169,13 @@ public class CreateClienteRequestDTO {
 
     public void setAtivo(Boolean ativo) {
         this.ativo = ativo;
+    }
+
+    public String getRegimeTributario() {
+        return regimeTributario;
+    }
+
+    public void setRegimeTributario(String regimeTributario) {
+        this.regimeTributario = regimeTributario;
     }
 }

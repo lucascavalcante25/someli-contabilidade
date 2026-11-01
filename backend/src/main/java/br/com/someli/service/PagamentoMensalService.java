@@ -13,11 +13,14 @@ public class PagamentoMensalService {
 
     private final PagamentoMensalRepository pagamentoMensalRepository;
     private final ClienteRepository clienteRepository;
+    private final TagSyncService tagSyncService;
 
     public PagamentoMensalService(PagamentoMensalRepository pagamentoMensalRepository,
-                                  ClienteRepository clienteRepository) {
+                                  ClienteRepository clienteRepository,
+                                  TagSyncService tagSyncService) {
         this.pagamentoMensalRepository = pagamentoMensalRepository;
         this.clienteRepository = clienteRepository;
+        this.tagSyncService = tagSyncService;
     }
 
     @Transactional
@@ -35,6 +38,7 @@ public class PagamentoMensalService {
                 });
         pm.setPago(true);
         pagamentoMensalRepository.save(pm);
+        tagSyncService.sincronizarCliente(clienteId);
     }
 
     @Transactional
@@ -44,6 +48,7 @@ public class PagamentoMensalService {
             pm.setPago(false);
             pagamentoMensalRepository.save(pm);
         });
+        tagSyncService.sincronizarCliente(clienteId);
     }
 
     public boolean isPago(Long clienteId, int mes, int ano) {

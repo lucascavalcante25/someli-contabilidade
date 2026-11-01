@@ -34,20 +34,23 @@ public class ClienteService {
     private final UsuarioRepository usuarioRepository;
     private final AuthorizationService authorizationService;
     private final AuditLogService auditLogService;
+    private final TagSyncService tagSyncService;
 
     public ClienteService(ClienteRepository clienteRepository,
                          PagamentoMensalRepository pagamentoMensalRepository,
                          UsuarioRepository usuarioRepository,
                          AuthorizationService authorizationService,
-                         AuditLogService auditLogService) {
+                         AuditLogService auditLogService,
+                         @org.springframework.context.annotation.Lazy TagSyncService tagSyncService) {
         this.clienteRepository = clienteRepository;
         this.pagamentoMensalRepository = pagamentoMensalRepository;
         this.usuarioRepository = usuarioRepository;
         this.authorizationService = authorizationService;
         this.auditLogService = auditLogService;
+        this.tagSyncService = tagSyncService;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<Cliente> listarTodos() {
         authorizationService.requirePermission(br.com.someli.domain.PermissaoCodigo.CLIENTES_VISUALIZAR);
         List<Cliente> clientes = clienteRepository.findAllWithResponsavel();
@@ -69,6 +72,8 @@ public class ClienteService {
                     pagosPorCliente.getOrDefault(c.getId(), Set.of()),
                     naoCobraveis.getOrDefault(c.getId(), Set.of())
             );
+            // Mantém tags inteligentes alinhadas ao status (corrige tags "grudadas")
+            tagSyncService.aplicarRegras(c, c.getMesesPendentes() != null ? c.getMesesPendentes() : 0, hoje);
         }
         return clientes;
     }
@@ -236,7 +241,8 @@ public class ClienteService {
         }
         Cliente salvo = Objects.requireNonNull(clienteRepository.save(cliente));
         auditLogService.registrar("CLIENTE_CRIAR", "CLIENTE", String.valueOf(salvo.getId()), null, salvo.getRazaoSocial());
-        return salvo;
+        tagSyncService.sincronizarCliente(salvo.getId());
+        return clienteRepository.findByIdWithResponsavel(salvo.getId()).orElse(salvo);
     }
 
     @SuppressWarnings("null")
@@ -285,6 +291,10 @@ public class ClienteService {
         cliente.setFormaPagamento(trimOrNull(request.getFormaPagamento()));
         cliente.setAtivo(request.getAtivo() != null ? request.getAtivo() : Boolean.TRUE);
         cliente.setResponsavel(resolverResponsavel(request.getResponsavelId()));
+        if (request.getRegimeTributario() != null) {
+            String regime = br.com.someli.domain.RegimeTributario.normalizar(request.getRegimeTributario());
+            cliente.setRegimeTributario(regime);
+        }
     }
 
     private Usuario resolverResponsavel(Long responsavelId) {

@@ -40,11 +40,31 @@ public class ClienteDocumento {
     @Column(columnDefinition = "TEXT")
     private String descricao;
 
+    @Column(name = "compartilhado_com_cliente", nullable = false)
+    private Boolean compartilhadoComCliente = Boolean.FALSE;
+
+    /** Competência YYYY-MM para conferência mensal */
+    @Column(length = 7)
+    private String competencia;
+
+    @Column(length = 40)
+    private String setor;
+
+    @Column(nullable = false, length = 40)
+    private String origem = "INTERNO";
+
+    /** GERAL | EXTRATO | NF | FOLHA | GUIA | CERTIDAO | OUTROS */
+    @Column(nullable = false, length = 40)
+    private String categoria = "GERAL";
+
     @PrePersist
     public void prePersist() {
         if (dataUpload == null) {
             dataUpload = LocalDateTime.now();
         }
+        if (compartilhadoComCliente == null) compartilhadoComCliente = Boolean.FALSE;
+        if (origem == null) origem = "INTERNO";
+        if (categoria == null) categoria = "GERAL";
     }
 
     public Long getId() {
@@ -101,5 +121,45 @@ public class ClienteDocumento {
 
     public void setDescricao(String descricao) {
         this.descricao = descricao;
+    }
+
+    public Boolean getCompartilhadoComCliente() {
+        return compartilhadoComCliente;
+    }
+
+    public void setCompartilhadoComCliente(Boolean compartilhadoComCliente) {
+        this.compartilhadoComCliente = compartilhadoComCliente;
+    }
+
+    public String getCompetencia() {
+        return competencia;
+    }
+
+    public void setCompetencia(String competencia) {
+        this.competencia = competencia;
+    }
+
+    public String getSetor() {
+        return setor;
+    }
+
+    public void setSetor(String setor) {
+        this.setor = setor;
+    }
+
+    public String getOrigem() {
+        return origem;
+    }
+
+    public void setOrigem(String origem) {
+        this.origem = origem;
+    }
+
+    public String getCategoria() {
+        return categoria;
+    }
+
+    public void setCategoria(String categoria) {
+        this.categoria = categoria;
     }
 }

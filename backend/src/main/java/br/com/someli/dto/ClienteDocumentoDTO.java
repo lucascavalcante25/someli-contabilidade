@@ -9,6 +9,11 @@ public class ClienteDocumentoDTO {
     private String tipoArquivo;
     private LocalDateTime dataUpload;
     private String descricao;
+    private String competencia;
+    private String setor;
+    private String categoria;
+    private String origem;
+    private Boolean compartilhadoComCliente;
 
     public Long getId() {
         return id;
@@ -56,5 +61,18 @@ public class ClienteDocumentoDTO {
 
     public void setDescricao(String descricao) {
         this.descricao = descricao;
+    }
+
+    public String getCompetencia() { return competencia; }
+    public void setCompetencia(String competencia) { this.competencia = competencia; }
+    public String getSetor() { return setor; }
+    public void setSetor(String setor) { this.setor = setor; }
+    public String getCategoria() { return categoria; }
+    public void setCategoria(String categoria) { this.categoria = categoria; }
+    public String getOrigem() { return origem; }
+    public void setOrigem(String origem) { this.origem = origem; }
+    public Boolean getCompartilhadoComCliente() { return compartilhadoComCliente; }
+    public void setCompartilhadoComCliente(Boolean compartilhadoComCliente) {
+        this.compartilhadoComCliente = compartilhadoComCliente;
     }
 }

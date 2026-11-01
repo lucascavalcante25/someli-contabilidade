@@ -41,13 +41,23 @@ interface Cliente {
   responsavelNome?: string;
   indicacao?: string;
   formaPagamento?: string;
+  regimeTributario?: string;
   ativo?: boolean;
   mesesPendentes?: number;
   mesesPendentesDetalhe?: string[];
   valorPendente?: number;
   dataFimCobranca?: string;
-  tags?: { id: number; nome: string; cor?: string }[];
+  tags?: { id: number; nome: string; cor?: string; automatica?: boolean }[];
 }
+
+const REGIME_OPTIONS = [
+  { value: '', label: 'Não informado' },
+  { value: 'MEI', label: 'MEI' },
+  { value: 'SIMPLES_NACIONAL', label: 'Simples Nacional' },
+  { value: 'LUCRO_PRESUMIDO', label: 'Lucro Presumido' },
+  { value: 'LUCRO_REAL', label: 'Lucro Real' },
+  { value: 'OUTRO', label: 'Outro' },
+];
 
 interface UsuarioResumo {
   id: number;
@@ -121,6 +131,7 @@ interface ClienteFormData {
   responsavelId?: number;
   indicacao?: string;
   formaPagamento?: string;
+  regimeTributario?: string;
   ativo?: boolean;
   clienteObrigacoes: ClienteObrigacaoFormItem[];
 }
@@ -191,6 +202,7 @@ function normalizeClienteFromApi(raw: any): Cliente {
     responsavelNome: raw.responsavelNome ? String(raw.responsavelNome) : undefined,
     indicacao: raw.indicacao ? String(raw.indicacao) : undefined,
     formaPagamento: raw.formaPagamento ? String(raw.formaPagamento) : undefined,
+    regimeTributario: raw.regimeTributario ? String(raw.regimeTributario) : undefined,
     ativo: raw.ativo !== false,
     mesesPendentes: raw.mesesPendentes != null ? Number(raw.mesesPendentes) : undefined,
     mesesPendentesDetalhe: Array.isArray(raw.mesesPendentesDetalhe)
@@ -200,6 +212,7 @@ function normalizeClienteFromApi(raw: any): Cliente {
     dataFimCobranca: raw.dataFimCobranca ? String(raw.dataFimCobranca).slice(0, 10) : undefined,
     tags: Array.isArray(raw.tags)
       ? raw.tags.map((t: any) => ({
+          automatica: !!t.automatica,
           id: Number(t.id),
           nome: String(t.nome || ''),
           cor: t.cor ? String(t.cor) : undefined,
@@ -501,6 +514,7 @@ export default function Clientes() {
         responsavelId: form.responsavelId || null,
         indicacao: form.indicacao?.trim() || null,
         formaPagamento: form.formaPagamento || null,
+        regimeTributario: form.regimeTributario?.trim() || '',
         ativo: form.ativo !== false,
       };
 
@@ -668,10 +682,12 @@ export default function Clientes() {
                         {c.tags!.slice(0, 3).map((t) => (
                           <span
                             key={t.id}
-                            className="text-[10px] px-1.5 py-0.5 rounded border border-border/80"
+                            title={t.automatica ? 'Tag automática' : 'Tag manual'}
+                            className="text-[10px] px-1.5 py-0.5 rounded border border-border/80 inline-flex items-center gap-0.5"
                             style={{ borderColor: t.cor || undefined, color: t.cor || undefined }}
                           >
                             {t.nome.replace(/_/g, ' ')}
+                            {t.automatica ? <span className="opacity-60">·</span> : null}
                           </span>
                         ))}
                       </div>
@@ -881,6 +897,7 @@ function ClienteFormModal({
     responsavelId: cliente?.responsavelId ?? prefill?.responsavelId,
     indicacao: cliente?.indicacao ?? prefill?.indicacao ?? '',
     formaPagamento: cliente?.formaPagamento ?? prefill?.formaPagamento ?? '',
+    regimeTributario: cliente?.regimeTributario ?? prefill?.regimeTributario ?? '',
     ativo: cliente?.ativo !== false,
     clienteObrigacoes: [],
   });
@@ -895,9 +912,9 @@ function ClienteFormModal({
 
   useEffect(() => {
     if (cliente) {
-      setForm(prev => ({ ...prev, cnpj: maskCnpj(cliente.cnpj), razaoSocial: cliente.razaoSocial, nomeFantasia: cliente.nomeFantasia, proprietario: cliente.proprietario, telefone: cliente.telefone, email: cliente.email, honorario: cliente.honorario, diaVencimento: cliente.diaVencimento, tipoPagamento: cliente.tipoPagamento, status: cliente.status, dataInicioCobranca: cliente.dataInicioCobranca ?? getPrimeiroDiaMesAtual(), responsavelId: cliente.responsavelId, indicacao: cliente.indicacao ?? '', formaPagamento: cliente.formaPagamento ?? '', ativo: cliente.ativo !== false }));
+      setForm(prev => ({ ...prev, cnpj: maskCnpj(cliente.cnpj), razaoSocial: cliente.razaoSocial, nomeFantasia: cliente.nomeFantasia, proprietario: cliente.proprietario, telefone: cliente.telefone, email: cliente.email, honorario: cliente.honorario, diaVencimento: cliente.diaVencimento, tipoPagamento: cliente.tipoPagamento, status: cliente.status, dataInicioCobranca: cliente.dataInicioCobranca ?? getPrimeiroDiaMesAtual(), responsavelId: cliente.responsavelId, indicacao: cliente.indicacao ?? '', formaPagamento: cliente.formaPagamento ?? '', regimeTributario: cliente.regimeTributario ?? '', ativo: cliente.ativo !== false }));
     } else if (prefill) {
-      setForm(prev => ({ ...prev, cnpj: prefill.cnpj || '', razaoSocial: prefill.razaoSocial || '', nomeFantasia: prefill.nomeFantasia || '', proprietario: prefill.proprietario || '', telefone: prefill.telefone || '', email: prefill.email || '', honorario: prefill.honorario ?? 0, diaVencimento: prefill.diaVencimento ?? 10, tipoPagamento: (prefill.tipoPagamento || 'pessoa_juridica') as TipoPagamento, status: (prefill.status || 'em_dia') as StatusCliente, dataInicioCobranca: prefill.dataInicioCobranca ?? getPrimeiroDiaMesAtual() }));
+      setForm(prev => ({ ...prev, cnpj: prefill.cnpj || '', razaoSocial: prefill.razaoSocial || '', nomeFantasia: prefill.nomeFantasia || '', proprietario: prefill.proprietario || '', telefone: prefill.telefone || '', email: prefill.email || '', honorario: prefill.honorario ?? 0, diaVencimento: prefill.diaVencimento ?? 10, tipoPagamento: (prefill.tipoPagamento || 'pessoa_juridica') as TipoPagamento, status: (prefill.status || 'em_dia') as StatusCliente, dataInicioCobranca: prefill.dataInicioCobranca ?? getPrimeiroDiaMesAtual(), regimeTributario: prefill.regimeTributario || '' }));
     }
   }, [cliente, prefill]);
 
@@ -1149,6 +1166,26 @@ function ClienteFormModal({
                   { value: 'boleto', label: 'Boleto' },
                   { value: 'pix', label: 'PIX' },
                 ]}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="label-text flex items-center gap-1.5">
+                Regime tributário
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex cursor-help text-muted-foreground hover:text-foreground"><Info size={14} /></span>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-[240px]">
+                    Usado pelos templates MEI / Simples / Presumido em Tipos de Obrigação. Sem regime, o cliente não recebe o pacote.
+                  </TooltipContent>
+                </Tooltip>
+              </label>
+              <AppSelect
+                value={form.regimeTributario || ''}
+                onChange={(v) => update('regimeTributario', v)}
+                allowEmpty
+                placeholder="Não informado"
+                options={REGIME_OPTIONS}
               />
             </div>
             <div className="space-y-1.5">

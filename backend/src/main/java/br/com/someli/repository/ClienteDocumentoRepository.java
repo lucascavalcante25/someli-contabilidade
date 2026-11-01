@@ -8,4 +8,6 @@ import java.util.List;
 public interface ClienteDocumentoRepository extends JpaRepository<ClienteDocumento, Long> {
 
     List<ClienteDocumento> findByClienteIdOrderByDataUploadDesc(Long clienteId);
+
+    List<ClienteDocumento> findByClienteIdAndCompetenciaOrderByDataUploadDesc(Long clienteId, String competencia);
 }
