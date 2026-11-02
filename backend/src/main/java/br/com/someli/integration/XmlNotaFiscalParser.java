@@ -11,6 +11,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Parser básico e gratuito de XML NFe/NFSe (sem API paga).
@@ -27,8 +28,19 @@ public final class XmlNotaFiscalParser {
         public String cnpjDestinatario;
         public LocalDate dataEmissao;
         public BigDecimal valorTotal;
+        /** Competência declarada no documento (dCompet da NFS-e Nacional), quando existe. */
+        public String competencia;
         public String mensagemErro;
         public boolean ok;
+    }
+
+    /** Evento da NFS-e Nacional (ex.: e101101 = cancelamento). */
+    public record EventoNfse(String chave, String codigo) {
+        private static final Set<String> CANCELAMENTOS = Set.of("101101", "105102", "105104", "305101");
+
+        public boolean cancelamento() {
+            return CANCELAMENTOS.contains(codigo);
+        }
     }
 
     private XmlNotaFiscalParser() {
@@ -43,12 +55,7 @@ public final class XmlNotaFiscalParser {
             return r;
         }
         try {
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setNamespaceAware(true);
-            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-            factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
-            factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
-            Document doc = factory.newDocumentBuilder().parse(new ByteArrayInputStream(xmlBytes));
+            Document doc = lerDocumento(xmlBytes);
             Element root = doc.getDocumentElement();
             String rootName = localName(root);
 
@@ -108,7 +115,70 @@ public final class XmlNotaFiscalParser {
         if (!r.ok) r.mensagemErro = "NFe sem campos mínimos";
     }
 
+    /** Parser seguro (sem DOCTYPE/entidades externas, contra XXE). */
+    private static Document lerDocumento(byte[] xmlBytes) throws Exception {
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setNamespaceAware(true);
+        factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+        factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+        factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+        return factory.newDocumentBuilder().parse(new ByteArrayInputStream(xmlBytes));
+    }
+
+    /** Lê um evento da NFS-e Nacional: chave da nota (chNFSe) e código do grupo eNNNNNN. */
+    public static Optional<EventoNfse> parseEventoNfse(byte[] xmlBytes) {
+        if (xmlBytes == null || xmlBytes.length == 0) return Optional.empty();
+        try {
+            Document doc = lerDocumento(xmlBytes);
+            String chave = digits(textOf(doc, "chNFSe"));
+            if (chave == null) return Optional.empty();
+            NodeList todos = doc.getElementsByTagNameNS("*", "*");
+            for (int i = 0; i < todos.getLength(); i++) {
+                String nome = localName((Element) todos.item(i));
+                if (nome.matches("e\\d{6}")) {
+                    return Optional.of(new EventoNfse(chave, nome.substring(1)));
+                }
+            }
+            return Optional.empty();
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    /** Layout do Padrão Nacional (Sefin/ADN): infNFSe Id="NFS" + 50 dígitos, DPS embutida. */
+    private static boolean parseNfseNacional(Document doc, Resultado r) {
+        Element inf = firstElement(doc, "infNFSe");
+        Element nNfse = firstElement(doc, "nNFSe");
+        if (inf == null || nNfse == null) return false;
+        r.tipo = "NFSE";
+        String id = inf.getAttribute("Id");
+        if (id != null && id.toUpperCase().startsWith("NFS")) {
+            r.chaveAcesso = digits(id.substring(3));
+        }
+        r.numero = nNfse.getTextContent().trim();
+        Element dps = firstElement(inf, "infDPS");
+        if (dps != null) {
+            r.serie = textChild(dps, "serie");
+            r.dataEmissao = parseData(textChild(dps, "dhEmi"));
+            LocalDate compet = parseData(textChild(dps, "dCompet"));
+            r.competencia = competenciaDe(compet).orElse(null);
+            Element toma = firstElement(dps, "toma");
+            if (toma != null) {
+                r.cnpjDestinatario = digits(firstNonBlank(textChild(toma, "CNPJ"), textChild(toma, "CPF")));
+            }
+            r.valorTotal = parseDecimal(textOf(dps, "vServ"));
+        }
+        if (r.dataEmissao == null) r.dataEmissao = parseData(textOf(doc, "dhProc"));
+        Element emit = firstElement(inf, "emit");
+        if (emit != null) r.cnpjEmitente = digits(firstNonBlank(textChild(emit, "CNPJ"), textChild(emit, "CPF")));
+        if (r.valorTotal == null) r.valorTotal = parseDecimal(textOf(inf, "vLiq"));
+        r.ok = r.chaveAcesso != null || r.numero != null;
+        if (!r.ok) r.mensagemErro = "NFSe sem campos mínimos";
+        return true;
+    }
+
     private static void parseNfse(Document doc, Resultado r) {
+        if (parseNfseNacional(doc, r)) return;
         r.tipo = "NFSE";
         r.chaveAcesso = firstNonBlank(
                 textOf(doc, "CodigoVerificacao"),

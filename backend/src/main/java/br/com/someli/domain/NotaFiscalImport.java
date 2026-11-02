@@ -67,6 +67,14 @@ public class NotaFiscalImport {
     @Column(name = "mensagem_erro", length = 500)
     private String mensagemErro;
 
+    /** UPLOAD (import manual) ou ADN (distribuição automática do Portal Nacional). */
+    @Column(nullable = false, length = 20)
+    private String origem = "UPLOAD";
+
+    /** NSU da distribuição do ADN, quando a nota veio de lá. */
+    @Column
+    private Long nsu;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -74,6 +82,7 @@ public class NotaFiscalImport {
     public void prePersist() {
         if (createdAt == null) createdAt = LocalDateTime.now();
         if (statusParse == null) statusParse = "OK";
+        if (origem == null) origem = "UPLOAD";
     }
 
     public Long getId() { return id; }
@@ -106,6 +115,10 @@ public class NotaFiscalImport {
     public void setStatusParse(String statusParse) { this.statusParse = statusParse; }
     public String getMensagemErro() { return mensagemErro; }
     public void setMensagemErro(String mensagemErro) { this.mensagemErro = mensagemErro; }
+    public String getOrigem() { return origem; }
+    public void setOrigem(String origem) { this.origem = origem; }
+    public Long getNsu() { return nsu; }
+    public void setNsu(Long nsu) { this.nsu = nsu; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

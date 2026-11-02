@@ -15,4 +15,6 @@ public interface NotaFiscalImportRepository extends JpaRepository<NotaFiscalImpo
     List<NotaFiscalImport> findByClienteIdOrderByDataEmissaoDescCreatedAtDesc(Long clienteId);
 
     List<NotaFiscalImport> findByClienteIdAndCompetenciaOrderByDataEmissaoDesc(Long clienteId, String competencia);
+
+    long countByClienteIdAndOrigem(Long clienteId, String origem);
 }

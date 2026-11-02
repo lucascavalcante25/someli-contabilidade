@@ -11,6 +11,8 @@ public final class PermissaoCodigo {
     public static final String CLIENTES_EDITAR = "CLIENTES_EDITAR";
     public static final String CLIENTES_EXCLUIR = "CLIENTES_EXCLUIR";
     public static final String CLIENTES_RESPONSAVEIS_EDITAR = "CLIENTES_RESPONSAVEIS_EDITAR";
+    /** Sensível: enviar/remover o arquivo do certificado A1 do cliente (usado na busca de NFS-e no ADN). */
+    public static final String CERTIFICADO_A1_GERENCIAR = "CERTIFICADO_A1_GERENCIAR";
     public static final String OBRIGACOES_VISUALIZAR = "OBRIGACOES_VISUALIZAR";
     public static final String OBRIGACOES_CRIAR = "OBRIGACOES_CRIAR";
     public static final String OBRIGACOES_EDITAR = "OBRIGACOES_EDITAR";

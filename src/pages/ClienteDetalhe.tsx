@@ -23,6 +23,7 @@ import HintTooltip from '@/components/shared/HintTooltip';
 import { cn } from '@/lib/utils';
 import { ENABLE_XML_IMPORT } from '@/lib/constants';
 import SolicitacoesDocumento from '@/components/clientes/SolicitacoesDocumento';
+import NfseAdnPanel from '@/components/clientes/NfseAdnPanel';
 import { certificadoBadgeClass, certificadoStatusLabel, formatCertificadoResumo } from '@/lib/certificado';
 
 type TipoObrigacao = 'FISCAL' | 'LICENCA' | 'OUTROS';
@@ -1142,6 +1143,13 @@ export function ClienteDetalhePanel({
 
         <TabsContent value="documentos" className="mt-4">
           <div className="flex flex-col gap-4">
+            <NfseAdnPanel
+              clienteId={id}
+              onNotasAtualizadas={() => {
+                void carregarDocumentos();
+                void carregarRadar();
+              }}
+            />
             {radar.length > 0 && (
               <div className="card-surface p-4 space-y-3">
                 <div className="flex items-start gap-2">

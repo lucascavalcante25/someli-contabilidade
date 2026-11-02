@@ -10,6 +10,8 @@ public class RadarFiscalCompetenciaDTO {
     private long qtdEntrada;
     private long qtdSaida;
     private long qtdSemClassificacao;
+    /** Notas canceladas (evento do Portal Nacional): ficam fora dos totais. */
+    private long qtdCancelada;
     private BigDecimal valorEntrada = BigDecimal.ZERO;
     private BigDecimal valorSaida = BigDecimal.ZERO;
     private long totalXml;
@@ -22,6 +24,8 @@ public class RadarFiscalCompetenciaDTO {
     public void setQtdEntrada(long qtdEntrada) { this.qtdEntrada = qtdEntrada; }
     public long getQtdSaida() { return qtdSaida; }
     public void setQtdSaida(long qtdSaida) { this.qtdSaida = qtdSaida; }
+    public long getQtdCancelada() { return qtdCancelada; }
+    public void setQtdCancelada(long qtdCancelada) { this.qtdCancelada = qtdCancelada; }
     public long getQtdSemClassificacao() { return qtdSemClassificacao; }
     public void setQtdSemClassificacao(long qtdSemClassificacao) { this.qtdSemClassificacao = qtdSemClassificacao; }
     public BigDecimal getValorEntrada() { return valorEntrada; }

@@ -80,6 +80,29 @@ class NotaFiscalRadarTest {
         assertTrue(service.radarPorCliente(2L).isEmpty());
     }
 
+    @Test
+    void radar_notaCanceladaNaoSomaENaoVira_semParse() {
+        Cliente c = new Cliente();
+        c.setId(1L);
+        c.setCnpj("12345678000199");
+        when(clienteRepository.findById(1L)).thenReturn(Optional.of(c));
+        when(documentoRepository.findByClienteIdOrderByDataUploadDesc(1L)).thenReturn(List.of());
+        NotaFiscalImport cancelada = nota("2026-09", "12345678000199", "99887766000155", "1200.00");
+        cancelada.setStatusParse("CANCELADA");
+        when(repository.findByClienteIdOrderByDataEmissaoDescCreatedAtDesc(1L)).thenReturn(List.of(cancelada));
+
+        RadarFiscalCompetenciaDTO out = service.radarPorCliente(1L).stream()
+                .filter(r -> "2026-09".equals(r.getCompetencia()))
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals(0, out.getQtdSaida());
+        assertEquals(0, BigDecimal.ZERO.compareTo(out.getValorSaida()));
+        assertEquals(1, out.getQtdCancelada());
+        assertEquals("OK", out.getStatus());
+        assertEquals("1 nota cancelada nesta competência (fora dos totais).", out.getObservacao());
+    }
+
     private static NotaFiscalImport nota(String comp, String emit, String dest, String valor) {
         NotaFiscalImport n = new NotaFiscalImport();
         n.setCompetencia(comp);

@@ -102,10 +102,14 @@ public class NotaFiscalImportService {
             RadarFiscalCompetenciaDTO dto = new RadarFiscalCompetenciaDTO();
             dto.setCompetencia(comp);
 
-            long qtdEnt = 0, qtdSai = 0, qtdSem = 0;
+            long qtdEnt = 0, qtdSai = 0, qtdSem = 0, qtdCanc = 0;
             BigDecimal vEnt = BigDecimal.ZERO;
             BigDecimal vSai = BigDecimal.ZERO;
             for (NotaFiscalImport n : lista) {
+                if ("CANCELADA".equalsIgnoreCase(n.getStatusParse())) {
+                    qtdCanc++;
+                    continue;
+                }
                 if (!"OK".equalsIgnoreCase(n.getStatusParse()) && !"DUPLICADO".equalsIgnoreCase(n.getStatusParse())) {
                     continue;
                 }
@@ -129,10 +133,13 @@ public class NotaFiscalImportService {
             dto.setValorEntrada(vEnt);
             dto.setValorSaida(vSai);
             dto.setTotalXml(lista.size());
+            dto.setQtdCancelada(qtdCanc);
 
-            if (totalOk > 0) {
+            if (totalOk > 0 || (qtdCanc > 0 && qtdCanc == lista.size())) {
                 dto.setStatus("OK");
-                dto.setObservacao(null);
+                dto.setObservacao(qtdCanc == 0 ? null
+                        : qtdCanc == 1 ? "1 nota cancelada nesta competência (fora dos totais)."
+                        : qtdCanc + " notas canceladas nesta competência (fora dos totais).");
             } else if (compsComDocFiscal.contains(comp)) {
                 dto.setStatus("PARCIAL");
                 dto.setObservacao("Há documento(s) fiscal(is) na competência, mas nenhum XML parseado.");

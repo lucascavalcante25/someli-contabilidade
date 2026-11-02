@@ -8,6 +8,8 @@ import br.com.someli.exception.RegraNegocioException;
 import br.com.someli.repository.ClienteDocumentoRepository;
 import br.com.someli.repository.ClienteRepository;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.InputStreamSource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
@@ -124,7 +126,20 @@ public class ClienteDocumentoService {
                 "CLIENTE_LINK", false);
     }
 
-    private ClienteDocumento gravar(Cliente cliente, MultipartFile file, String nomeOriginal, String tipoArquivo,
+    /**
+     * XML baixado pelo sistema (job do ADN, sem usuário logado). Quem chama já autorizou o cliente.
+     * O nome é montado pelo próprio sistema (chave numérica), nunca vem de fora.
+     */
+    public ClienteDocumento salvarXmlSistema(Cliente cliente, byte[] xml, String nomeArquivo, String competencia,
+                                             String origem) throws IOException {
+        if (!nomeArquivo.matches("[A-Za-z0-9_.-]{1,120}")) {
+            throw new RegraNegocioException("Nome de arquivo inválido");
+        }
+        return gravar(cliente, new ByteArrayResource(xml), nomeArquivo, "application/xml",
+                "NFS-e baixada do Portal Nacional", competencia, "FISCAL", "XML_NFSE", origem, false);
+    }
+
+    private ClienteDocumento gravar(Cliente cliente, InputStreamSource file, String nomeOriginal, String tipoArquivo,
                                     String descricao, String competencia, String setor, String categoria,
                                     String origem, boolean compartilhadoComCliente) throws IOException {
         Long clienteId = cliente.getId();

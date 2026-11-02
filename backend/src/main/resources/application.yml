@@ -38,6 +38,9 @@ logging:
 app:
   upload:
     base-path: ${UPLOAD_PATH:./data/uploads}
+  certificados:
+    # 32 bytes em Base64 (openssl rand -base64 32). Sem valor: envio de certificado A1 fica desligado.
+    chave-mestra: ${CERTIFICADO_CHAVE_MESTRA:}
   jwt:
     secret: ${JWT_SECRET:ZmFrZV9zdXBlcl9zZWNyZXRfZmFrZV9zdXBlcl9zZWNyZXRfZmFrZV9zdXBlcl9zZWNyZXQ=}
     expiration-hours: ${JWT_EXPIRATION_HOURS:72}
@@ -46,6 +49,14 @@ app:
     novo-cliente-dias: ${TAG_NOVO_CLIENTE_DIAS:90}
     # Alternativa: some após N competências cobradas (0 = desliga essa regra; dias prevalece se ambos)
     novo-cliente-competencias: ${TAG_NOVO_CLIENTE_COMPETENCIAS:3}
+
+nfse:
+  adn:
+    # Distribuição de NFS-e do Portal Nacional. Produção restrita: https://adn.producaorestrita.nfse.gov.br
+    base-url: ${NFSE_ADN_BASE_URL:https://adn.nfse.gov.br}
+    # Job de hora em hora (desligado por padrão; a busca manual pela tela funciona mesmo desligado).
+    agendamento-ativo: ${NFSE_ADN_AGENDAMENTO:false}
+    cron: ${NFSE_ADN_CRON:0 17 * * * *}
 
 integra-contador:
   enabled: false

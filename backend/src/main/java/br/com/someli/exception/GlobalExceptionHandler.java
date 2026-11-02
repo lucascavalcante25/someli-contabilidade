@@ -7,6 +7,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -106,6 +108,13 @@ public class GlobalExceptionHandler {
                 .map(fieldError -> fieldError.getDefaultMessage())
                 .orElse("Dados de entrada invalidos");
         return buildError(HttpStatus.BAD_REQUEST, message, request.getRequestURI());
+    }
+
+    @ExceptionHandler({MissingServletRequestParameterException.class, MissingServletRequestPartException.class})
+    public ResponseEntity<ApiErrorDTO> handleCampoAusente(Exception ex, HttpServletRequest request) {
+        String campo = ex instanceof MissingServletRequestParameterException p ? p.getParameterName()
+                : ((MissingServletRequestPartException) ex).getRequestPartName();
+        return buildError(HttpStatus.BAD_REQUEST, "Campo obrigatório ausente: " + campo, request.getRequestURI());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

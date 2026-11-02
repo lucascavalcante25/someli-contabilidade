@@ -49,6 +49,8 @@ certbot --nginx -d someli-contabilidade.duckdns.org
 | `JWT_SECRET` | Copie do Render (mantém tokens válidos se igual) |
 | `ALLOWED_ORIGINS` | `https://someli-contabilidade.vercel.app` |
 | `SUPABASE_DB_PASSWORD` | Senha do Supabase (só para migração) |
+| `CERTIFICADO_CHAVE_MESTRA` | Cifra os certificados A1 da busca de NFS-e (`openssl rand -base64 32`). Guardar cópia segura: se mudar, os certificados precisam ser reenviados |
+| `NFSE_ADN_AGENDAMENTO` | `true` liga a busca de NFS-e de hora em hora (padrão `false`) |
 
 CORS no código usa `ALLOWED_ORIGINS` (não `CORS_ORIGINS` do Render).
 

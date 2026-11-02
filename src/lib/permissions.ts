@@ -7,6 +7,7 @@ export const Permissoes = {
   CLIENTES_EDITAR: 'CLIENTES_EDITAR',
   CLIENTES_EXCLUIR: 'CLIENTES_EXCLUIR',
   CLIENTES_RESPONSAVEIS_EDITAR: 'CLIENTES_RESPONSAVEIS_EDITAR',
+  CERTIFICADO_A1_GERENCIAR: 'CERTIFICADO_A1_GERENCIAR',
   OBRIGACOES_VISUALIZAR: 'OBRIGACOES_VISUALIZAR',
   OBRIGACOES_CRIAR: 'OBRIGACOES_CRIAR',
   OBRIGACOES_EDITAR: 'OBRIGACOES_EDITAR',
@@ -42,6 +43,10 @@ const PERMISSAO_TEXTOS: Record<string, { titulo: string; ajuda: string }> = {
   CLIENTES_EDITAR: { titulo: 'Editar clientes', ajuda: 'Altera dados cadastrais e tags do cliente.' },
   CLIENTES_EXCLUIR: { titulo: 'Excluir clientes', ajuda: 'Remove clientes. Esta ação é irreversível.' },
   CLIENTES_RESPONSAVEIS_EDITAR: { titulo: 'Definir responsáveis', ajuda: 'Define os responsáveis por setor (fiscal, DP etc.).' },
+  CERTIFICADO_A1_GERENCIAR: {
+    titulo: 'Gerenciar certificado A1',
+    ajuda: 'Envia e remove o arquivo do certificado A1 do cliente, usado para buscar as NFS-e no Portal Nacional. Informação sensível.',
+  },
   OBRIGACOES_VISUALIZAR: { titulo: 'Visualizar obrigações', ajuda: 'Consulta obrigações e ocorrências.' },
   OBRIGACOES_CRIAR: { titulo: 'Criar obrigações', ajuda: 'Cria vínculos e aplica obrigações em massa.' },
   OBRIGACOES_EDITAR: { titulo: 'Editar obrigações', ajuda: 'Altera vencimentos e status operacionais.' },

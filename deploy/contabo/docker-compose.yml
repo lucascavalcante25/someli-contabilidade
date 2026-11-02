@@ -39,6 +39,9 @@ services:
       JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS:-72}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://someli-contabilidade.vercel.app}
       UPLOAD_PATH: /app/data/uploads
+      # NFS-e automática (ADN). Sem a chave, o envio de certificado A1 fica desligado.
+      CERTIFICADO_CHAVE_MESTRA: ${CERTIFICADO_CHAVE_MESTRA:-}
+      NFSE_ADN_AGENDAMENTO: ${NFSE_ADN_AGENDAMENTO:-false}
       JAVA_OPTS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=60.0 -Xms256m -Xmx512m"
     volumes:
       - someli-uploads:/app/data/uploads
