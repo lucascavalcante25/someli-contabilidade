@@ -12,6 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -76,6 +77,28 @@ class TagSyncServiceTest {
         assertTrue(service.aplicarRegras(c, 0, LocalDate.now()));
         assertFalse(c.getTags().contains(tagInad));
         assertTrue(c.getTags().contains(tagMei));
+    }
+
+    @Test
+    void inadimplente_soComTresMesesSeguidosEmAberto() {
+        Cliente c = baseCliente();
+        c.setDataInicioCobranca(LocalDate.now().minusDays(200));
+        c.setStatus("atrasado");
+        when(tagRepository.findByNome("NOVO_CLIENTE")).thenReturn(Optional.of(tagNovo));
+        when(tagRepository.findByNome("INADIMPLENTE")).thenReturn(Optional.of(tagInad));
+
+        assertFalse(service.aplicarRegras(c, 2, LocalDate.now()));
+        assertFalse(c.getTags().contains(tagInad));
+        verify(clienteRepository, never()).save(any());
+    }
+
+    @Test
+    void maiorSequencia_contaMesesSeguidosInclusiveNaViradaDoAno() {
+        assertEquals(2, ClienteService.maiorSequenciaMesesSeguidos(java.util.List.of(
+                YearMonth.of(2026, 6), YearMonth.of(2026, 8), YearMonth.of(2026, 9))));
+        assertEquals(3, ClienteService.maiorSequenciaMesesSeguidos(java.util.List.of(
+                YearMonth.of(2026, 11), YearMonth.of(2026, 12), YearMonth.of(2027, 1))));
+        assertEquals(0, ClienteService.maiorSequenciaMesesSeguidos(java.util.List.of()));
     }
 
     @Test

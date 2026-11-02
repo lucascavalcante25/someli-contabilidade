@@ -140,7 +140,8 @@ def analisar_cliente(celulas: list[tuple], inativo: bool) -> dict:
     fim = None
     if inativo:
         atividade = sorted(pagos | nao_pagos)
-        fim = atividade[-1] + 1 if atividade else None
+        # Sem nenhum movimento: fim em Jan, para o sistema não cobrar mês algum
+        fim = atividade[-1] + 1 if atividade else 1
         if fim is not None:
             nao_pagos = {m for m in nao_pagos if m < fim}
     return {"inicio": inicio, "fim": fim, "ativo": not inativo, "pagos": pagos, "nao_pagos": nao_pagos,

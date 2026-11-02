@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 public class TagSyncService {
 
     private static final Logger log = LoggerFactory.getLogger(TagSyncService.class);
+    static final int MESES_SEGUIDOS_INADIMPLENTE = 3;
 
     private final TagRepository tagRepository;
     private final ClienteRepository clienteRepository;
@@ -65,7 +66,7 @@ public class TagSyncService {
                     c, atual, hoje,
                     pagos.getOrDefault(c.getId(), Set.of()),
                     naoCobraveis.getOrDefault(c.getId(), Set.of()));
-            if (aplicarRegras(c, c.getMesesPendentes() != null ? c.getMesesPendentes() : 0, hoje)) {
+            if (aplicarRegras(c, mesesSeguidos(c), hoje)) {
                 alterados++;
             }
         }
@@ -85,15 +86,21 @@ public class TagSyncService {
                 c, atual, hoje,
                 pagos.getOrDefault(clienteId, Set.of()),
                 naoCobraveis.getOrDefault(clienteId, Set.of()));
-        return aplicarRegras(c, c.getMesesPendentes() != null ? c.getMesesPendentes() : 0, hoje);
+        return aplicarRegras(c, mesesSeguidos(c), hoje);
+    }
+
+    private static int mesesSeguidos(Cliente c) {
+        return c.getMesesPendentesSeguidos() != null ? c.getMesesPendentesSeguidos() : 0;
     }
 
     /**
      * Aplica regras de tags automáticas preservando tags manuais.
+     * INADIMPLENTE só a partir do 3º mês seguido em aberto (decisão do escritório).
+     * @param mesesSeguidos maior sequência de meses seguidos sem pagamento
      * @return true se o conjunto de tags mudou
      */
     @Transactional
-    public boolean aplicarRegras(Cliente cliente, int mesesPendentes, LocalDate hoje) {
+    public boolean aplicarRegras(Cliente cliente, int mesesSeguidos, LocalDate hoje) {
         if (cliente == null || cliente.getId() == null) return false;
 
         Optional<Tag> tagNovo = tagRepository.findByNome("NOVO_CLIENTE");
@@ -105,7 +112,7 @@ public class TagSyncService {
                 .collect(Collectors.toCollection(HashSet::new));
 
         boolean querNovo = deveSerNovoCliente(cliente, hoje);
-        boolean querInad = mesesPendentes > 0 || "atrasado".equalsIgnoreCase(cliente.getStatus());
+        boolean querInad = mesesSeguidos >= MESES_SEGUIDOS_INADIMPLENTE;
 
         if (querNovo) {
             tagNovo.ifPresent(proximas::add);

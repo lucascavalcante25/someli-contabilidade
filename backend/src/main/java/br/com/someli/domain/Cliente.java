@@ -111,6 +111,10 @@ public class Cliente {
     @Transient
     private Integer mesesPendentes;
 
+    /** Maior sequência de meses seguidos sem pagamento (não persistido). */
+    @Transient
+    private Integer mesesPendentesSeguidos;
+
     /** Rótulos dos meses pendentes, ex.: "Jan/2026" (não persistido). */
     @Transient
     private java.util.List<String> mesesPendentesDetalhe;
@@ -333,6 +337,14 @@ public class Cliente {
 
     public void setMesesPendentes(Integer mesesPendentes) {
         this.mesesPendentes = mesesPendentes;
+    }
+
+    public Integer getMesesPendentesSeguidos() {
+        return mesesPendentesSeguidos;
+    }
+
+    public void setMesesPendentesSeguidos(Integer mesesPendentesSeguidos) {
+        this.mesesPendentesSeguidos = mesesPendentesSeguidos;
     }
 
     public java.util.List<String> getMesesPendentesDetalhe() {

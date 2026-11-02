@@ -126,6 +126,8 @@ class ClienteTest(unittest.TestCase):
         self.assertFalse(r["ativo"])
         self.assertIsNone(r["inicio"])
         self.assertEqual(r["pagos"] | r["nao_pagos"], set())
+        # Fim em Jan: o sistema cobra até o mês anterior ao fim, então nenhum mês fica em aberto
+        self.assertEqual(r["fim"], 1)
 
 
 class DespesaTest(unittest.TestCase):

@@ -101,6 +101,12 @@ public class ClienteService {
         }
 
         c.setMesesPendentes(mesesPendentes);
+        // Mês atual só conta para a sequência depois do vencimento
+        int dia = c.getDiaVencimento() != null ? c.getDiaVencimento() : 10;
+        boolean mesAtualVencido = hoje.getDayOfMonth() > dia;
+        c.setMesesPendentesSeguidos(maiorSequenciaMesesSeguidos(pendentes.stream()
+                .filter(m -> mesAtualVencido || !m.equals(referencia))
+                .toList()));
         c.setMesesPendentesDetalhe(rotulosMeses(pendentes));
         BigDecimal honorario = c.getHonorario() != null ? c.getHonorario() : BigDecimal.ZERO;
         c.setValorPendente(honorario.multiply(BigDecimal.valueOf(mesesPendentes)));
@@ -128,6 +134,19 @@ public class ClienteService {
             }
         }
         return map;
+    }
+
+    /** Maior sequência de meses consecutivos (em ordem crescente) da lista. */
+    static int maiorSequenciaMesesSeguidos(List<YearMonth> meses) {
+        int maior = 0;
+        int atual = 0;
+        YearMonth anterior = null;
+        for (YearMonth m : meses) {
+            atual = anterior != null && anterior.plusMonths(1).equals(m) ? atual + 1 : 1;
+            maior = Math.max(maior, atual);
+            anterior = m;
+        }
+        return maior;
     }
 
     private List<YearMonth> listarMesesPendentes(YearMonth inicio, YearMonth fim,
