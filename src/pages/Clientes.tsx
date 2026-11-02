@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import StatusBadge from '@/components/shared/StatusBadge';
+import ContaRecebimentoField from '@/components/clientes/ContaRecebimentoField';
 import AppSelect from '@/components/shared/AppSelect';
 import DateField from '@/components/shared/DateField';
 import { Search, Plus, Pencil, Trash2, X, Eye, Info, ChevronDown, ChevronRight, Download, File, FileText, Image } from 'lucide-react';
@@ -42,6 +43,7 @@ interface Cliente {
   responsavelNome?: string;
   indicacao?: string;
   formaPagamento?: string;
+  contaRecebimento?: string;
   regimeTributario?: string;
   ativo?: boolean;
   mesesPendentes?: number;
@@ -137,6 +139,7 @@ interface ClienteFormData {
   responsavelId?: number;
   indicacao?: string;
   formaPagamento?: string;
+  contaRecebimento?: string;
   regimeTributario?: string;
   ativo?: boolean;
   certificadoVencimento?: string;
@@ -211,6 +214,7 @@ function normalizeClienteFromApi(raw: any): Cliente {
     responsavelNome: raw.responsavelNome ? String(raw.responsavelNome) : undefined,
     indicacao: raw.indicacao ? String(raw.indicacao) : undefined,
     formaPagamento: raw.formaPagamento ? String(raw.formaPagamento) : undefined,
+    contaRecebimento: raw.contaRecebimento ? String(raw.contaRecebimento) : undefined,
     regimeTributario: raw.regimeTributario ? String(raw.regimeTributario) : undefined,
     ativo: raw.ativo !== false,
     mesesPendentes: raw.mesesPendentes != null ? Number(raw.mesesPendentes) : undefined,
@@ -534,6 +538,7 @@ export default function Clientes() {
         responsavelId: form.responsavelId || null,
         indicacao: form.indicacao?.trim() || null,
         formaPagamento: form.formaPagamento || null,
+        contaRecebimento: form.contaRecebimento || null,
         regimeTributario: form.regimeTributario?.trim() || '',
         ativo: form.ativo !== false,
         certificadoVencimento: form.certificadoVencimento || null,
@@ -938,6 +943,7 @@ function ClienteFormModal({
     responsavelId: cliente?.responsavelId ?? prefill?.responsavelId,
     indicacao: cliente?.indicacao ?? prefill?.indicacao ?? '',
     formaPagamento: cliente?.formaPagamento ?? prefill?.formaPagamento ?? '',
+    contaRecebimento: cliente?.contaRecebimento ?? prefill?.contaRecebimento ?? '',
     regimeTributario: cliente?.regimeTributario ?? prefill?.regimeTributario ?? '',
     ativo: cliente?.ativo !== false,
     certificadoVencimento: cliente?.certificadoVencimento ?? prefill?.certificadoVencimento ?? '',
@@ -972,6 +978,7 @@ function ClienteFormModal({
         responsavelId: cliente.responsavelId,
         indicacao: cliente.indicacao ?? '',
         formaPagamento: cliente.formaPagamento ?? '',
+        contaRecebimento: cliente.contaRecebimento ?? '',
         regimeTributario: cliente.regimeTributario ?? '',
         ativo: cliente.ativo !== false,
         certificadoVencimento: cliente.certificadoVencimento ?? '',
@@ -1250,6 +1257,10 @@ function ClienteFormModal({
                 ]}
               />
             </div>
+            <ContaRecebimentoField
+              value={form.contaRecebimento || ''}
+              onChange={(v) => update('contaRecebimento', v)}
+            />
             <div className="space-y-1.5">
               <label className="label-text flex items-center gap-1.5">
                 Regime tributário

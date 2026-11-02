@@ -21,6 +21,7 @@ public class ClienteDTO {
     private String responsavelNome;
     private String indicacao;
     private String formaPagamento;
+    private String contaRecebimento;
     private Boolean ativo;
     private String regimeTributario;
     private LocalDate certificadoVencimento;
@@ -168,6 +169,14 @@ public class ClienteDTO {
 
     public void setFormaPagamento(String formaPagamento) {
         this.formaPagamento = formaPagamento;
+    }
+
+    public String getContaRecebimento() {
+        return contaRecebimento;
+    }
+
+    public void setContaRecebimento(String contaRecebimento) {
+        this.contaRecebimento = contaRecebimento;
     }
 
     public Boolean getAtivo() {

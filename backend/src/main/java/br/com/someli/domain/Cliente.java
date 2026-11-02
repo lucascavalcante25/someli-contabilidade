@@ -85,6 +85,10 @@ public class Cliente {
     @Column(name = "forma_pagamento", length = 30)
     private String formaPagamento;
 
+    /** SOMELI | PATRICIA (coluna "S" da planilha) */
+    @Column(name = "conta_recebimento", length = 20)
+    private String contaRecebimento;
+
     @Column(nullable = false)
     private Boolean ativo = Boolean.TRUE;
 
@@ -273,6 +277,14 @@ public class Cliente {
 
     public void setFormaPagamento(String formaPagamento) {
         this.formaPagamento = formaPagamento;
+    }
+
+    public String getContaRecebimento() {
+        return contaRecebimento;
+    }
+
+    public void setContaRecebimento(String contaRecebimento) {
+        this.contaRecebimento = contaRecebimento;
     }
 
     public Boolean getAtivo() {

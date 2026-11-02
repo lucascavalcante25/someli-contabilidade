@@ -47,6 +47,7 @@ public class CreateClienteRequestDTO {
     private Long responsavelId;
     private String indicacao;
     private String formaPagamento;
+    private String contaRecebimento;
     private Boolean ativo;
     /** MEI | SIMPLES_NACIONAL | LUCRO_PRESUMIDO | LUCRO_REAL | OUTRO */
     private String regimeTributario;
@@ -168,6 +169,14 @@ public class CreateClienteRequestDTO {
 
     public void setFormaPagamento(String formaPagamento) {
         this.formaPagamento = formaPagamento;
+    }
+
+    public String getContaRecebimento() {
+        return contaRecebimento;
+    }
+
+    public void setContaRecebimento(String contaRecebimento) {
+        this.contaRecebimento = contaRecebimento;
     }
 
     public Boolean getAtivo() {

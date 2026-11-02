@@ -113,7 +113,9 @@ public class ClienteObrigacaoService {
         co.setDataVencimento(request.getDataVencimento());
         co.setAtivo(request.getAtivo() != null ? request.getAtivo() : Boolean.TRUE);
         co.setObservacao(trimOrNull(request.getObservacao()));
-        return clienteObrigacaoRepository.save(co);
+        ClienteObrigacao salvo = clienteObrigacaoRepository.save(co);
+        // Recarrega com a obrigação: o mapper lê o nome dela fora da sessão (open-in-view desligado)
+        return clienteObrigacaoRepository.findByIdWithObrigacao(id).orElse(salvo);
     }
 
     public void remover(Long id) {

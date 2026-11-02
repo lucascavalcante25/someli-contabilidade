@@ -264,8 +264,9 @@ public class ClienteService {
             auditLogService.registrar("HONORARIO_ALTERAR", "CLIENTE", String.valueOf(id),
                     String.valueOf(honorarioAnterior), String.valueOf(request.getHonorario()));
         }
-        Cliente clienteAtualizado = clienteRepository.save(cliente);
-        return Objects.requireNonNull(clienteAtualizado);
+        Cliente clienteAtualizado = Objects.requireNonNull(clienteRepository.save(cliente));
+        // Recarrega com o responsável: o mapper lê o nome dele fora da sessão (open-in-view desligado)
+        return clienteRepository.findByIdWithResponsavel(id).orElse(clienteAtualizado);
     }
 
     public void remover(Long id) {
@@ -289,6 +290,7 @@ public class ClienteService {
         cliente.setDataInicioCobranca(request.getDataInicioCobranca());
         cliente.setIndicacao(trimOrNull(request.getIndicacao()));
         cliente.setFormaPagamento(trimOrNull(request.getFormaPagamento()));
+        cliente.setContaRecebimento(br.com.someli.domain.ContaRecebimento.normalizar(request.getContaRecebimento()));
         cliente.setAtivo(request.getAtivo() != null ? request.getAtivo() : Boolean.TRUE);
         cliente.setResponsavel(resolverResponsavel(request.getResponsavelId()));
         if (request.getRegimeTributario() != null) {

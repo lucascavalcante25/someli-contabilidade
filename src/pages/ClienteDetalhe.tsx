@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 import { ENABLE_XML_IMPORT } from '@/lib/constants';
 import SolicitacoesDocumento from '@/components/clientes/SolicitacoesDocumento';
 import NfseAdnPanel from '@/components/clientes/NfseAdnPanel';
+import { rotuloContaRecebimento } from '@/lib/contaRecebimento';
 import { certificadoBadgeClass, certificadoStatusLabel, formatCertificadoResumo } from '@/lib/certificado';
 
 type TipoObrigacao = 'FISCAL' | 'LICENCA' | 'OUTROS';
@@ -111,6 +112,7 @@ interface Cliente {
   responsavelNome?: string;
   indicacao?: string;
   formaPagamento?: string;
+  contaRecebimento?: string;
   regimeTributario?: string;
   ativo?: boolean;
   dataFimCobranca?: string;
@@ -210,6 +212,7 @@ export function ClienteDetalhePanel({
         responsavelNome: data.responsavelNome || undefined,
         indicacao: data.indicacao || undefined,
         formaPagamento: data.formaPagamento || undefined,
+        contaRecebimento: data.contaRecebimento || undefined,
         regimeTributario: data.regimeTributario || undefined,
         ativo: data.ativo !== false,
         dataFimCobranca: data.dataFimCobranca ? String(data.dataFimCobranca).slice(0, 10) : undefined,
@@ -649,6 +652,11 @@ export function ClienteDetalhePanel({
         ? formaPagamentoLabel[cliente.formaPagamento] || cliente.formaPagamento
         : '—',
       hint: 'Meio usado na cobrança (Pix, boleto, etc.).',
+    },
+    {
+      label: 'Conta de recebimento',
+      value: rotuloContaRecebimento(cliente.contaRecebimento),
+      hint: 'Conta em que o honorário entra: Someli ou Patrícia.',
     },
     {
       label: 'Regime tributário',
