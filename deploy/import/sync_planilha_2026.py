@@ -432,6 +432,11 @@ def ler_planilha(caminho: Path, receita: dict) -> tuple[list[dict], list[dict], 
     return clientes, despesas, avisos
 
 
+def gravar(caminho: Path, texto: str) -> None:
+    """Quebra de linha Unix: na VPS o ensaio troca `^COMMIT;$` por ROLLBACK com sed, e CRLF não casa."""
+    caminho.write_text(texto, encoding="utf-8", newline="\n")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--xlsx", required=True, type=Path)
@@ -441,7 +446,7 @@ def main():
     receita = json.loads(a.receita.read_text(encoding="utf-8")) if a.receita else {}
     clientes, despesas, avisos = ler_planilha(a.xlsx, receita)
     a.saida.mkdir(parents=True, exist_ok=True)
-    (a.saida / "sync_planilha_2026.sql").write_text(gerar_sql(clientes, despesas, FICTICIOS_V23), encoding="utf-8")
+    gravar(a.saida / "sync_planilha_2026.sql", gerar_sql(clientes, despesas, FICTICIOS_V23))
     (a.saida / "conferencia.md").write_text(relatorio_md(clientes, despesas, avisos), encoding="utf-8")
     (a.saida / "conferencia.json").write_text(json.dumps(
         {"clientes": clientes, "despesas": despesas, "avisos": avisos}, ensure_ascii=False, indent=1,

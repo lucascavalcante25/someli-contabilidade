@@ -10,7 +10,7 @@ from sync_planilha_2026 import (  # noqa: E402
     PAGO, NAO_PAGO, NAO_COBRAVEL, PRETO, VAZIO,
     PRETA, VERDE, VERMELHA, BRANCA,
     analisar_cliente, chave, classificar_mes, conta_recebimento, gerar_sql, honorario,
-    padronizar_nome, analisar_despesa, relatorio_md,
+    padronizar_nome, analisar_despesa, relatorio_md, gravar,
 )
 
 
@@ -191,6 +191,15 @@ class RelatorioTest(unittest.TestCase):
         self.assertIn("Fev", md)
         self.assertIn("Mar", md)
         self.assertIn("aviso x", md)
+
+
+class GravarTest(unittest.TestCase):
+    def test_sql_sai_com_quebra_de_linha_unix_para_o_sed_da_vps(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            arq = Path(d) / "x.sql"
+            gravar(arq, "BEGIN;\nCOMMIT;\n")
+            self.assertEqual(arq.read_bytes(), b"BEGIN;\nCOMMIT;\n")
 
 if __name__ == "__main__":
     unittest.main()
