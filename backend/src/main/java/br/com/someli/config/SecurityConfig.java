@@ -31,6 +31,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/auth/preview").permitAll()
                         .requestMatchers(HttpMethod.GET, "/auth/avatar").permitAll()
+                        // Pedido de documento: sem login; protegido por token de 256 bits, validade e limites de envio
+                        .requestMatchers("/publico/solicitacoes/**").permitAll()
                         // Stub Asaas: gateway externo chama sem JWT (validar token em produção — ver docs/ASAAS_COBRANCA.md)
                         .requestMatchers(HttpMethod.POST, "/webhooks/asaas").permitAll()
                         .requestMatchers("/actuator/**", "/management/**").permitAll()

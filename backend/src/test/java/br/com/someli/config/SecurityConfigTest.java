@@ -1,10 +1,12 @@
 package br.com.someli.config;
 
 import br.com.someli.controller.CnpjController;
+import br.com.someli.controller.InscricaoEstadualController;
 import br.com.someli.controller.SintegraController;
 import br.com.someli.security.JwtAuthenticationFilter;
 import br.com.someli.security.JwtService;
 import br.com.someli.service.CnpjService;
+import br.com.someli.service.InscricaoEstadualService;
 import br.com.someli.service.SintegraService;
 import br.com.someli.service.UsuarioService;
 import org.junit.jupiter.api.Test;
@@ -20,7 +22,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(controllers = {SintegraController.class, CnpjController.class})
+@WebMvcTest(controllers = {SintegraController.class, CnpjController.class, InscricaoEstadualController.class})
 @Import({SecurityConfig.class, JwtAuthenticationFilter.class})
 class SecurityConfigTest {
 
@@ -30,6 +32,7 @@ class SecurityConfigTest {
     @MockBean private UsuarioService usuarioService;
     @MockBean private SintegraService sintegraService;
     @MockBean private CnpjService cnpjService;
+    @MockBean private InscricaoEstadualService inscricaoEstadualService;
 
     private static final String BODY = "{\"cnpj\":\"11222333000181\"}";
 
@@ -44,6 +47,19 @@ class SecurityConfigTest {
     void cnpj_semLogin_nega() throws Exception {
         mockMvc.perform(get("/someli/api/consultaCNPJ/11222333000181"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void inscricaoEstadual_semLogin_nega() throws Exception {
+        mockMvc.perform(get("/someli/api/inscricao-estadual/11222333000181"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser
+    void inscricaoEstadual_logado_funciona() throws Exception {
+        mockMvc.perform(get("/someli/api/inscricao-estadual/11222333000181"))
+                .andExpect(status().isOk());
     }
 
     @Test

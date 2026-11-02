@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Pencil, Trash2, X, FileText, ClipboardList, File, Download, Loader2, Image, FileSpreadsheet, PowerOff, Power, ListChecks, Shield, BadgeDollarSign, Radar } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, X, FileText, ClipboardList, File, Download, Loader2, Image, FileSpreadsheet, PowerOff, Power, ListChecks, Shield, BadgeDollarSign, Radar, LayoutDashboard, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import StatusBadge from '@/components/shared/StatusBadge';
 import DateField from '@/components/shared/DateField';
+import MonthField from '@/components/shared/MonthField';
+import AppSelect from '@/components/shared/AppSelect';
 import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
 import ModalShell from '@/components/shared/ModalShell';
@@ -20,6 +22,7 @@ import OcorrenciaWorkList, { type OcorrenciaItem } from '@/components/obrigacoes
 import HintTooltip from '@/components/shared/HintTooltip';
 import { cn } from '@/lib/utils';
 import { ENABLE_XML_IMPORT } from '@/lib/constants';
+import SolicitacoesDocumento from '@/components/clientes/SolicitacoesDocumento';
 import { certificadoBadgeClass, certificadoStatusLabel, formatCertificadoResumo } from '@/lib/certificado';
 
 type TipoObrigacao = 'FISCAL' | 'LICENCA' | 'OUTROS';
@@ -133,7 +136,7 @@ interface RadarCompetencia {
 export type ClienteDetalhePanelProps = {
   clienteId: number;
   variant?: 'page' | 'modal';
-  initialTab?: 'dados' | 'obrigacoes' | 'ocorrencias' | 'documentos';
+  initialTab?: 'resumo' | 'dados' | 'obrigacoes' | 'ocorrencias' | 'documentos' | 'pedidos';
   onClose?: () => void;
   onEdit?: () => void;
 };
@@ -141,7 +144,7 @@ export type ClienteDetalhePanelProps = {
 export function ClienteDetalhePanel({
   clienteId,
   variant = 'page',
-  initialTab = 'dados',
+  initialTab = 'resumo',
   onClose,
   onEdit,
 }: ClienteDetalhePanelProps) {
@@ -711,6 +714,15 @@ export function ClienteDetalhePanel({
 
   const tabItems: { value: typeof tab; hint: string; label: ReactNode }[] = [
     {
+      value: 'resumo',
+      hint: 'Painel 360°: situação do cliente e atalhos',
+      label: (
+        <>
+          <LayoutDashboard size={16} className="shrink-0" /> <span className="truncate">Visão geral</span>
+        </>
+      ),
+    },
+    {
       value: 'dados',
       hint: 'Cadastro, responsáveis por setor e tags',
       label: (
@@ -746,6 +758,15 @@ export function ClienteDetalhePanel({
         <>
           <File size={16} className="shrink-0" />{' '}
           <span className="truncate">Docs ({documentos.length})</span>
+        </>
+      ),
+    },
+    {
+      value: 'pedidos',
+      hint: 'Pedir documentos ao cliente por link',
+      label: (
+        <>
+          <Link2 size={16} className="shrink-0" /> <span className="truncate">Pedidos</span>
         </>
       ),
     },
@@ -788,93 +809,12 @@ export function ClienteDetalhePanel({
         </div>
       )}
 
-      {/* Ficha 360° — atalhos operacionais (estilo painel Emitte, sem emissor) */}
-      {(() => {
-        const hoje = new Date();
-        hoje.setHours(12, 0, 0, 0);
-        const obrAVencer = obrigacoes.filter((o) => {
-          if (!o.dataVencimento) return false;
-          const d = new Date(o.dataVencimento + 'T12:00:00');
-          const diff = (d.getTime() - hoje.getTime()) / 86400000;
-          return diff >= 0 && diff <= 30;
-        }).length;
-        const obrAtrasadas = obrigacoes.filter((o) => o.status === 'atrasado').length;
-        const ocorrAbertas = ocorrencias.filter((o) => {
-          const st = String((o as any).status || '').toUpperCase();
-          return st && !['CONCLUIDA', 'CONCLUÍDA', 'CANCELADA'].includes(st);
-        }).length;
-        const competenciaAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
-        const docsComp = documentos.filter((d) => d.competencia === competenciaAtual).length;
-        const regua =
-          cliente.status === 'em_dia'
-            ? { label: 'Em dia', hint: 'Honorário quitado / sem atraso' }
-            : cliente.status === 'pendente'
-              ? { label: 'Lembrete', hint: 'Mês em aberto dentro do vencimento' }
-              : { label: 'Cobrança', hint: 'Honorário em atraso — régua local (Asaas live = próximo ciclo)' };
-
-        return (
-          <div className="card-surface p-3 sm:p-4 mb-3 space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <div>
-                <p className="text-sm font-semibold">Painel 360°</p>
-                <p className="text-xs text-muted-foreground">Atalhos da operação deste cliente</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-              <button type="button" className="rounded-md bg-muted/40 p-2.5 text-left hover:bg-muted/60 transition-colors" onClick={() => setTab('dados')}>
-                <p className="label-text flex items-center gap-1"><BadgeDollarSign size={12} /> Honorário</p>
-                <p className="text-sm font-semibold truncate">{cliente.honorario == null ? '—' : mascarar(formatCurrency(cliente.honorario))}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Régua: {regua.label}</p>
-              </button>
-              <button type="button" className="rounded-md bg-muted/40 p-2.5 text-left hover:bg-muted/60 transition-colors" onClick={() => setTab('obrigacoes')}>
-                <p className="label-text">Obrigações</p>
-                <p className="text-sm font-semibold tabular-nums">
-                  {obrAtrasadas > 0 ? <span className="text-destructive">{obrAtrasadas} atrasada(s)</span> : `${obrAVencer} a vencer`}
-                </p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{obrigacoes.length} vínculo(s)</p>
-              </button>
-              <button type="button" className="rounded-md bg-muted/40 p-2.5 text-left hover:bg-muted/60 transition-colors" onClick={() => setTab('ocorrencias')}>
-                <p className="label-text">Ocorrências</p>
-                <p className="text-sm font-semibold tabular-nums">{ocorrAbertas} aberta(s)</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{ocorrencias.length} no período</p>
-              </button>
-              <button type="button" className="rounded-md bg-muted/40 p-2.5 text-left hover:bg-muted/60 transition-colors" onClick={() => setTab('documentos')}>
-                <p className="label-text">Docs competência</p>
-                <p className="text-sm font-semibold tabular-nums">{docsComp}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{competenciaAtual}</p>
-              </button>
-              <button type="button" className="rounded-md bg-muted/40 p-2.5 text-left hover:bg-muted/60 transition-colors" onClick={() => setTab('dados')}>
-                <p className="label-text">Tags</p>
-                <p className="text-sm font-semibold tabular-nums">{tagsCliente.length || '—'}</p>
-                <div className="flex flex-wrap gap-0.5 mt-0.5">
-                  {tagsCliente.slice(0, 2).map((t) => (
-                    <span key={t.id} className="text-[9px] truncate max-w-[72px]" style={{ color: t.cor }}>{t.nome.replace(/_/g, ' ')}</span>
-                  ))}
-                </div>
-              </button>
-              <button type="button" className="rounded-md bg-muted/40 p-2.5 text-left hover:bg-muted/60 transition-colors" onClick={() => setTab('dados')}>
-                <p className="label-text flex items-center gap-1"><Shield size={12} /> Certificado</p>
-                <span className={cn('inline-block text-[10px] px-1.5 py-0.5 rounded font-medium mt-0.5', certificadoBadgeClass(cliente.certificadoStatus))}>
-                  {certificadoStatusLabel(cliente.certificadoStatus)}
-                </span>
-                <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
-                  {cliente.certificadoVencimento
-                    ? new Date(cliente.certificadoVencimento + 'T12:00:00').toLocaleDateString('pt-BR')
-                    : 'Não informado'}
-                </p>
-              </button>
-            </div>
-            <p className="text-[11px] text-muted-foreground">{regua.hint}</p>
-          </div>
-        );
-      })()}
-
       <Tabs
         value={tab}
         onValueChange={(v) => setTab(v as typeof tab)}
         className={cn('w-full min-w-0 max-w-full', isModal && 'flex min-h-0 flex-1 flex-col')}
       >
-        <TabsList className={cn('grid h-auto w-full shrink-0 grid-cols-4', isModal && 'sticky top-0 z-10')}>
+        <TabsList className={cn('grid h-auto w-full shrink-0 grid-cols-3 sm:grid-cols-6', isModal && 'sticky top-0 z-10')}>
           {tabItems.map((item) => (
             <HintTooltip key={item.value} content={item.hint}>
               {/* Wrapper: TooltipTrigger asChild não pode fundir data-state no TabsTrigger. */}
@@ -888,6 +828,89 @@ export function ClienteDetalhePanel({
         </TabsList>
 
         <div className={cn(isModal && 'mt-3 min-h-0 flex-1 overflow-y-auto pr-1')}>
+        <TabsContent value="resumo" className="mt-4 focus-visible:outline-none">
+          {/* Ficha 360° — atalhos operacionais (estilo painel Emitte, sem emissor) */}
+          {(() => {
+            const hoje = new Date();
+            hoje.setHours(12, 0, 0, 0);
+            const obrAVencer = obrigacoes.filter((o) => {
+              if (!o.dataVencimento) return false;
+              const d = new Date(o.dataVencimento + 'T12:00:00');
+              const diff = (d.getTime() - hoje.getTime()) / 86400000;
+              return diff >= 0 && diff <= 30;
+            }).length;
+            const obrAtrasadas = obrigacoes.filter((o) => o.status === 'atrasado').length;
+            const ocorrAbertas = ocorrencias.filter((o) => {
+              const st = String((o as any).status || '').toUpperCase();
+              return st && !['CONCLUIDA', 'CONCLUÍDA', 'CANCELADA'].includes(st);
+            }).length;
+            const competenciaAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+            const docsComp = documentos.filter((d) => d.competencia === competenciaAtual).length;
+            const regua =
+              cliente.status === 'em_dia'
+                ? { label: 'Em dia', hint: 'Honorário quitado / sem atraso' }
+                : cliente.status === 'pendente'
+                  ? { label: 'Lembrete', hint: 'Mês em aberto dentro do vencimento' }
+                  : { label: 'Cobrança', hint: 'Honorário em atraso — régua local (Asaas live = próximo ciclo)' };
+
+            return (
+              <div className="card-surface p-3 sm:p-4 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold">Painel 360°</p>
+                    <p className="text-xs text-muted-foreground">Atalhos da operação deste cliente</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
+                  <button type="button" className="rounded-md bg-muted/40 p-3 sm:p-4 text-left hover:bg-muted/60 transition-colors" onClick={() => setTab('dados')}>
+                    <p className="label-text flex items-center gap-1"><BadgeDollarSign size={12} /> Honorário</p>
+                    <p className="text-sm font-semibold truncate">{cliente.honorario == null ? '—' : mascarar(formatCurrency(cliente.honorario))}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Régua: {regua.label}</p>
+                  </button>
+                  <button type="button" className="rounded-md bg-muted/40 p-3 sm:p-4 text-left hover:bg-muted/60 transition-colors" onClick={() => setTab('obrigacoes')}>
+                    <p className="label-text">Obrigações</p>
+                    <p className="text-sm font-semibold tabular-nums">
+                      {obrAtrasadas > 0 ? <span className="text-destructive">{obrAtrasadas} atrasada(s)</span> : `${obrAVencer} a vencer`}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{obrigacoes.length} vínculo(s)</p>
+                  </button>
+                  <button type="button" className="rounded-md bg-muted/40 p-3 sm:p-4 text-left hover:bg-muted/60 transition-colors" onClick={() => setTab('ocorrencias')}>
+                    <p className="label-text">Ocorrências</p>
+                    <p className="text-sm font-semibold tabular-nums">{ocorrAbertas} aberta(s)</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{ocorrencias.length} no período</p>
+                  </button>
+                  <button type="button" className="rounded-md bg-muted/40 p-3 sm:p-4 text-left hover:bg-muted/60 transition-colors" onClick={() => setTab('documentos')}>
+                    <p className="label-text">Docs competência</p>
+                    <p className="text-sm font-semibold tabular-nums">{docsComp}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{competenciaAtual}</p>
+                  </button>
+                  <button type="button" className="rounded-md bg-muted/40 p-3 sm:p-4 text-left hover:bg-muted/60 transition-colors" onClick={() => setTab('dados')}>
+                    <p className="label-text">Tags</p>
+                    <p className="text-sm font-semibold tabular-nums">{tagsCliente.length || '—'}</p>
+                    <div className="flex flex-wrap gap-0.5 mt-0.5">
+                      {tagsCliente.slice(0, 2).map((t) => (
+                        <span key={t.id} className="text-[9px] truncate max-w-[72px]" style={{ color: t.cor }}>{t.nome.replace(/_/g, ' ')}</span>
+                      ))}
+                    </div>
+                  </button>
+                  <button type="button" className="rounded-md bg-muted/40 p-3 sm:p-4 text-left hover:bg-muted/60 transition-colors" onClick={() => setTab('dados')}>
+                    <p className="label-text flex items-center gap-1"><Shield size={12} /> Certificado</p>
+                    <span className={cn('inline-block text-[10px] px-1.5 py-0.5 rounded font-medium mt-0.5', certificadoBadgeClass(cliente.certificadoStatus))}>
+                      {certificadoStatusLabel(cliente.certificadoStatus)}
+                    </span>
+                    <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                      {cliente.certificadoVencimento
+                        ? new Date(cliente.certificadoVencimento + 'T12:00:00').toLocaleDateString('pt-BR')
+                        : 'Não informado'}
+                    </p>
+                  </button>
+                </div>
+                <p className="text-[11px] text-muted-foreground">{regua.hint}</p>
+              </div>
+            );
+          })()}
+        </TabsContent>
+
         <TabsContent value="dados" className="mt-4 focus-visible:outline-none">
           <div className={variant === 'page' ? 'card-surface p-6 max-w-3xl space-y-4' : 'space-y-4'}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
@@ -1105,6 +1128,16 @@ export function ClienteDetalhePanel({
               onUpdated={() => void carregarOcorrencias()}
             />
           </div>
+        </TabsContent>
+
+        {/* forceMount: o link gerado só existe na memória e não pode sumir ao trocar de aba. */}
+        <TabsContent value="pedidos" forceMount className="mt-4 data-[state=inactive]:hidden">
+          <SolicitacoesDocumento
+            clienteId={id}
+            clienteNome={cliente.nomeFantasia || cliente.razaoSocial}
+            telefone={cliente.telefone}
+            email={cliente.email}
+          />
         </TabsContent>
 
         <TabsContent value="documentos" className="mt-4">
@@ -1326,26 +1359,27 @@ function DocumentoUploadForm({
         onChange={e => setFile(e.target.files?.[0] ?? null)}
         className="text-sm file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:bg-primary file:text-primary-foreground file:text-sm file:font-medium"
       />
-      <input
-        type="month"
+      <MonthField
         value={competencia}
-        onChange={e => setCompetencia(e.target.value)}
-        className="rounded-md border border-input bg-background px-3 py-2.5 text-sm w-full sm:w-40"
-        title="Competência"
+        onChange={setCompetencia}
+        placeholder="Competência"
+        ariaLabel="Competência"
+        className="sm:w-52"
       />
-      <select
+      <AppSelect
         value={categoria}
-        onChange={e => setCategoria(e.target.value)}
-        className="rounded-md border border-input bg-background px-3 py-2.5 text-sm w-full sm:w-36"
-      >
-        <option value="GERAL">Geral</option>
-        <option value="EXTRATO">Extrato</option>
-        <option value="NF">NF</option>
-        <option value="FOLHA">Folha</option>
-        <option value="GUIA">Guia</option>
-        <option value="CERTIDAO">Certidão</option>
-        <option value="OUTROS">Outros</option>
-      </select>
+        onChange={setCategoria}
+        className="sm:w-36"
+        options={[
+          { value: 'GERAL', label: 'Geral' },
+          { value: 'EXTRATO', label: 'Extrato' },
+          { value: 'NF', label: 'NF' },
+          { value: 'FOLHA', label: 'Folha' },
+          { value: 'GUIA', label: 'Guia' },
+          { value: 'CERTIDAO', label: 'Certidão' },
+          { value: 'OUTROS', label: 'Outros' },
+        ]}
+      />
       <input
         type="text"
         value={descricao}

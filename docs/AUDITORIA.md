@@ -57,8 +57,8 @@ A InfoSimples está desligada porque a conta foi bloqueada. Para religar com ela
 
 | Item | Situação |
 |---|---|
-| Backend | 61 testes passando; 19 classes de teste para 29 services e 24 controllers |
-| Front | 11 testes passando em 4 arquivos |
+| Backend | 92 testes passando |
+| Front | 76 testes passando em 7 arquivos |
 | Testes de API com segurança (401/403) | Praticamente inexistentes |
 | E2E | Não existe; `playwright.config.ts` depende de pacote não instalado |
 | Cobertura medida | Não existe (sem JaCoCo) |
@@ -80,7 +80,7 @@ Testadas as 8 rotas principais e a ficha do cliente em 375px, e as 8 rotas em 12
 
 ## Ordem de correção
 
-1. Definir o substituto da Sintegra.
+1. Validar em produção a consulta de IE pela CNPJ.ws.
 2. Corrigir `USUARIOS_EDITAR`, que permite promover usuário a ADMIN.
 3. Falha 7: CI com testes antes do deploy.
 4. Falhas 8, 9 e 11, e atualização das dependências.

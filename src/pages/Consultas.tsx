@@ -65,6 +65,20 @@ interface SintegraApiResponse {
   site_receipts?: string[];
 }
 
+interface InscricaoEstadualResult {
+  razaoSocial?: string;
+  situacaoCadastral?: string;
+  optanteSimples: boolean;
+  dataOpcaoSimples?: string;
+  optanteMei: boolean;
+  dataOpcaoMei?: string;
+  simplesAtualizadoEm?: string;
+  inscricoes: { inscricao: string; ativa: boolean; uf: string; atualizadoEm?: string }[];
+}
+
+const formatarData = (data?: string | null) =>
+  data ? data.slice(0, 10).split('-').reverse().join('/') : '-';
+
 export default function Consultas() {
   const apiBaseUrl = API_BASE_URL;
   const [cnpj, setCnpj] = useState('');
@@ -72,6 +86,8 @@ export default function Consultas() {
   const [result, setResult] = useState<CnpjResult | null>(null);
   const [uf, setUf] = useState('CE');
   const [sintegraResult, setSintegraResult] = useState<{ situacaoIE: string; regime: string; ultimaAtualizacao: string } | null>(null);
+  const [inscricaoResult, setInscricaoResult] = useState<InscricaoEstadualResult | null>(null);
+  const [loadingInscricao, setLoadingInscricao] = useState(false);
   const [cep, setCep] = useState('');
   const [cepResult, setCepResult] = useState<Record<string, unknown> | null>(null);
   const [feriados, setFeriados] = useState<{ date: string; name?: string; type?: string }[]>([]);
@@ -182,10 +198,30 @@ export default function Consultas() {
     }
   };
 
+  const consultarInscricaoEstadual = async () => {
+    const nums = cnpj.replace(/\D/g, '');
+    if (nums.length !== 14) { toast.error('CNPJ inválido'); return; }
+
+    setLoadingInscricao(true);
+    setInscricaoResult(null);
+    try {
+      const response = await apiFetch(`${apiBaseUrl}/someli/api/inscricao-estadual/${nums}`);
+      if (!response.ok) {
+        throw new Error(await buildApiError(response));
+      }
+      setInscricaoResult((await response.json()) as InscricaoEstadualResult);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao consultar inscrição estadual');
+    } finally {
+      setLoadingInscricao(false);
+    }
+  };
+
   const limparConsulta = () => {
     setCnpj('');
     setResult(null);
     setSintegraResult(null);
+    setInscricaoResult(null);
     setUf('CE');
   };
 
@@ -234,13 +270,13 @@ export default function Consultas() {
       <div>
         <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Consultas</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          {ENABLE_SINTEGRA ? 'CNPJ, Sintegra, CEP e feriados (fontes gratuitas)' : 'CNPJ, CEP e feriados (fontes gratuitas)'}
+          CNPJ, inscrição estadual, CEP e feriados (fontes gratuitas)
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
         {/* CNPJ */}
-        <div className={`card-surface p-4 sm:p-5 min-w-0 ${ENABLE_SINTEGRA ? '' : 'lg:col-span-2'}`}>
+        <div className="card-surface p-4 sm:p-5 min-w-0">
           <h3 className="text-sm font-semibold mb-4">Consulta CNPJ</h3>
           <div className="space-y-2">
             <input
@@ -267,6 +303,64 @@ export default function Consultas() {
               </button>
             </div>
           </div>
+        </div>
+
+        <div className="card-surface p-4 sm:p-5 min-w-0">
+          <h3 className="text-sm font-semibold">Inscrição estadual e Simples</h3>
+          <p className="text-xs text-muted-foreground mt-1 mb-4">
+            Dados da CNPJ.ws, que podem ter atraso. Para a situação oficial, confira na SEFAZ.
+          </p>
+          <div className="space-y-2">
+            <input
+              value={cnpj}
+              onChange={e => setCnpj(maskCnpj(e.target.value))}
+              placeholder="CNPJ"
+              aria-label="CNPJ para consulta de inscrição estadual"
+              className="w-full min-w-0 rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all tabular-nums"
+            />
+            <button
+              onClick={consultarInscricaoEstadual}
+              disabled={loadingInscricao}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {loadingInscricao ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+              Consultar
+            </button>
+          </div>
+
+          {inscricaoResult && (
+            <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="mt-4 space-y-2 text-sm">
+              <div className="flex justify-between gap-3 py-1.5 border-b border-border">
+                <span className="text-muted-foreground">Situação cadastral</span>
+                <span className="font-medium text-right">{inscricaoResult.situacaoCadastral || '-'}</span>
+              </div>
+              <div className="flex justify-between gap-3 py-1.5 border-b border-border">
+                <span className="text-muted-foreground">Simples Nacional</span>
+                <span className="font-medium text-right">
+                  {inscricaoResult.optanteSimples ? `Optante desde ${formatarData(inscricaoResult.dataOpcaoSimples)}` : 'Não optante'}
+                </span>
+              </div>
+              <div className="flex justify-between gap-3 py-1.5 border-b border-border">
+                <span className="text-muted-foreground">MEI</span>
+                <span className="font-medium text-right">
+                  {inscricaoResult.optanteMei ? `Optante desde ${formatarData(inscricaoResult.dataOpcaoMei)}` : 'Não optante'}
+                </span>
+              </div>
+              {inscricaoResult.inscricoes.length === 0 ? (
+                <p className="py-1.5 text-muted-foreground">Nenhuma inscrição estadual encontrada.</p>
+              ) : inscricaoResult.inscricoes.map((ie) => (
+                <div key={`${ie.uf}-${ie.inscricao}`} className="flex justify-between gap-3 py-1.5 border-b border-border">
+                  <span className="min-w-0 break-all">
+                    <span className="font-medium tabular-nums">{ie.uf} · {ie.inscricao}</span>
+                    <span className="block text-xs text-muted-foreground">Atualizado em {formatarData(ie.atualizadoEm)}</span>
+                  </span>
+                  <span className={`shrink-0 font-medium ${ie.ativa ? 'text-success' : 'text-destructive'}`}>
+                    {ie.ativa ? 'Ativa' : 'Inativa'}
+                  </span>
+                </div>
+              ))}
+            </motion.div>
+          )}
         </div>
 
         {/* Sintegra: desativada enquanto a conta InfoSimples estiver bloqueada (VITE_ENABLE_SINTEGRA). */}

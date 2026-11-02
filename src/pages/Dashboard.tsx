@@ -583,7 +583,7 @@ export default function Dashboard() {
       )}
 
       {viewClienteId != null && (
-        <ModalShell onClose={() => setViewClienteId(null)} maxWidth="2xl" fixedSize>
+        <ModalShell onClose={() => setViewClienteId(null)} maxWidth="3xl" fixedSize className="sm:h-[min(860px,92vh)] sm:max-h-[92vh]">
           <ClienteDetalhePanel
             clienteId={viewClienteId}
             variant="modal"

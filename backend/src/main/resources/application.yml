@@ -56,6 +56,10 @@ receitaws:
   api:
     url: ${RECEITAWS_API_URL:https://www.receitaws.com.br/v1/cnpj/}
 
+cnpjws:
+  api:
+    url: ${CNPJWS_API_URL:https://publica.cnpj.ws/cnpj/}
+
 infosimples:
   # Desligado: conta InfoSimples bloqueada. Religar com INFOSIMPLES_ENABLED=true e INFOSIMPLES_TOKEN.
   enabled: ${INFOSIMPLES_ENABLED:false}

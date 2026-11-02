@@ -20,7 +20,8 @@ import {
 interface Notificacao {
   id: number;
   clienteObrigacaoId: number;
-  clienteId: number;
+  clienteId?: number;
+  link?: string;
   titulo: string;
   descricao: string;
   prioridade: string;
@@ -141,7 +142,9 @@ export default function Toolbar({ onMenuClick }: ToolbarProps) {
     navigate('/login');
   };
 
-  const handleMarcarLida = async (id: number, clienteId: number) => {
+  const handleMarcarLida = async (notificacao: Notificacao) => {
+    const { id } = notificacao;
+    const destino = notificacao.link || `/clientes/${notificacao.clienteId}`;
     try {
       await apiFetch(`${apiBaseUrl}/notifications/${id}/lida`, {
         method: 'PUT',
@@ -149,9 +152,9 @@ export default function Toolbar({ onMenuClick }: ToolbarProps) {
       });
       setNotificacoes(prev => prev.filter(n => n.id !== id));
       setCount(prev => Math.max(0, prev - 1));
-      navigate(`/clientes/${clienteId}`);
+      navigate(destino);
     } catch {
-      navigate(`/clientes/${clienteId}`);
+      navigate(destino);
     }
   };
 
@@ -223,7 +226,7 @@ export default function Toolbar({ onMenuClick }: ToolbarProps) {
                   <DropdownMenuItem
                     key={n.id}
                     className="flex flex-col items-start gap-0.5 py-2.5 cursor-pointer"
-                    onClick={() => void handleMarcarLida(n.id, n.clienteId)}
+                    onClick={() => void handleMarcarLida(n)}
                   >
                     <div className="flex items-start gap-2 w-full">
                       {n.prioridade === 'critica' && (

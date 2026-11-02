@@ -14,6 +14,7 @@ import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
 import { Checkbox } from '@/components/ui/checkbox';
 import HintTooltip from '@/components/shared/HintTooltip';
+import PainelFinanceiroAnual from '@/components/financeiro/PainelFinanceiroAnual';
 
 const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 const mesesCompletos = [
@@ -376,6 +377,8 @@ export default function Financeiro() {
           </p>
         </div>
       </div>
+
+      <PainelFinanceiroAnual ano={selectedYear} />
 
       {/* Stats do mês selecionado */}
       <div className="space-y-2 min-w-0">

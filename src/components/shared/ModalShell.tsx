@@ -9,13 +9,14 @@ const maxWidthClass = {
   lg: 'max-w-2xl',
   xl: 'max-w-3xl',
   '2xl': 'max-w-5xl',
+  '3xl': 'max-w-6xl',
 };
 
 interface ModalShellProps {
   onClose: () => void;
   children: React.ReactNode;
   className?: string;
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
   /**
    * Mantém largura/altura estáveis (não “pula” ao trocar abas/conteúdo).
    * O conteúdo interno deve usar overflow próprio se precisar rolar.

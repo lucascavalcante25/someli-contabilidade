@@ -11,7 +11,8 @@ const STORAGE_KEY = 'someli_notifications_modal_date';
 interface Notificacao {
   id: number;
   clienteObrigacaoId: number;
-  clienteId: number;
+  clienteId?: number;
+  link?: string;
   titulo: string;
   descricao: string;
   prioridade: string;
@@ -72,9 +73,9 @@ export default function NotificationsLoginModal() {
     setVisible(false);
   };
 
-  const handleIrParaCliente = (clienteId: number) => {
+  const handleIrParaCliente = (notificacao: Notificacao) => {
     setVisible(false);
-    navigate(`/clientes/${clienteId}`);
+    navigate(notificacao.link || `/clientes/${notificacao.clienteId}`);
   };
 
   if (loading || !visible) return null;
@@ -90,7 +91,7 @@ export default function NotificationsLoginModal() {
             <div>
               <h2 className="text-lg font-semibold">Notificações pendentes</h2>
               <p className="text-xs text-muted-foreground">
-                {notificacoes.length} obrigação(ões) vencendo ou em atraso
+                {notificacoes.length} aviso(s) aguardando atenção
               </p>
             </div>
           </div>
@@ -106,7 +107,7 @@ export default function NotificationsLoginModal() {
           {notificacoes.map(n => (
             <button
               key={n.id}
-              onClick={() => handleIrParaCliente(n.clienteId)}
+              onClick={() => handleIrParaCliente(n)}
               className="w-full text-left p-3 rounded-lg border border-border hover:bg-muted/50 hover:border-primary/30 transition-colors flex items-start gap-3"
             >
               {n.prioridade === 'critica' && (

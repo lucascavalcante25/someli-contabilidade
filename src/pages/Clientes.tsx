@@ -886,7 +886,7 @@ export default function Clientes() {
 
       <AnimatePresence>
         {viewingCliente && (
-          <ModalShell onClose={() => setViewingCliente(null)} maxWidth="2xl" fixedSize>
+          <ModalShell onClose={() => setViewingCliente(null)} maxWidth="3xl" fixedSize className="sm:h-[min(860px,92vh)] sm:max-h-[92vh]">
             <ClienteDetalhePanel
               clienteId={viewingCliente.id}
               variant="modal"

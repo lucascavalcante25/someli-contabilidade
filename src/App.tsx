@@ -16,6 +16,7 @@ import ObrigacoesTipos from "./pages/ObrigacoesTipos";
 import Usuarios from "./pages/Usuarios";
 import Configuracoes from "./pages/Configuracoes";
 import Consultas from "./pages/Consultas";
+import EnviarDocumento from "./pages/EnviarDocumento";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/enviar/:token" element={<EnviarDocumento />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<PermissionRoute module="DASHBOARD"><Dashboard /></PermissionRoute>} />

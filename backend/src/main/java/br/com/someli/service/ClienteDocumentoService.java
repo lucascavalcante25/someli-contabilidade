@@ -22,10 +22,22 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
 public class ClienteDocumentoService {
+
+    private static final Map<String, String> TIPOS_POR_LINK = Map.of(
+            ".pdf", "application/pdf",
+            ".jpg", "image/jpeg",
+            ".jpeg", "image/jpeg",
+            ".png", "image/png",
+            ".xml", "application/xml",
+            ".csv", "text/csv",
+            ".xlsx", "application/vnd.ms-excel",
+            ".docx", "application/msword");
 
     private final ClienteDocumentoRepository documentoRepository;
     private final ClienteRepository clienteRepository;
@@ -86,6 +98,36 @@ public class ClienteDocumentoService {
         }
 
         String nomeOriginal = file.getOriginalFilename() != null ? file.getOriginalFilename() : "arquivo";
+        String tipoArquivo = file.getContentType() != null ? file.getContentType() : "application/octet-stream";
+        return gravar(cliente, file, nomeOriginal, tipoArquivo, descricao, competencia, setor, categoria, origem,
+                compartilhadoComCliente);
+    }
+
+    /** Tipo real a partir da extensão, ou null se ela não é aceita no envio por link. */
+    public static String tipoPermitido(String nomeArquivo) {
+        if (nomeArquivo == null) {
+            return null;
+        }
+        int ponto = nomeArquivo.lastIndexOf('.');
+        return ponto < 0 ? null : TIPOS_POR_LINK.get(nomeArquivo.substring(ponto).toLowerCase(Locale.ROOT));
+    }
+
+    /** Envio do cliente pelo link: a autorização é o token validado em SolicitacaoDocumentoService. */
+    public ClienteDocumento salvarRecebidoPorLink(Cliente cliente, MultipartFile file, String descricao,
+                                                  String competencia) throws IOException {
+        String nomeOriginal = file.getOriginalFilename() == null ? "arquivo" : file.getOriginalFilename();
+        String nomeSeguro = nomeOriginal.replaceAll(".*[\\\\/]", "").replaceAll("[^\\p{L}\\p{N} ._()-]", "_");
+        if (nomeSeguro.length() > 150) {
+            nomeSeguro = nomeSeguro.substring(nomeSeguro.length() - 150);
+        }
+        return gravar(cliente, file, nomeSeguro, tipoPermitido(nomeOriginal), descricao, competencia, null, "GERAL",
+                "CLIENTE_LINK", false);
+    }
+
+    private ClienteDocumento gravar(Cliente cliente, MultipartFile file, String nomeOriginal, String tipoArquivo,
+                                    String descricao, String competencia, String setor, String categoria,
+                                    String origem, boolean compartilhadoComCliente) throws IOException {
+        Long clienteId = cliente.getId();
         String extensao = "";
         int lastDot = nomeOriginal.lastIndexOf('.');
         if (lastDot > 0) {
@@ -103,7 +145,6 @@ public class ClienteDocumentoService {
             Files.copy(is, targetPath, StandardCopyOption.REPLACE_EXISTING);
         }
 
-        String tipoArquivo = file.getContentType() != null ? file.getContentType() : "application/octet-stream";
         String urlRelativa = basePath.relativize(targetPath).toString().replace('\\', '/');
 
         ClienteDocumento doc = new ClienteDocumento();

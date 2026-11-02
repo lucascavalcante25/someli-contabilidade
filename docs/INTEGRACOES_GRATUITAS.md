@@ -11,13 +11,15 @@ O SOMELI é plataforma do **escritório contábil** (carteira, alçada, obrigaç
 | **Import XML NFe/NFSe** (upload local) | **Sim** | Conferência fiscal por cliente/competência | **Feito agora** |
 | **BrasilAPI** (CEP, feriados, dia útil) | **Sim** (limites públicos) | Ajuste de vencimento / endereço | Já tem |
 | **ReceitaWS** (CNPJ) | Freemium (rate limit) | Cadastro / consulta CNPJ | Já tem |
+| **CNPJ.ws** (API pública) | **Sim** (3 consultas por minuto; uso próprio, sem revenda) | IE por UF, Simples e MEI, com data de atualização. Pode ter atraso em relação à SEFAZ | **Feito** |
 | **Sintegra** (InfoSimples) | Pago por consulta (token) | Consulta IE | Desligada (conta bloqueada); religar conforme `docs/AUDITORIA.md` |
 | **OFX/CSV Nubank** (export do app) | **Sim** (export manual) | Conciliação honorários / caixa do escritório | Planejado |
 | **Open Finance / Pluggy / Belvo** | **Paga** | Extrato automático multi-banco | Planejado (só com orçamento) |
 | **Asaas / Iugu** | Freemium → pago | Boleto/Pix de honorário do escritório | Stub webhook + doc ([ASAAS_COBRANCA.md](./ASAAS_COBRANCA.md)); live = próximo ciclo |
 | **Serpro Integra Contador** | **Paga / pós-paga oficial** | Transmissão/consulta obrigações RFB | Stub + doc (sem fingir API free) |
 | **Focus NFe / eNotas** (emissão) | Paga | Emissão NF do cliente | Fora de escopo agora |
-| **WhatsApp Business API** | Paga | Alertas “guia pronta / pendência” | Planejado |
+| **Link wa.me** | **Sim** | Abre o WhatsApp com a mensagem pronta; a pessoa confirma o envio. Com grupo, ela escolhe a conversa | **Feito** (pedido de documento) |
+| **WhatsApp Business API** | Paga | Envio 100% automático. Grupos exigem Conta Comercial Oficial e número na Cloud API, e os participantes entram por convite | Só se o volume justificar |
 | **mailto / e-mail SMTP próprio** | Gratuito (infra própria) | Mesmos alertas sem Meta API | Planejado (MVP) |
 | **Pluga / Zapier** | Freemium | Atalhos, não substitui domínio | Evitar como núcleo |
 
@@ -55,7 +57,8 @@ O que **exige custo oficial** (não dá para maquiar):
 | `GET /integracoes/dia-util?data=` | Ajuste para dia útil |
 | `GET /integracoes/integra-contador/status` | Stub Serpro (nunca finge ready) |
 | `GET /someli/api/consultaCNPJ/{cnpj}` | ReceitaWS |
-| `POST /someli/api/sintegra/consulta` | Sintegra |
+| `GET /someli/api/inscricao-estadual/{cnpj}` | CNPJ.ws (IE, Simples e MEI) |
+| `POST /someli/api/sintegra/consulta` | Sintegra (desligada) |
 | `POST /clientes/{id}/notas-fiscais/importar` | Import XML lote |
 | `POST /notas-fiscais/importar` | Import XML global (vínculo por CNPJ) |
 | `POST /tags/sincronizar` | Resync tags inteligentes |
@@ -68,6 +71,18 @@ O que **exige custo oficial** (não dá para maquiar):
 | `NOVO_CLIENTE` | Automática | Some após ~90 dias **e** após até 3 competências (config `app.tags.*`) desde `data_inicio_cobranca` (fallback `data_criacao`) |
 | `INADIMPLENTE` | Automática | Aparece com meses em atraso / status atrasado; some ao quitar |
 | `MEI` / regimes | Manual | Estável — não remove por tempo |
+
+## Próximas melhorias (ordem definida em 01/11/2026)
+
+1. Asaas live: cobrança, baixa automática e nota após o pagamento (`docs/ASAAS_COBRANCA.md`).
+2. Alertas por e-mail via SMTP.
+3. Serpro Integra Contador, se aprovado.
+
+Prontos: pedido de documento por link e painel financeiro do escritório.
+
+Em espera: assistente Claude. O protótipo em modo simulado fica no branch local `prototipo/assistente-claude`, com instruções em `docs/ASSISTENTE_CLAUDE.md` desse branch. Não faz parte da `main` nem de produção.
+
+Fora de escopo: emissão de notas, venda de certificado e substituição do Fortes.
 
 ## Automações internas (maior ROI)
 

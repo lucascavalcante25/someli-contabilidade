@@ -64,6 +64,14 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI());
     }
 
+    @ExceptionHandler(SolicitacaoDocumentoNaoEncontradaException.class)
+    public ResponseEntity<ApiErrorDTO> handleSolicitacaoDocumentoNaoEncontrada(
+            SolicitacaoDocumentoNaoEncontradaException ex,
+            HttpServletRequest request
+    ) {
+        return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), "/publico/solicitacoes");
+    }
+
     @ExceptionHandler(SenhaInvalidaException.class)
     public ResponseEntity<ApiErrorDTO> handleSenhaInvalida(
             SenhaInvalidaException ex,

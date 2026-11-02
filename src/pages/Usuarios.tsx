@@ -10,33 +10,7 @@ import ModalShell from '@/components/shared/ModalShell';
 import HintTooltip from '@/components/shared/HintTooltip';
 import AppSelect from '@/components/shared/AppSelect';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PERFIS, Permissoes } from '@/lib/permissions';
-
-const PERMISSAO_HELP: Record<string, string> = {
-  ADMINISTRACAO_VISUALIZAR: 'Libera telas e ações administrativas do sistema.',
-  ALCADA_GLOBAL: 'Vê e opera todos os clientes, sem restrição de carteira.',
-  ALCADA_SETOR: 'Amplia o acesso dentro do setor em que é responsável.',
-  CLIENTES_VISUALIZAR: 'Permite listar e abrir fichas de clientes da alçada.',
-  CLIENTES_CADASTRAR: 'Permite criar novos clientes no escritório.',
-  CLIENTES_EDITAR: 'Permite alterar dados cadastrais e tags do cliente.',
-  CLIENTES_EXCLUIR: 'Permite remover clientes (ação irreversível).',
-  CLIENTES_RESPONSAVEIS_EDITAR: 'Define responsáveis por setor (fiscal, DP, etc.).',
-  OBRIGACOES_VISUALIZAR: 'Consulta obrigações e ocorrências.',
-  OBRIGACOES_CRIAR: 'Cria vínculos e aplica obrigações em massa.',
-  OBRIGACOES_EDITAR: 'Altera vencimentos e status operacionais.',
-  OBRIGACOES_CONCLUIR: 'Marca ocorrências como concluídas/entregues.',
-  OBRIGACOES_EXCLUIR: 'Remove vínculos de obrigações.',
-  OBRIGACOES_REABRIR: 'Reabre ocorrências já finalizadas.',
-  OBRIGACOES_TIPOS_GERENCIAR: 'Gerencia o catálogo de tipos de obrigação.',
-  FINANCEIRO_VISUALIZAR: 'Acessa resumo e lançamentos financeiros.',
-  HONORARIO_VISUALIZAR: 'Exibe valores de honorário (informação sensível).',
-  HONORARIO_EDITAR: 'Altera honorários dos clientes.',
-  DESPESAS_VISUALIZAR: 'Consulta despesas do escritório.',
-  DESPESAS_EDITAR: 'Lança e edita despesas.',
-  USUARIOS_VISUALIZAR: 'Lista funcionários/usuários internos.',
-  USUARIOS_PERMISSOES: 'Edita permissões granulares de outros usuários.',
-  VISAO_GERENCIAL: 'Indicadores gerenciais no Meu Trabalho.',
-};
+import { PERFIS, Permissoes, formatarPerfil, moduloLabel, permissaoAjuda, permissaoTitulo } from '@/lib/permissions';
 
 type Perfil = typeof PERFIS[number];
 
@@ -690,7 +664,7 @@ function PermissoesModal({ usuario, onClose }: { usuario: Usuario; onClose: () =
       <div className="mb-3 flex shrink-0 items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold">Permissões de Acesso</h2>
-          <p className="text-sm text-muted-foreground">{usuario.nome} · {usuario.perfil}</p>
+          <p className="text-sm text-muted-foreground">{usuario.nome} · {formatarPerfil(usuario.perfil)}</p>
         </div>
         <HintTooltip content="Fechar sem salvar">
           <button onClick={onClose} className="rounded p-1 hover:bg-muted" aria-label="Fechar">
@@ -704,7 +678,7 @@ function PermissoesModal({ usuario, onClose }: { usuario: Usuario; onClose: () =
       ) : (
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
           <div className="flex flex-wrap gap-2">
-            <HintTooltip content="Copia as permissões padrão do perfil (CONTADOR, FISCAL…) sem salvar ainda">
+            <HintTooltip content="Copia as permissões padrão do perfil do usuário, sem salvar ainda">
               <button type="button" onClick={() => void aplicarPerfil()} className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted">
                 Copiar do perfil
               </button>
@@ -723,28 +697,20 @@ function PermissoesModal({ usuario, onClose }: { usuario: Usuario; onClose: () =
           </div>
           {Object.entries(porModulo).map(([modulo, perms]) => (
             <div key={modulo} className="space-y-2 rounded-md border border-border p-3">
-              <HintTooltip content={`Grupo de permissões do módulo ${modulo}`}>
-                <p className="cursor-help text-xs font-semibold uppercase tracking-wide text-muted-foreground">{modulo}</p>
-              </HintTooltip>
+              <p className="text-sm font-semibold text-muted-foreground">{moduloLabel(modulo)}</p>
               <div className="grid gap-2 sm:grid-cols-2">
                 {perms.map((p) => (
-                  <HintTooltip
-                    key={p.codigo}
-                    content={PERMISSAO_HELP[p.codigo] || p.descricao || p.codigo}
-                    side="right"
-                  >
-                    <label className="flex cursor-pointer items-start gap-2 text-sm">
-                      <Checkbox
-                        checked={selecionadas.has(p.codigo)}
-                        onCheckedChange={() => toggle(p.codigo)}
-                        className="mt-0.5 h-4 w-4"
-                      />
-                      <span>
-                        <span className="font-medium">{p.codigo}</span>
-                        <span className="block text-xs text-muted-foreground">{p.descricao}</span>
-                      </span>
-                    </label>
-                  </HintTooltip>
+                  <label key={p.codigo} className="flex cursor-pointer items-start gap-2 text-sm">
+                    <Checkbox
+                      checked={selecionadas.has(p.codigo)}
+                      onCheckedChange={() => toggle(p.codigo)}
+                      className="mt-0.5 h-4 w-4"
+                    />
+                    <span>
+                      <span className="font-medium">{permissaoTitulo(p.codigo, p.descricao)}</span>
+                      <span className="block text-xs text-muted-foreground">{permissaoAjuda(p.codigo, p.descricao)}</span>
+                    </span>
+                  </label>
                 ))}
               </div>
             </div>
