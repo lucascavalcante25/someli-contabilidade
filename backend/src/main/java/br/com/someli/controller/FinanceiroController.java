@@ -1,6 +1,7 @@
 package br.com.someli.controller;
 
 import br.com.someli.domain.PermissaoCodigo;
+import br.com.someli.dto.BoletoEnviadoDTO;
 import br.com.someli.dto.GraficoMensalDTO;
 import br.com.someli.dto.PainelFinanceiroDTO;
 import br.com.someli.dto.ResumoFinanceiroDTO;
@@ -9,6 +10,8 @@ import br.com.someli.service.DespesaMensalService;
 import br.com.someli.service.FinanceiroPainelService;
 import br.com.someli.service.FinanceiroService;
 import br.com.someli.service.PagamentoMensalService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -81,6 +84,19 @@ public class FinanceiroController {
         authorizationService.requireCompanyAccess(clienteId);
         pagamentoMensalService.desmarcarPago(clienteId, mes, ano);
         return ResponseEntity.ok().build();
+    }
+
+    public record BoletoEnviadoRequest(@NotNull Boolean enviado) {
+    }
+
+    /** Marca/desmarca o boleto do mês como enviado. Permissão e alçada são checadas no service. */
+    @PutMapping("/pagamentos/{clienteId}/boleto-enviado")
+    public ResponseEntity<BoletoEnviadoDTO> alterarBoletoEnviado(
+            @PathVariable Long clienteId,
+            @RequestParam int mes,
+            @RequestParam int ano,
+            @Valid @RequestBody BoletoEnviadoRequest request) {
+        return ResponseEntity.ok(pagamentoMensalService.alterarBoletoEnviado(clienteId, mes, ano, request.enviado()));
     }
 
     @PostMapping("/despesas/{despesaId}/marcar")

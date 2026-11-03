@@ -29,6 +29,16 @@ public class PagamentoMensal {
     @Column(nullable = false)
     private Boolean cobravel = Boolean.TRUE;
 
+    /** Boleto do mês já enviado ao cliente (controle para não duplicar nem esquecer). */
+    @Column(name = "boleto_enviado", nullable = false)
+    private Boolean boletoEnviado = Boolean.FALSE;
+
+    @Column(name = "boleto_enviado_em")
+    private java.time.LocalDateTime boletoEnviadoEm;
+
+    @Column(name = "boleto_enviado_por", length = 120)
+    private String boletoEnviadoPor;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public Long getClienteId() { return clienteId; }
@@ -41,6 +51,12 @@ public class PagamentoMensal {
     public void setPago(Boolean pago) { this.pago = pago; }
     public Boolean getCobravel() { return cobravel; }
     public void setCobravel(Boolean cobravel) { this.cobravel = cobravel; }
+    public Boolean getBoletoEnviado() { return boletoEnviado; }
+    public void setBoletoEnviado(Boolean boletoEnviado) { this.boletoEnviado = boletoEnviado; }
+    public java.time.LocalDateTime getBoletoEnviadoEm() { return boletoEnviadoEm; }
+    public void setBoletoEnviadoEm(java.time.LocalDateTime boletoEnviadoEm) { this.boletoEnviadoEm = boletoEnviadoEm; }
+    public String getBoletoEnviadoPor() { return boletoEnviadoPor; }
+    public void setBoletoEnviadoPor(String boletoEnviadoPor) { this.boletoEnviadoPor = boletoEnviadoPor; }
 
     @Override
     public boolean equals(Object o) {

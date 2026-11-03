@@ -13,6 +13,16 @@ public class ClientePagamentoDTO {
     private Integer mesesPendentes;
     private List<String> mesesPendentesDetalhe;
     private BigDecimal valorPendente;
+    private boolean boletoEnviado;
+    private java.time.LocalDateTime boletoEnviadoEm;
+    private String boletoEnviadoPor;
+
+    public boolean isBoletoEnviado() { return boletoEnviado; }
+    public void setBoletoEnviado(boolean boletoEnviado) { this.boletoEnviado = boletoEnviado; }
+    public java.time.LocalDateTime getBoletoEnviadoEm() { return boletoEnviadoEm; }
+    public void setBoletoEnviadoEm(java.time.LocalDateTime boletoEnviadoEm) { this.boletoEnviadoEm = boletoEnviadoEm; }
+    public String getBoletoEnviadoPor() { return boletoEnviadoPor; }
+    public void setBoletoEnviadoPor(String boletoEnviadoPor) { this.boletoEnviadoPor = boletoEnviadoPor; }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

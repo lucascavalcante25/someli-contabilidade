@@ -108,6 +108,12 @@ public class FinanceiroService {
             dto.setHonorario(c.getHonorario() != null ? c.getHonorario() : BigDecimal.ZERO);
             dto.setDiaVencimento(c.getDiaVencimento());
             dto.setPago(pago);
+            PagamentoMensal registro = pagPorCliente.get(c.getId());
+            if (registro != null && Boolean.TRUE.equals(registro.getBoletoEnviado())) {
+                dto.setBoletoEnviado(true);
+                dto.setBoletoEnviadoEm(registro.getBoletoEnviadoEm());
+                dto.setBoletoEnviadoPor(registro.getBoletoEnviadoPor());
+            }
 
             LocalDate refDia = viewing.equals(YearMonth.now())
                     ? LocalDate.now()

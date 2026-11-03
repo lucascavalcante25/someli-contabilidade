@@ -15,6 +15,8 @@ import { apiFetch } from '@/lib/http';
 import { Checkbox } from '@/components/ui/checkbox';
 import HintTooltip from '@/components/shared/HintTooltip';
 import PainelFinanceiroAnual from '@/components/financeiro/PainelFinanceiroAnual';
+import BoletoEnviadoCheckbox from '@/components/financeiro/BoletoEnviadoCheckbox';
+import { alterarBoletoEnviado } from '@/lib/boletoEnviado';
 
 const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 const mesesCompletos = [
@@ -42,6 +44,9 @@ interface ClientePagamento {
   mesesPendentes?: number;
   mesesPendentesDetalhe?: string[];
   valorPendente?: number;
+  boletoEnviado?: boolean;
+  boletoEnviadoEm?: string | null;
+  boletoEnviadoPor?: string | null;
 }
 
 interface DespesaMensalItem {
@@ -157,6 +162,9 @@ export default function Financeiro() {
             ? c.mesesPendentesDetalhe.map(String)
             : undefined,
           valorPendente: c.valorPendente != null ? Number(c.valorPendente) : undefined,
+          boletoEnviado: !!c.boletoEnviado,
+          boletoEnviadoEm: c.boletoEnviadoEm ?? null,
+          boletoEnviadoPor: c.boletoEnviadoPor ?? null,
         })),
         despesas: (data.despesas ?? []).map((d: any) => ({
           id: d.id,
@@ -261,6 +269,41 @@ export default function Financeiro() {
 
   const [togglingPagamento, setTogglingPagamento] = useState<Set<number>>(new Set());
   const [togglingDespesa, setTogglingDespesa] = useState<Set<number>>(new Set());
+  const [salvandoBoleto, setSalvandoBoleto] = useState<Set<number>>(new Set());
+
+  const atualizarBoletoNaLista = (clienteId: number, dados: Partial<ClientePagamento>) =>
+    setResumo((atual) =>
+      atual ? { ...atual, clientes: atual.clientes.map((c) => (c.id === clienteId ? { ...c, ...dados } : c)) } : atual,
+    );
+
+  const alterarBoleto = async (cliente: ClientePagamento, enviado: boolean) => {
+    if (salvandoBoleto.has(cliente.id)) return;
+    const anterior = {
+      boletoEnviado: cliente.boletoEnviado ?? false,
+      boletoEnviadoEm: cliente.boletoEnviadoEm ?? null,
+      boletoEnviadoPor: cliente.boletoEnviadoPor ?? null,
+    };
+    atualizarBoletoNaLista(cliente.id, { boletoEnviado: enviado });
+    setSalvandoBoleto((prev) => new Set(prev).add(cliente.id));
+    try {
+      const r = await alterarBoletoEnviado(cliente.id, mesAtual, selectedYear, enviado);
+      atualizarBoletoNaLista(cliente.id, {
+        boletoEnviado: r.enviado,
+        boletoEnviadoEm: r.enviadoEm,
+        boletoEnviadoPor: r.enviadoPor,
+      });
+      toast.success(enviado ? `Boleto de ${cliente.nomeFantasia} marcado como enviado` : 'Envio do boleto desmarcado');
+    } catch (e) {
+      atualizarBoletoNaLista(cliente.id, anterior);
+      toast.error(e instanceof Error ? e.message : 'Erro ao salvar o envio do boleto');
+    } finally {
+      setSalvandoBoleto((prev) => {
+        const next = new Set(prev);
+        next.delete(cliente.id);
+        return next;
+      });
+    }
+  };
 
   const togglePagamento = async (clienteId: number) => {
     if (!resumo || togglingPagamento.has(clienteId)) return;
@@ -482,7 +525,7 @@ export default function Financeiro() {
           <div className="px-4 py-3 border-b border-border space-y-2">
             <h3 className="text-sm font-semibold truncate">Clientes — {rotuloMesAno}</h3>
             <p className="text-xs text-muted-foreground">
-              Marque &quot;Pago?&quot; para registrar o honorário deste mês. Se o cliente quitar atrasados, marque também nos meses anteriores no gráfico.
+              Marque &quot;Boleto enviado?&quot; ao mandar o boleto do mês, para não enviar duplicado nem esquecer. Marque &quot;Pago?&quot; para registrar o honorário deste mês. Se o cliente quitar atrasados, marque também nos meses anteriores no gráfico.
             </p>
             <div className="relative">
               <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -502,13 +545,16 @@ export default function Financeiro() {
                 <SortableTh label="Honorário" sortKey="honorario" sortRules={sortClienteRules} onSort={toggleSortCliente} align="right" className="px-4" />
                 <SortableTh label="Venc." sortKey="vencimento" sortRules={sortClienteRules} onSort={toggleSortCliente} align="center" className="px-4" />
                 <SortableTh label="Situação" sortKey="situacao" sortRules={sortClienteRules} onSort={toggleSortCliente} align="center" className="px-4 hidden sm:table-cell" />
-                <th className="label-text px-4 py-2.5 text-center">Pago?</th>
+                <th className="label-text px-2 py-2.5 text-center" title="Boleto do mês já enviado ao cliente?">
+                  Boleto enviado?
+                </th>
+                <th className="label-text px-2 sm:px-4 py-2.5 text-center">Pago?</th>
               </tr>
             </thead>
             <tbody>
               {clientesFiltrados.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
+                  <td colSpan={6}className="px-4 py-6 text-center text-muted-foreground">
                     {buscaCliente.trim()
                       ? 'Nenhum cliente encontrado para esta busca'
                       : 'Nenhum cliente cobrado neste mês'}
@@ -540,7 +586,16 @@ export default function Financeiro() {
                         valorPendente={c.valorPendente}
                       />
                     </td>
-                    <td className="px-4 py-2.5 text-center">
+                    <td className="px-2 py-2.5 text-center">
+                      <BoletoEnviadoCheckbox
+                        enviado={c.boletoEnviado ?? false}
+                        enviadoEm={c.boletoEnviadoEm ?? null}
+                        enviadoPor={c.boletoEnviadoPor ?? null}
+                        salvando={salvandoBoleto.has(c.id)}
+                        onAlterar={(enviado) => void alterarBoleto(c, enviado)}
+                      />
+                    </td>
+                    <td className="px-2 sm:px-4 py-2.5 text-center">
                       <div className="flex justify-center">
                         <Checkbox
                           checked={c.pago}
