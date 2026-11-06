@@ -41,6 +41,10 @@ app:
   certificados:
     # 32 bytes em Base64 (openssl rand -base64 32). Sem valor: envio de certificado A1 fica desligado.
     chave-mestra: ${CERTIFICADO_CHAVE_MESTRA:}
+  cofre:
+    # 32 bytes em Base64 (openssl rand -base64 32). Sem valor: o cofre de acessos fica desligado.
+    # Perder a chave impede abrir os logins já guardados. Anotações não dependem dela.
+    chave-mestra: ${COFRE_CHAVE_MESTRA:}
   jwt:
     secret: ${JWT_SECRET:ZmFrZV9zdXBlcl9zZWNyZXRfZmFrZV9zdXBlcl9zZWNyZXRfZmFrZV9zdXBlcl9zZWNyZXQ=}
     expiration-hours: ${JWT_EXPIRATION_HOURS:72}

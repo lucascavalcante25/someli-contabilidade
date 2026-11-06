@@ -53,4 +53,22 @@ describe('PainelMensalTabela', () => {
     expect(screen.getByText('N/A')).toBeTruthy();
     expect(screen.queryByRole('checkbox', { name: /Açai Timbu/ })).toBeNull();
   });
+
+  it('abre a ficha no clique e mostra quando há acessos', () => {
+    const abrir = vi.fn();
+    render(
+      <TooltipProvider>
+        <PainelMensalTabela
+          matriz={matriz}
+          hoje="2026-11-10"
+          salvando={new Set()}
+          onAlternar={vi.fn()}
+          onAbrirFicha={abrir}
+          contagens={{ 1: { acessos: 2, anotacoes: 1 } }}
+        />
+      </TooltipProvider>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Ficha de Fra Carnes, 2 acessos/ }));
+    expect(abrir).toHaveBeenCalledWith({ clienteId: 1, clienteNome: 'Fra Carnes' });
+  });
 });

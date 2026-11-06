@@ -41,4 +41,10 @@ public interface ClienteResponsavelRepository extends JpaRepository<ClienteRespo
             WHERE cr.usuario.id = :usuarioId AND cr.ativo = true AND cr.setor = :setor
             """)
     List<Long> findClienteIdsByUsuarioIdAndSetor(Long usuarioId, String setor);
+
+    @Query("""
+            SELECT cr.setor FROM ClienteResponsavel cr
+            WHERE cr.cliente.id = :clienteId AND cr.usuario.id = :usuarioId AND cr.ativo = true
+            """)
+    List<String> findSetoresAtivos(Long clienteId, Long usuarioId);
 }

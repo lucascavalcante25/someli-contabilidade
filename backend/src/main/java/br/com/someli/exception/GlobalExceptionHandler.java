@@ -58,6 +58,27 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI());
     }
 
+    @ExceptionHandler(ClienteAcessoNaoEncontradoException.class)
+    public ResponseEntity<ApiErrorDTO> handleClienteAcessoNaoEncontrado(
+            ClienteAcessoNaoEncontradoException ex,
+            HttpServletRequest request
+    ) {
+        return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(ClienteAnotacaoNaoEncontradaException.class)
+    public ResponseEntity<ApiErrorDTO> handleClienteAnotacaoNaoEncontrada(
+            ClienteAnotacaoNaoEncontradaException ex,
+            HttpServletRequest request
+    ) {
+        return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(LimiteRequisicoesException.class)
+    public ResponseEntity<ApiErrorDTO> handleLimite(LimiteRequisicoesException ex, HttpServletRequest request) {
+        return buildError(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), request.getRequestURI());
+    }
+
     @ExceptionHandler(ClienteDocumentoNaoEncontradoException.class)
     public ResponseEntity<ApiErrorDTO> handleClienteDocumentoNaoEncontrado(
             ClienteDocumentoNaoEncontradoException ex,

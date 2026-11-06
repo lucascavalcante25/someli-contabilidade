@@ -13,6 +13,10 @@ public final class PermissaoCodigo {
     public static final String CLIENTES_RESPONSAVEIS_EDITAR = "CLIENTES_RESPONSAVEIS_EDITAR";
     /** Sensível: enviar/remover o arquivo do certificado A1 do cliente (usado na busca de NFS-e no ADN). */
     public static final String CERTIFICADO_A1_GERENCIAR = "CERTIFICADO_A1_GERENCIAR";
+    /** Sensível: ver acessos de portais (a senha só sai em revelar). */
+    public static final String CLIENTE_ACESSOS_VER = "CLIENTE_ACESSOS_VER";
+    /** Sensível: cadastrar, alterar e desativar acessos de portais. */
+    public static final String CLIENTE_ACESSOS_EDITAR = "CLIENTE_ACESSOS_EDITAR";
     public static final String OBRIGACOES_VISUALIZAR = "OBRIGACOES_VISUALIZAR";
     public static final String OBRIGACOES_CRIAR = "OBRIGACOES_CRIAR";
     public static final String OBRIGACOES_EDITAR = "OBRIGACOES_EDITAR";

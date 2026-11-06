@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Pencil, Trash2, X, FileText, ClipboardList, File, Download, Loader2, PowerOff, Power, ListChecks, Shield, BadgeDollarSign, Radar, LayoutDashboard, Link2 } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, X, FileText, ClipboardList, File, Download, Loader2, PowerOff, Power, ListChecks, Shield, BadgeDollarSign, Radar, LayoutDashboard, Link2, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -31,6 +31,7 @@ import { rotuloTipoObrigacao, type TIPOS_OBRIGACAO } from '@/lib/classificacao';
 import { regraDosTipos } from '@/lib/feriados';
 import { useFeriados } from '@/hooks/useFeriados';
 import { rotuloContaRecebimento } from '@/lib/contaRecebimento';
+import FichaClienteAcessos from '@/components/clientes/FichaClienteAcessos';
 import { certificadoBadgeClass, certificadoStatusLabel, formatCertificadoResumo } from '@/lib/certificado';
 
 type TipoObrigacao = (typeof TIPOS_OBRIGACAO)[number]['value'];
@@ -145,7 +146,7 @@ interface RadarCompetencia {
 export type ClienteDetalhePanelProps = {
   clienteId: number;
   variant?: 'page' | 'modal';
-  initialTab?: 'resumo' | 'dados' | 'obrigacoes' | 'ocorrencias' | 'documentos' | 'pedidos';
+  initialTab?: 'resumo' | 'dados' | 'obrigacoes' | 'ocorrencias' | 'documentos' | 'pedidos' | 'ficha';
   onClose?: () => void;
   onEdit?: () => void;
 };
@@ -772,6 +773,15 @@ export function ClienteDetalhePanel({
         </>
       ),
     },
+    {
+      value: 'ficha',
+      hint: 'Acessos de portais e anotações do cliente',
+      label: (
+        <>
+          <KeyRound size={16} className="shrink-0" /> <span className="truncate">Acessos</span>
+        </>
+      ),
+    },
   ];
 
   return (
@@ -816,7 +826,7 @@ export function ClienteDetalhePanel({
         onValueChange={(v) => setTab(v as typeof tab)}
         className={cn('w-full min-w-0 max-w-full', isModal && 'flex min-h-0 flex-1 flex-col')}
       >
-        <TabsList className={cn('grid h-auto w-full shrink-0 grid-cols-3 sm:grid-cols-6', isModal && 'sticky top-0 z-10')}>
+        <TabsList className={cn('grid h-auto w-full shrink-0 grid-cols-3 sm:grid-cols-4 lg:grid-cols-7', isModal && 'sticky top-0 z-10')}>
           {tabItems.map((item) => (
             <HintTooltip key={item.value} content={item.hint}>
               {/* Wrapper: TooltipTrigger asChild não pode fundir data-state no TabsTrigger. */}
@@ -1139,6 +1149,13 @@ export function ClienteDetalhePanel({
             clienteNome={cliente.nomeFantasia || cliente.razaoSocial}
             telefone={cliente.telefone}
             email={cliente.email}
+          />
+        </TabsContent>
+
+        <TabsContent value="ficha" className="mt-4 focus-visible:outline-none">
+          <FichaClienteAcessos
+            clienteId={cliente.id}
+            clienteNome={cliente.nomeFantasia || cliente.razaoSocial}
           />
         </TabsContent>
 

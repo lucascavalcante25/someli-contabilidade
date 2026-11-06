@@ -8,6 +8,8 @@ export const Permissoes = {
   CLIENTES_EXCLUIR: 'CLIENTES_EXCLUIR',
   CLIENTES_RESPONSAVEIS_EDITAR: 'CLIENTES_RESPONSAVEIS_EDITAR',
   CERTIFICADO_A1_GERENCIAR: 'CERTIFICADO_A1_GERENCIAR',
+  CLIENTE_ACESSOS_VER: 'CLIENTE_ACESSOS_VER',
+  CLIENTE_ACESSOS_EDITAR: 'CLIENTE_ACESSOS_EDITAR',
   OBRIGACOES_VISUALIZAR: 'OBRIGACOES_VISUALIZAR',
   OBRIGACOES_CRIAR: 'OBRIGACOES_CRIAR',
   OBRIGACOES_EDITAR: 'OBRIGACOES_EDITAR',
@@ -46,6 +48,14 @@ const PERMISSAO_TEXTOS: Record<string, { titulo: string; ajuda: string }> = {
   CERTIFICADO_A1_GERENCIAR: {
     titulo: 'Gerenciar certificado A1',
     ajuda: 'Envia e remove o arquivo do certificado A1 do cliente, usado para buscar as NFS-e no Portal Nacional. Informação sensível.',
+  },
+  CLIENTE_ACESSOS_VER: {
+    titulo: 'Ver acessos do cliente',
+    ajuda: 'Vê os portais do cliente com o login mascarado. A senha só aparece ao revelar. Informação sensível.',
+  },
+  CLIENTE_ACESSOS_EDITAR: {
+    titulo: 'Editar acessos do cliente',
+    ajuda: 'Cadastra, altera e desativa logins de portais do cliente. Informação sensível.',
   },
   OBRIGACOES_VISUALIZAR: { titulo: 'Visualizar obrigações', ajuda: 'Consulta obrigações e ocorrências.' },
   OBRIGACOES_CRIAR: { titulo: 'Criar obrigações', ajuda: 'Cria vínculos e aplica obrigações em massa.' },

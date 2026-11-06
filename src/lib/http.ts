@@ -21,7 +21,11 @@ function redirectToLogin() {
   window.location.assign("/login");
 }
 
-export async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}) {
+export async function apiFetch(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+  opcoes: { manterNo403?: boolean } = {},
+) {
   const headers = new Headers(init.headers ?? {});
   const token = getAuthToken();
 
@@ -34,8 +38,9 @@ export async function apiFetch(input: RequestInfo | URL, init: RequestInit = {})
     headers,
   });
 
-  // Sessão inválida/expirada: limpa e volta ao login
-  if (response.status === 401 || response.status === 403) {
+  // 401 encerra a sessão. 403 de permissão pode ser tratado na tela (manterNo403).
+  const encerrarSessao = response.status === 401 || (response.status === 403 && !opcoes.manterNo403);
+  if (encerrarSessao) {
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : "";
     const isAuthPublic =
       url.includes("/auth/login") ||

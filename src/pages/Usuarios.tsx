@@ -400,7 +400,10 @@ function UsuarioFotoPreview({ usuarioId }: { usuarioId: number }) {
   useEffect(() => {
     let cancelled = false;
     apiFetch(`${API_BASE_URL}/usuarios/${usuarioId}/foto`, { headers: {} })
-      .then(r => cancelled || (r.ok ? r.blob() : null))
+      .then(async (r) => {
+        if (cancelled || !r.ok) return null;
+        return r.blob();
+      })
       .then(blob => {
         if (cancelled || !blob) return;
         if (urlRef.current) URL.revokeObjectURL(urlRef.current);

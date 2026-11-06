@@ -1,3 +1,4 @@
+import { KeyRound } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import HintTooltip from '@/components/shared/HintTooltip';
 import { cn } from '@/lib/utils';
@@ -10,6 +11,8 @@ interface PainelMensalTabelaProps {
   hoje: string;
   salvando: Set<number>;
   onAlternar: (ocorrencia: OcorrenciaPainel, concluir: boolean) => void;
+  onAbrirFicha?: (linha: { clienteId: number; clienteNome: string }) => void;
+  contagens?: Record<number, { acessos: number; anotacoes: number }>;
 }
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -31,7 +34,7 @@ function descricao(o: OcorrenciaPainel, clienteNome: string, hoje: string): stri
 }
 
 /** Grade cliente × atividade da competência. Uma caixa por atividade; nada é "desmarcado" na virada do mês. */
-export default function PainelMensalTabela({ matriz, hoje, salvando, onAlternar }: PainelMensalTabelaProps) {
+export default function PainelMensalTabela({ matriz, hoje, salvando, onAlternar, onAbrirFicha, contagens }: PainelMensalTabelaProps) {
   // Arrastar com o mouse em qualquer ponto rola para os lados; altura limitada deixa a barra sempre visível
   const arrastar = useArrastarParaRolar<HTMLDivElement>();
   return (
@@ -56,7 +59,25 @@ export default function PainelMensalTabela({ matriz, hoje, salvando, onAlternar 
           {matriz.linhas.map((l) => (
             <tr key={l.clienteId} className="hover:bg-muted/30">
               <td className="sticky left-0 z-10 border-t border-border bg-card px-3 py-2 font-medium max-w-[180px]">
-                <span className="block truncate">{l.clienteNome}</span>
+                {(() => {
+                  const contagem = contagens?.[l.clienteId];
+                  const temFicha = !!contagem && (contagem.acessos > 0 || contagem.anotacoes > 0);
+                  const parte = (qtd: number, um: string, varios: string) => `${qtd} ${qtd === 1 ? um : varios}`;
+                  const rotulo = temFicha
+                    ? `Ficha de ${l.clienteNome}, ${parte(contagem.acessos, 'acesso', 'acessos')} e ${parte(contagem.anotacoes, 'anotação', 'anotações')}`
+                    : `Ficha de ${l.clienteNome}`;
+                  return (
+                    <button
+                      type="button"
+                      className="flex w-full min-w-0 items-center gap-1 text-left font-medium hover:underline"
+                      aria-label={rotulo}
+                      onClick={() => onAbrirFicha?.({ clienteId: l.clienteId, clienteNome: l.clienteNome })}
+                    >
+                      <span className="truncate">{l.clienteNome}</span>
+                      {temFicha && <KeyRound className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />}
+                    </button>
+                  );
+                })()}
               </td>
               <td className="border-t border-border px-2 py-2 text-center tabular-nums">
                 <span className={cn('text-xs font-semibold', l.total > 0 && l.feitas === l.total ? 'text-emerald-600' : 'text-muted-foreground')}>

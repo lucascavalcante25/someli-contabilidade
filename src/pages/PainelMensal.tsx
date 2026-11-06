@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, Loader2, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import AppSelect from '@/components/shared/AppSelect';
+import FichaClienteAcessos from '@/components/clientes/FichaClienteAcessos';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import PainelMensalTabela from '@/components/painel/PainelMensalTabela';
+import { carregarContagens, CHAVE_CONTAGENS, type FichaContagem } from '@/lib/acessos';
 import { correspondeBusca } from '@/lib/buscaClientes';
 import {
   alterarConclusao,
@@ -47,6 +51,17 @@ export default function PainelMensal() {
   const [setor, setSetor] = useState('');
   const [segmento, setSegmento] = useState('');
   const [soPendentes, setSoPendentes] = useState(false);
+  const [ficha, setFicha] = useState<{ clienteId: number; clienteNome: string } | null>(null);
+  const queryClient = useQueryClient();
+  const contagensQuery = useQuery({
+    queryKey: CHAVE_CONTAGENS,
+    queryFn: () => carregarContagens().catch(() => [] as FichaContagem[]),
+  });
+  const contagens = useMemo(() => {
+    const mapa: Record<number, FichaContagem> = {};
+    for (const item of contagensQuery.data ?? []) mapa[item.clienteId] = item;
+    return mapa;
+  }, [contagensQuery.data]);
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -165,9 +180,30 @@ export default function PainelMensal() {
               : 'Nenhum cliente com esses filtros.'}
           </p>
         ) : (
-          <PainelMensalTabela matriz={matriz} hoje={hojeIso()} salvando={salvando} onAlternar={(o, c) => void alternar(o, c)} />
+          <PainelMensalTabela
+            matriz={matriz}
+            hoje={hojeIso()}
+            salvando={salvando}
+            onAlternar={(o, c) => void alternar(o, c)}
+            contagens={contagens}
+            onAbrirFicha={(linha) => {
+              void queryClient.invalidateQueries({ queryKey: CHAVE_CONTAGENS });
+              setFicha(linha);
+            }}
+          />
         )}
       </div>
+      <Dialog open={ficha != null} onOpenChange={(aberto) => { if (!aberto) setFicha(null); }}>
+        <DialogContent className="flex max-h-[min(92vh,780px)] w-[calc(100vw-1.5rem)] max-w-3xl flex-col gap-3 overflow-hidden p-4 sm:p-6">
+          <DialogHeader className="shrink-0">
+            <DialogTitle>Ficha do cliente</DialogTitle>
+            <DialogDescription className="truncate">{ficha?.clienteNome}</DialogDescription>
+          </DialogHeader>
+          {ficha && (
+            <FichaClienteAcessos key={ficha.clienteId} clienteId={ficha.clienteId} clienteNome={ficha.clienteNome} />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

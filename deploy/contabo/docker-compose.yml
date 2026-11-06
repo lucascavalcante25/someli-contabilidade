@@ -41,6 +41,9 @@ services:
       UPLOAD_PATH: /app/data/uploads
       # NFS-e automática (ADN). Sem a chave, o envio de certificado A1 fica desligado.
       CERTIFICADO_CHAVE_MESTRA: ${CERTIFICADO_CHAVE_MESTRA:-}
+      # Cofre de acessos (login/senha dos portais). Sem a chave, o cofre fica desligado.
+      # Perder a chave impede abrir os acessos já guardados. Guarde uma cópia fora da VPS.
+      COFRE_CHAVE_MESTRA: ${COFRE_CHAVE_MESTRA:-}
       NFSE_ADN_AGENDAMENTO: ${NFSE_ADN_AGENDAMENTO:-false}
       JAVA_OPTS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=60.0 -Xms256m -Xmx512m"
     volumes:
