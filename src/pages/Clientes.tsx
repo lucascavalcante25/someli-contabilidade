@@ -22,7 +22,9 @@ import { useValoresVisibilidade } from '@/contexts/ValoresVisibilidadeContext';
 import { PAGE_SIZE } from '@/lib/constants';
 import { certificadoBadgeClass, certificadoStatusLabel } from '@/lib/certificado';
 import { correspondeBusca } from '@/lib/buscaClientes';
-import { rotuloRegime } from '@/lib/classificacao';
+import { rotuloRegime, rotuloTipoObrigacao } from '@/lib/classificacao';
+import { antecipaPorTipo, regraDosTipos } from '@/lib/feriados';
+import { useFeriados } from '@/hooks/useFeriados';
 import { ClienteDetalhePanel } from '@/pages/ClienteDetalhe';
 
 type TipoPagamento = 'pessoa_fisica' | 'pessoa_juridica' | 'terceiros';
@@ -961,6 +963,8 @@ function ClienteFormModal({
   const [obrigacoesCatalogo, setObrigacoesCatalogo] = useState<{ id: number; nome: string; tipo: string }[]>([]);
   const [pendingObrigacaoIds, setPendingObrigacaoIds] = useState<number[]>([]);
   const [batchDataVencimento, setBatchDataVencimento] = useState('');
+  const feriados = useFeriados(batchDataVencimento);
+  const tipoDaObrigacao = (obrigacaoId: number) => obrigacoesCatalogo.find((o) => o.id === obrigacaoId)?.tipo;
   const [loadingObrigacoes, setLoadingObrigacoes] = useState(false);
   const nextObrKeyRef = { current: 0 };
 
@@ -1420,7 +1424,7 @@ function ClienteFormModal({
                           />
                           <span className="text-sm font-medium flex-1 min-w-0 truncate">{o.nome}</span>
                           <span className="text-[10px] uppercase tracking-wide text-muted-foreground shrink-0 rounded-full bg-muted px-2 py-0.5">
-                            {o.tipo}
+                            {rotuloTipoObrigacao(o.tipo)}
                           </span>
                         </label>
                       );
@@ -1432,6 +1436,8 @@ function ClienteFormModal({
                       <DateField
                         value={batchDataVencimento}
                         onChange={setBatchDataVencimento}
+                        feriados={feriados}
+                        antecipa={regraDosTipos(pendingObrigacaoIds.map(tipoDaObrigacao))}
                       />
                     </div>
                     <button
@@ -1481,6 +1487,8 @@ function ClienteFormModal({
                           <DateField
                             value={obr.dataVencimento}
                             onChange={(v) => updateObrigacao(idx, 'dataVencimento', v)}
+                            feriados={feriados}
+                            antecipa={antecipaPorTipo(tipoDaObrigacao(obr.obrigacaoId))}
                           />
                         </div>
                         <div className="sm:col-span-2">

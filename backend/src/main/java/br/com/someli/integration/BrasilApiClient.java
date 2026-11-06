@@ -62,10 +62,15 @@ public class BrasilApiClient {
 
     /**
      * Feriados nacionais do ano com nome e tipo (BrasilAPI: date, name, type).
-     * Em falha de rede retorna lista vazia.
+     * Em falha de rede usa a lista local e não guarda no cache, para tentar a API de novo depois.
      */
     public List<FeriadoDto> listarFeriadosNacionais(int ano) {
-        return cacheFeriados.computeIfAbsent(ano, this::buscarFeriadosNacionais);
+        List<FeriadoDto> emCache = cacheFeriados.get(ano);
+        if (emCache != null) return emCache;
+        List<FeriadoDto> daApi = buscarFeriadosNacionais(ano);
+        if (daApi.isEmpty()) return FeriadosNacionaisFixos.doAno(ano);
+        cacheFeriados.put(ano, daApi);
+        return daApi;
     }
 
     private List<FeriadoDto> buscarFeriadosNacionais(int ano) {

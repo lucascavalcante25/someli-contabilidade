@@ -34,14 +34,17 @@ class ClienteObrigacaoServiceMassaTest {
     @Mock UsuarioRepository usuarioRepository;
     @Mock AuthorizationService authorizationService;
     @Mock ObrigacaoOcorrenciaService ocorrenciaService;
+    @Mock DiaUtilService diaUtilService;
 
     ClienteObrigacaoService service;
 
     @BeforeEach
     void setUp() {
+        org.mockito.Mockito.lenient().when(diaUtilService.ajustarVencimento(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
+                .thenAnswer(inv -> inv.getArgument(0));
         service = new ClienteObrigacaoService(
                 clienteObrigacaoRepository, clienteRepository, obrigacaoRepository,
-                usuarioRepository, authorizationService, ocorrenciaService);
+                usuarioRepository, authorizationService, ocorrenciaService, diaUtilService);
     }
 
     @Test

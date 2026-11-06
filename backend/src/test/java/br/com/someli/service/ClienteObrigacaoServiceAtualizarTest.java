@@ -29,11 +29,13 @@ class ClienteObrigacaoServiceAtualizarTest {
     @Mock UsuarioRepository usuarioRepository;
     @Mock AuthorizationService authorizationService;
     @Mock ObrigacaoOcorrenciaService ocorrenciaService;
+    @Mock DiaUtilService diaUtilService;
 
     @Test
     void atualizar_devolveVinculoRecarregadoComObrigacao() {
         ClienteObrigacaoService service = new ClienteObrigacaoService(clienteObrigacaoRepository, clienteRepository,
-                obrigacaoRepository, usuarioRepository, authorizationService, ocorrenciaService);
+                obrigacaoRepository, usuarioRepository, authorizationService, ocorrenciaService, diaUtilService);
+        when(diaUtilService.ajustarVencimento(any(), any())).thenAnswer(inv -> inv.getArgument(0));
         Cliente cliente = new Cliente();
         cliente.setId(1L);
         Obrigacao obrigacao = new Obrigacao();

@@ -54,6 +54,30 @@ class DiaUtilServiceTest {
     }
 
     @Test
+    void consciencaNegra_pessoalAntecipaFiscalProrroga() {
+        // 20/11/2026 é sexta-feira e feriado nacional
+        when(brasilApiClient.feriadosNacionais(2026)).thenReturn(Set.of(LocalDate.of(2026, 11, 20)));
+        LocalDate dia20 = LocalDate.of(2026, 11, 20);
+
+        assertEquals(LocalDate.of(2026, 11, 19), service.ajustarVencimento(dia20, "DEPARTAMENTO_PESSOAL"));
+        assertEquals(LocalDate.of(2026, 11, 23), service.ajustarVencimento(dia20, "FISCAL"));
+        assertEquals(LocalDate.of(2026, 11, 23), service.ajustarVencimento(dia20, null));
+    }
+
+    @Test
+    void domingo_pessoalVoltaParaSexta() {
+        when(brasilApiClient.feriadosNacionais(2026)).thenReturn(Set.of());
+        assertEquals(LocalDate.of(2026, 9, 11), service.ajustarVencimento(LocalDate.of(2026, 9, 13), "DEPARTAMENTO_PESSOAL"));
+    }
+
+    @Test
+    void anteciparAtravessaViradaDeAno() {
+        // 01/01/2028 é sábado e feriado: Pessoal volta para sexta 31/12/2027
+        when(brasilApiClient.feriadosNacionais(2027)).thenReturn(Set.of());
+        assertEquals(LocalDate.of(2027, 12, 31), service.ajustarVencimento(LocalDate.of(2028, 1, 1), "DEPARTAMENTO_PESSOAL"));
+    }
+
+    @Test
     void feriadoNaSextaMoveParaSegunda() {
         when(brasilApiClient.feriadosNacionais(2026)).thenReturn(Set.of(LocalDate.of(2026, 9, 11)));
         // sexta 11/09 feriado → sáb 12 → dom 13 → seg 14

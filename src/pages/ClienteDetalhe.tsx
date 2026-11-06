@@ -27,6 +27,8 @@ import NfseAdnPanel from '@/components/clientes/NfseAdnPanel';
 import DocumentosTabela from '@/components/clientes/DocumentosTabela';
 import { ACEITOS_DOCUMENTO } from '@/lib/documentoPrevia';
 import { rotuloTipoObrigacao, type TIPOS_OBRIGACAO } from '@/lib/classificacao';
+import { regraDosTipos } from '@/lib/feriados';
+import { useFeriados } from '@/hooks/useFeriados';
 import { rotuloContaRecebimento } from '@/lib/contaRecebimento';
 import { certificadoBadgeClass, certificadoStatusLabel, formatCertificadoResumo } from '@/lib/certificado';
 
@@ -1365,6 +1367,7 @@ function ObrigacaoFormModal({
     editing?.dataVencimento?.slice(0, 10) ?? ''
   );
   const [observacao, setObservacao] = useState(editing?.observacao ?? '');
+  const feriados = useFeriados(dataVencimento);
 
   useEffect(() => {
     if (editing) {
@@ -1467,6 +1470,8 @@ function ObrigacaoFormModal({
             <DateField
               value={dataVencimento}
               onChange={setDataVencimento}
+              feriados={feriados}
+              antecipa={regraDosTipos(obrigacoes.filter((o) => selectedIds.includes(o.id)).map((o) => o.tipo))}
             />
           </div>
           {!editing && selectedIds.length > 1 && (

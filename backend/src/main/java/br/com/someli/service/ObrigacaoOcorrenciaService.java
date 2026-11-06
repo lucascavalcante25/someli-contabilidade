@@ -131,8 +131,8 @@ public class ObrigacaoOcorrenciaService {
         if (existentes.isEmpty()) return;
 
         ObrigacaoOcorrencia ultima = existentes.get(0);
-        LocalDate proximoVenc = diaUtilService.proximoDiaUtil(
-                avancarVencimento(ultima.getDataVencimento(), period, config.getDiaVencimento()));
+        LocalDate proximoVenc = diaUtilService.ajustarVencimento(
+                avancarVencimento(ultima.getDataVencimento(), period, config.getDiaVencimento()), config.getSetor());
         String proxCompetencia = competenciaDe(proximoVenc, period);
 
         if (proxCompetencia != null
@@ -167,7 +167,7 @@ public class ObrigacaoOcorrenciaService {
             if (!ocorrenciaRepository.existsByClienteObrigacaoIdAndCompetencia(config.getId(), competencia)) {
                 int dia = config.getDiaVencimento() != null ? config.getDiaVencimento()
                         : (config.getDataVencimento() != null ? config.getDataVencimento().getDayOfMonth() : 20);
-                LocalDate venc = diaUtilService.proximoDiaUtil(resolverDataVencimento(atual, dia));
+                LocalDate venc = diaUtilService.ajustarVencimento(resolverDataVencimento(atual, dia), config.getSetor());
                 criarParaConfig(config, venc, competencia);
                 criadas++;
             }

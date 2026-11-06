@@ -61,6 +61,13 @@ describe('DocumentoPreviaDialog', () => {
     window.removeEventListener('keydown', janelaDeBaixo);
   });
 
+  it('abre acima da janela do cliente (ModalShell usa z-[200])', async () => {
+    carregarPreviaMock.mockResolvedValue({ tipo: 'texto', texto: 'xyz', cortado: false });
+    abrir('b.txt');
+    await screen.findByText('xyz');
+    expect(screen.getByRole('dialog').className).toContain('z-[250]');
+  });
+
   it('erro aparece com a mensagem', async () => {
     carregarPreviaMock.mockRejectedValue(new Error('Sem conexão com o servidor.'));
     abrir('nota2.pdf');

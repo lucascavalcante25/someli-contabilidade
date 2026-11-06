@@ -31,19 +31,22 @@ public class ClienteObrigacaoService {
     private final UsuarioRepository usuarioRepository;
     private final AuthorizationService authorizationService;
     private final ObrigacaoOcorrenciaService ocorrenciaService;
+    private final DiaUtilService diaUtilService;
 
     public ClienteObrigacaoService(ClienteObrigacaoRepository clienteObrigacaoRepository,
                                   ClienteRepository clienteRepository,
                                   ObrigacaoRepository obrigacaoRepository,
                                   UsuarioRepository usuarioRepository,
                                   AuthorizationService authorizationService,
-                                  ObrigacaoOcorrenciaService ocorrenciaService) {
+                                  ObrigacaoOcorrenciaService ocorrenciaService,
+                                  DiaUtilService diaUtilService) {
         this.clienteObrigacaoRepository = clienteObrigacaoRepository;
         this.clienteRepository = clienteRepository;
         this.obrigacaoRepository = obrigacaoRepository;
         this.usuarioRepository = usuarioRepository;
         this.authorizationService = authorizationService;
         this.ocorrenciaService = ocorrenciaService;
+        this.diaUtilService = diaUtilService;
     }
 
     public List<ClienteObrigacao> listarPorCliente(Long clienteId) {
@@ -75,12 +78,15 @@ public class ClienteObrigacaoService {
         Obrigacao obrigacao = obrigacaoRepository.findById(request.getObrigacaoId())
                 .orElseThrow(() -> new RegraNegocioException("Obrigação não encontrada"));
 
-        validarDuplicidade(request.getClienteId(), request.getObrigacaoId(), request.getDataVencimento(), null);
+        String setor = request.getSetor() != null ? request.getSetor() : obrigacao.getSetor();
+        // Fim de semana ou feriado: Pessoal antecipa, demais prorrogam (o dia de referência continua o pedido)
+        LocalDate vencimento = diaUtilService.ajustarVencimento(request.getDataVencimento(), setor);
+        validarDuplicidade(request.getClienteId(), request.getObrigacaoId(), vencimento, null);
 
         ClienteObrigacao co = new ClienteObrigacao();
         co.setCliente(cliente);
         co.setObrigacao(obrigacao);
-        co.setDataVencimento(request.getDataVencimento());
+        co.setDataVencimento(vencimento);
         co.setAtivo(request.getAtivo() != null ? request.getAtivo() : Boolean.TRUE);
         co.setObservacao(trimOrNull(request.getObservacao()));
         co.setPeriodicidade(request.getPeriodicidade() != null ? request.getPeriodicidade()
@@ -90,7 +96,7 @@ public class ClienteObrigacaoService {
                 : request.getDataVencimento().getDayOfMonth()));
         co.setTipoRegraVencimento(request.getTipoRegraVencimento() != null ? request.getTipoRegraVencimento()
                 : (obrigacao.getTipoRegraVencimento() != null ? obrigacao.getTipoRegraVencimento() : "DIA_FIXO"));
-        co.setSetor(request.getSetor() != null ? request.getSetor() : obrigacao.getSetor());
+        co.setSetor(setor);
         co.setDiasAntecedenciaAlerta(request.getDiasAntecedenciaAlerta() != null
                 ? request.getDiasAntecedenciaAlerta() : obrigacao.getDiasAntecedenciaAlerta());
         if (request.getResponsavelUsuarioId() != null) {
@@ -108,9 +114,10 @@ public class ClienteObrigacaoService {
     public ClienteObrigacao atualizar(Long id, UpdateClienteObrigacaoRequestDTO request) {
         authorizationService.requirePermission(PermissaoCodigo.OBRIGACOES_EDITAR);
         ClienteObrigacao co = buscarPorId(id);
-        validarDuplicidade(co.getCliente().getId(), co.getObrigacao().getId(), request.getDataVencimento(), id);
+        LocalDate vencimento = diaUtilService.ajustarVencimento(request.getDataVencimento(), co.getSetor());
+        validarDuplicidade(co.getCliente().getId(), co.getObrigacao().getId(), vencimento, id);
 
-        co.setDataVencimento(request.getDataVencimento());
+        co.setDataVencimento(vencimento);
         co.setAtivo(request.getAtivo() != null ? request.getAtivo() : Boolean.TRUE);
         co.setObservacao(trimOrNull(request.getObservacao()));
         ClienteObrigacao salvo = clienteObrigacaoRepository.save(co);

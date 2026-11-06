@@ -53,9 +53,10 @@ public class IntegracaoController {
     }
 
     @GetMapping("/dia-util")
-    public ResponseEntity<Map<String, Object>> diaUtil(@RequestParam String data) {
+    public ResponseEntity<Map<String, Object>> diaUtil(@RequestParam String data,
+                                                       @RequestParam(required = false) String setor) {
         LocalDate original = LocalDate.parse(data);
-        LocalDate ajustada = diaUtilService.proximoDiaUtil(original);
+        LocalDate ajustada = diaUtilService.ajustarVencimento(original, setor);
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("dataOriginal", original.toString());
         body.put("dataAjustada", ajustada.toString());
