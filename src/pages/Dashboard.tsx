@@ -14,6 +14,7 @@ import { motion } from 'framer-motion';
 import OcorrenciaWorkList from '@/components/obrigacoes/OcorrenciaWorkList';
 import ModalShell from '@/components/shared/ModalShell';
 import { ClienteDetalhePanel } from '@/pages/ClienteDetalhe';
+import BuscaRapidaCliente, { type ClienteParaBusca } from '@/components/dashboard/BuscaRapidaCliente';
 import { certificadoBadgeClass, certificadoStatusLabel } from '@/lib/certificado';
 
 const CHART_COLORS = ['hsl(var(--primary))', 'hsl(var(--sidebar-primary))', 'hsl(var(--accent))'];
@@ -39,8 +40,7 @@ function preserveOrderById<T extends { id: number }>(prev: T[], next: T[]): T[] 
   return ordered;
 }
 
-interface ClienteResumo {
-  id: number;
+interface ClienteResumo extends ClienteParaBusca {
   status: string;
   honorario: number;
 }
@@ -101,6 +101,12 @@ export default function Dashboard() {
   const [meuTrabalho, setMeuTrabalho] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [viewClienteId, setViewClienteId] = useState<number | null>(null);
+  // A lupa abre direto nas obrigações; os demais atalhos abrem no resumo
+  const [abaInicial, setAbaInicial] = useState<'resumo' | 'obrigacoes'>('resumo');
+  const fecharCliente = () => {
+    setViewClienteId(null);
+    setAbaInicial('resumo');
+  };
 
   const podeFinanceiro = can('FINANCEIRO_VISUALIZAR');
   const podeHonorario = can('HONORARIO_VISUALIZAR');
@@ -136,6 +142,12 @@ export default function Dashboard() {
             id: c.id,
             status: c.status ?? 'pendente',
             honorario: Number(c.honorario ?? 0),
+            razaoSocial: c.razaoSocial ?? '',
+            nomeFantasia: c.nomeFantasia ?? '',
+            cnpj: c.cnpj ?? '',
+            proprietario: c.proprietario ?? '',
+            regimeTributario: c.regimeTributario ?? undefined,
+            tags: Array.isArray(c.tags) ? c.tags : [],
           }))
         );
       }
@@ -290,7 +302,16 @@ export default function Dashboard() {
           <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">{getGreeting()}, {user?.nome?.split(' ')[0]}</h1>
           <p className="text-sm text-muted-foreground mt-1">Aqui está o resumo do seu escritório</p>
         </div>
-        {podeHonorario && <ToggleValoresButton />}
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+          <BuscaRapidaCliente
+            clientes={clientes}
+            onAbrir={(id) => {
+              setAbaInicial('obrigacoes');
+              setViewClienteId(id);
+            }}
+          />
+          {podeHonorario && <ToggleValoresButton />}
+        </div>
       </div>
 
       {meuTrabalho && (
@@ -583,11 +604,12 @@ export default function Dashboard() {
       )}
 
       {viewClienteId != null && (
-        <ModalShell onClose={() => setViewClienteId(null)} maxWidth="3xl" fixedSize className="sm:h-[min(860px,92vh)] sm:max-h-[92vh]">
+        <ModalShell onClose={fecharCliente} maxWidth="3xl" fixedSize className="sm:h-[min(860px,92vh)] sm:max-h-[92vh]">
           <ClienteDetalhePanel
             clienteId={viewClienteId}
             variant="modal"
-            onClose={() => setViewClienteId(null)}
+            initialTab={abaInicial}
+            onClose={fecharCliente}
           />
         </ModalShell>
       )}

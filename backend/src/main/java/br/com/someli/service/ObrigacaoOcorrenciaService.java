@@ -152,22 +152,30 @@ public class ObrigacaoOcorrenciaService {
     }
 
     /**
-     * Garante ocorrência do período atual para configs recorrentes ativas.
+     * Garante a ocorrência do mês para as obrigações mensais ativas.
      */
     @Transactional
     public int garantirOcorrenciasAbertas() {
-        List<ClienteObrigacao> ativas = clienteObrigacaoRepository.findAll().stream()
+        return garantirOcorrenciasAbertas(YearMonth.now());
+    }
+
+    /**
+     * Mensais vencem no mês informado e são da competência anterior (ex.: vence em 11/2026, competência 10/2026).
+     * Trimestrais, semestrais e anuais seguem só pela próxima ocorrência (gerarProximaSeRecorrente).
+     */
+    @Transactional
+    public int garantirOcorrenciasAbertas(YearMonth mes) {
+        List<ClienteObrigacao> mensais = clienteObrigacaoRepository.findAll().stream()
                 .filter(c -> Boolean.TRUE.equals(c.getAtivo()))
-                .filter(c -> c.getPeriodicidade() != null && !PeriodicidadeObrigacao.UNICA.equals(c.getPeriodicidade()))
+                .filter(c -> PeriodicidadeObrigacao.MENSAL.equals(c.getPeriodicidade()))
                 .toList();
         int criadas = 0;
-        YearMonth atual = YearMonth.now();
-        for (ClienteObrigacao config : ativas) {
-            String competencia = String.format("%04d-%02d", atual.getYear(), atual.getMonthValue());
+        String competencia = competenciaDe(mes.atDay(1), PeriodicidadeObrigacao.MENSAL);
+        for (ClienteObrigacao config : mensais) {
             if (!ocorrenciaRepository.existsByClienteObrigacaoIdAndCompetencia(config.getId(), competencia)) {
                 int dia = config.getDiaVencimento() != null ? config.getDiaVencimento()
                         : (config.getDataVencimento() != null ? config.getDataVencimento().getDayOfMonth() : 20);
-                LocalDate venc = diaUtilService.ajustarVencimento(resolverDataVencimento(atual, dia), config.getSetor());
+                LocalDate venc = diaUtilService.ajustarVencimento(resolverDataVencimento(mes, dia), config.getSetor());
                 criarParaConfig(config, venc, competencia);
                 criadas++;
             }
