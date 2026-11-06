@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Pencil, Trash2, X, FileText, ClipboardList, File, Download, Loader2, Image, FileSpreadsheet, PowerOff, Power, ListChecks, Shield, BadgeDollarSign, Radar, LayoutDashboard, Link2 } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, X, FileText, ClipboardList, File, Download, Loader2, PowerOff, Power, ListChecks, Shield, BadgeDollarSign, Radar, LayoutDashboard, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -24,6 +24,8 @@ import { cn } from '@/lib/utils';
 import { ENABLE_XML_IMPORT } from '@/lib/constants';
 import SolicitacoesDocumento from '@/components/clientes/SolicitacoesDocumento';
 import NfseAdnPanel from '@/components/clientes/NfseAdnPanel';
+import DocumentosTabela from '@/components/clientes/DocumentosTabela';
+import { ACEITOS_DOCUMENTO } from '@/lib/documentoPrevia';
 import { rotuloContaRecebimento } from '@/lib/contaRecebimento';
 import { certificadoBadgeClass, certificadoStatusLabel, formatCertificadoResumo } from '@/lib/certificado';
 
@@ -536,7 +538,7 @@ export function ClienteDetalhePanel({
     }
   };
 
-  const handleDownloadDocumento = async (doc: ClienteDocumento) => {
+  const handleDownloadDocumento = async (doc: Pick<ClienteDocumento, 'id' | 'nomeArquivo'>) => {
     try {
       const res = await apiFetch(`${apiBaseUrl}/clientes/${id}/documentos/${doc.id}`, { headers: {} });
       if (!res.ok) throw new Error('Erro ao baixar');
@@ -587,21 +589,6 @@ export function ClienteDetalhePanel({
     } catch {
       toast.error('Erro ao excluir documento');
     }
-  };
-
-  const getDocIcon = (tipo: string, nome: string) => {
-    const ext = (nome || '').toLowerCase().split('.').pop() || '';
-    if (tipo?.includes('pdf') || ext === 'pdf') return FileText;
-    if (['doc', 'docx'].includes(ext) || tipo?.includes('word')) return File;
-    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext) || tipo?.includes('image')) return Image;
-    if (['xls', 'xlsx'].includes(ext)) return FileSpreadsheet;
-    return File;
-  };
-
-  const formatDateTime = (value: string) => {
-    if (!value) return '';
-    const d = new Date(value);
-    return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
   if (loading || !cliente) {
@@ -1255,81 +1242,12 @@ export function ClienteDetalhePanel({
               </div>
             </div>
 
-            <div className="card-surface overflow-hidden">
-              <div className="overflow-x-auto max-w-full">
-                <table className="w-full text-sm min-w-[400px]">
-                  <thead>
-                    <tr className="bg-muted/50">
-                      <th className="label-text px-4 py-3 text-left w-10"></th>
-                      <th className="label-text px-4 py-3 text-left">Nome do arquivo</th>
-                      <th className="label-text px-4 py-3 text-left hidden md:table-cell">Competência</th>
-                      <th className="label-text px-4 py-3 text-left hidden md:table-cell">Descrição</th>
-                      <th className="label-text px-4 py-3 text-left">Data upload</th>
-                      <th className="label-text px-4 py-3 text-center">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {documentos.length === 0 && (
-                      <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                          Nenhum documento. Envie um arquivo acima.
-                        </td>
-                      </tr>
-                    )}
-                    {documentos.map(doc => {
-                      const Icon = getDocIcon(doc.tipoArquivo, doc.nomeArquivo);
-                      return (
-                        <tr key={doc.id} className="border-t border-border hover:bg-muted/30">
-                          <td className="px-4 py-3">
-                            <div className="rounded bg-muted/50 p-1.5 w-8 h-8 flex items-center justify-center">
-                              <Icon size={16} className="text-muted-foreground" />
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 font-medium truncate max-w-[180px]">
-                            <HintTooltip content={doc.nomeArquivo} enabled={!!doc.nomeArquivo && doc.nomeArquivo.length > 20}>
-                              <span className="block truncate">{doc.nomeArquivo}</span>
-                            </HintTooltip>
-                          </td>
-                          <td className="px-4 py-3 hidden md:table-cell text-muted-foreground tabular-nums text-xs">
-                            {doc.competencia || '—'}
-                          </td>
-                          <td className="px-4 py-3 hidden md:table-cell text-muted-foreground truncate max-w-[150px]">
-                            <HintTooltip content={doc.descricao || ''} enabled={!!doc.descricao && doc.descricao.length > 18}>
-                              <span className="block truncate">{doc.descricao || '—'}</span>
-                            </HintTooltip>
-                          </td>
-                          <td className="px-4 py-3 text-muted-foreground tabular-nums text-xs">{formatDateTime(doc.dataUpload)}</td>
-                          <td className="px-4 py-3">
-                            <div className="flex justify-center gap-1">
-                              <HintTooltip content="Baixar documento">
-                                <button
-                                  type="button"
-                                  onClick={() => void handleDownloadDocumento(doc)}
-                                  className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
-                                  aria-label="Baixar"
-                                >
-                                  <Download size={14} />
-                                </button>
-                              </HintTooltip>
-                              <HintTooltip content="Excluir documento">
-                                <button
-                                  type="button"
-                                  onClick={() => void handleDeleteDocumento(doc.id)}
-                                  className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-                                  aria-label="Excluir"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              </HintTooltip>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <DocumentosTabela
+              clienteId={id ?? ''}
+              documentos={documentos}
+              onBaixar={(doc) => void handleDownloadDocumento(doc)}
+              onExcluir={(docId) => void handleDeleteDocumento(docId)}
+            />
           </div>
         </TabsContent>
         </div>
@@ -1372,6 +1290,7 @@ function DocumentoUploadForm({
       <input
         ref={fileInputRef}
         type="file"
+        accept={ACEITOS_DOCUMENTO}
         onChange={e => setFile(e.target.files?.[0] ?? null)}
         className="text-sm file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:bg-primary file:text-primary-foreground file:text-sm file:font-medium"
       />

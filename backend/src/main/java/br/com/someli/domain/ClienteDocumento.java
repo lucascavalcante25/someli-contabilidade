@@ -28,7 +28,7 @@ public class ClienteDocumento {
     @Column(name = "nome_arquivo", length = 255)
     private String nomeArquivo;
 
-    @Column(name = "tipo_arquivo", length = 50)
+    @Column(name = "tipo_arquivo", length = 120)
     private String tipoArquivo;
 
     @Column(name = "url_arquivo", columnDefinition = "TEXT")

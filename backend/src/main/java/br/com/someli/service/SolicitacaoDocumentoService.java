@@ -128,7 +128,7 @@ public class SolicitacaoDocumentoService {
             throw new RegraNegocioException("Arquivo maior que 15 MB");
         }
         if (ClienteDocumentoService.tipoPermitido(file.getOriginalFilename()) == null) {
-            throw new RegraNegocioException("Tipo não permitido. Envie PDF, imagem, XML, planilha ou documento");
+            throw new RegraNegocioException(ClienteDocumentoService.MENSAGEM_TIPO_RECUSADO);
         }
 
         documentoService.salvarRecebidoPorLink(

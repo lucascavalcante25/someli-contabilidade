@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { CheckCircle2, FileText, Loader2, Plus, Send, X } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api';
 import BrandLogo from '@/components/BrandLogo';
+import { ACEITOS_DOCUMENTO, DESCRICAO_ACEITOS } from '@/lib/documentoPrevia';
 
 interface PedidoPublico {
   empresa: string;
@@ -20,7 +21,6 @@ interface ArquivoSelecionado {
   erro?: string;
 }
 
-const ACEITOS = '.pdf,.jpg,.jpeg,.png,.xml,.csv,.xlsx,.docx';
 const TAMANHO_MAXIMO = 15 * 1024 * 1024;
 
 function tamanhoLegivel(bytes: number) {
@@ -189,7 +189,7 @@ export default function EnviarDocumento() {
                 ref={inputRef}
                 type="file"
                 multiple
-                accept={ACEITOS}
+                accept={ACEITOS_DOCUMENTO}
                 onChange={adicionar}
                 className="hidden"
                 aria-label="Arquivos"
@@ -204,7 +204,7 @@ export default function EnviarDocumento() {
                 {quantidade > 0 ? 'Adicionar mais arquivos' : 'Selecionar arquivos'}
               </button>
               <p className="text-xs text-muted-foreground">
-                Selecione um ou vários: PDF, imagem, XML, CSV, Excel ou Word, até 15 MB cada.
+                Selecione um ou vários: {DESCRICAO_ACEITOS}, até 15 MB cada.
                 Este pedido aceita até {pedido.arquivosRestantes} arquivo(s).
               </p>
 

@@ -31,15 +31,31 @@ import java.util.UUID;
 @Service
 public class ClienteDocumentoService {
 
-    private static final Map<String, String> TIPOS_POR_LINK = Map.of(
-            ".pdf", "application/pdf",
-            ".jpg", "image/jpeg",
-            ".jpeg", "image/jpeg",
-            ".png", "image/png",
-            ".xml", "application/xml",
-            ".csv", "text/csv",
-            ".xlsx", "application/vnd.ms-excel",
-            ".docx", "application/msword");
+    /**
+     * Únicos tipos aceitos (envio interno e pelo link). O tipo gravado vem daqui, nunca do navegador:
+     * assim nada vira HTML/script ao ser aberto na pré-visualização.
+     */
+    private static final Map<String, String> TIPOS_PERMITIDOS = Map.ofEntries(
+            Map.entry(".pdf", "application/pdf"),
+            Map.entry(".jpg", "image/jpeg"),
+            Map.entry(".jpeg", "image/jpeg"),
+            Map.entry(".png", "image/png"),
+            Map.entry(".webp", "image/webp"),
+            Map.entry(".xml", "application/xml"),
+            Map.entry(".csv", "text/csv"),
+            Map.entry(".txt", "text/plain"),
+            Map.entry(".ofx", "application/x-ofx"),
+            Map.entry(".xls", "application/vnd.ms-excel"),
+            Map.entry(".xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+            Map.entry(".ods", "application/vnd.oasis.opendocument.spreadsheet"),
+            Map.entry(".doc", "application/msword"),
+            Map.entry(".docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+            Map.entry(".odt", "application/vnd.oasis.opendocument.text"),
+            Map.entry(".zip", "application/zip"));
+
+    static final String MENSAGEM_TIPO_RECUSADO =
+            "Tipo não permitido. Envie PDF, imagem, planilha (XLS, XLSX, ODS, CSV), documento (DOC, DOCX, ODT), "
+                    + "extrato (OFX, TXT), XML ou ZIP";
 
     private final ClienteDocumentoRepository documentoRepository;
     private final ClienteRepository clienteRepository;
@@ -99,31 +115,42 @@ public class ClienteDocumentoService {
             throw new RegraNegocioException("Competência deve estar no formato YYYY-MM");
         }
 
-        String nomeOriginal = file.getOriginalFilename() != null ? file.getOriginalFilename() : "arquivo";
-        String tipoArquivo = file.getContentType() != null ? file.getContentType() : "application/octet-stream";
-        return gravar(cliente, file, nomeOriginal, tipoArquivo, descricao, competencia, setor, categoria, origem,
-                compartilhadoComCliente);
+        String tipoArquivo = tipoPermitido(file.getOriginalFilename());
+        if (tipoArquivo == null) {
+            throw new RegraNegocioException(MENSAGEM_TIPO_RECUSADO);
+        }
+        return gravar(cliente, file, nomeSeguro(file.getOriginalFilename()), tipoArquivo, descricao, competencia,
+                setor, categoria, origem, compartilhadoComCliente);
     }
 
-    /** Tipo real a partir da extensão, ou null se ela não é aceita no envio por link. */
+    /** Tipo real a partir da extensão, ou null se ela não é aceita. */
     public static String tipoPermitido(String nomeArquivo) {
         if (nomeArquivo == null) {
             return null;
         }
         int ponto = nomeArquivo.lastIndexOf('.');
-        return ponto < 0 ? null : TIPOS_POR_LINK.get(nomeArquivo.substring(ponto).toLowerCase(Locale.ROOT));
+        return ponto < 0 ? null : TIPOS_PERMITIDOS.get(nomeArquivo.substring(ponto).toLowerCase(Locale.ROOT));
+    }
+
+    /** Nome original sem pasta nem caracteres perigosos (vai para o cabeçalho do download). */
+    public static String nomeSeguro(String nomeOriginal) {
+        String nome = nomeOriginal == null ? "arquivo" : nomeOriginal;
+        String seguro = nome.replaceAll(".*[\\\\/]", "").replaceAll("[^\\p{L}\\p{N} ._()-]", "_");
+        if (seguro.isBlank()) {
+            seguro = "arquivo";
+        }
+        return seguro.length() > 150 ? seguro.substring(seguro.length() - 150) : seguro;
     }
 
     /** Envio do cliente pelo link: a autorização é o token validado em SolicitacaoDocumentoService. */
     public ClienteDocumento salvarRecebidoPorLink(Cliente cliente, MultipartFile file, String descricao,
                                                   String competencia) throws IOException {
-        String nomeOriginal = file.getOriginalFilename() == null ? "arquivo" : file.getOriginalFilename();
-        String nomeSeguro = nomeOriginal.replaceAll(".*[\\\\/]", "").replaceAll("[^\\p{L}\\p{N} ._()-]", "_");
-        if (nomeSeguro.length() > 150) {
-            nomeSeguro = nomeSeguro.substring(nomeSeguro.length() - 150);
+        String tipo = tipoPermitido(file.getOriginalFilename());
+        if (tipo == null) {
+            throw new RegraNegocioException(MENSAGEM_TIPO_RECUSADO);
         }
-        return gravar(cliente, file, nomeSeguro, tipoPermitido(nomeOriginal), descricao, competencia, null, "GERAL",
-                "CLIENTE_LINK", false);
+        return gravar(cliente, file, nomeSeguro(file.getOriginalFilename()), tipo, descricao, competencia, null,
+                "GERAL", "CLIENTE_LINK", false);
     }
 
     /**

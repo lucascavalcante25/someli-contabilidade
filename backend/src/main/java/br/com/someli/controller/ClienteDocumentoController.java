@@ -70,10 +70,13 @@ public class ClienteDocumentoController {
             return ResponseEntity.notFound().build();
         }
         Resource resource = documentoService.obterArquivo(id);
-        String filename = doc.getNomeArquivo() != null ? doc.getNomeArquivo() : "documento";
+        // Nome saneado também para arquivos antigos; tipo só da lista permitida (o resto vira binário)
+        String filename = ClienteDocumentoService.nomeSeguro(doc.getNomeArquivo());
         String encoded = URLEncoder.encode(filename, StandardCharsets.UTF_8).replace("+", "%20");
+        String tipo = ClienteDocumentoService.tipoPermitido(filename);
         return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(doc.getTipoArquivo() != null ? doc.getTipoArquivo() : "application/octet-stream"))
+                .contentType(MediaType.parseMediaType(tipo != null ? tipo : "application/octet-stream"))
+                .header("X-Content-Type-Options", "nosniff")
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"; filename*=UTF-8''" + encoded)
                 .body(resource);
     }
