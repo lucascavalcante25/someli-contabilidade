@@ -26,6 +26,12 @@ public class ObrigacaoOcorrenciaController {
         return ResponseEntity.ok(service.listarPorCliente(clienteId).stream().map(ObrigacaoOcorrenciaMapper::toDto).toList());
     }
 
+    /** Painel do mês. Permissão, alçada e setor são checados no service. */
+    @GetMapping("/ocorrencias")
+    public ResponseEntity<List<ObrigacaoOcorrenciaDTO>> listarPorCompetencia(@RequestParam String competencia) {
+        return ResponseEntity.ok(service.listarPorCompetencia(competencia).stream().map(ObrigacaoOcorrenciaMapper::toDto).toList());
+    }
+
     @GetMapping("/ocorrencias/{id}")
     public ResponseEntity<ObrigacaoOcorrenciaDTO> buscar(@PathVariable Long id) {
         return ResponseEntity.ok(ObrigacaoOcorrenciaMapper.toDto(service.buscar(id)));

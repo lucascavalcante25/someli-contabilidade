@@ -31,17 +31,20 @@ public class UsuarioService {
     private final Path basePath;
     private final AuthorizationService authorizationService;
     private final AuditLogService auditLogService;
+    private final UsuarioCarteiraService carteiraService;
 
     public UsuarioService(UsuarioRepository usuarioRepository,
                           PasswordEncoder passwordEncoder,
                           @Value("${app.upload.base-path:./data/uploads}") String basePathStr,
                           AuthorizationService authorizationService,
-                          AuditLogService auditLogService) {
+                          AuditLogService auditLogService,
+                          UsuarioCarteiraService carteiraService) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.basePath = Paths.get(basePathStr).toAbsolutePath().normalize();
         this.authorizationService = authorizationService;
         this.auditLogService = auditLogService;
+        this.carteiraService = carteiraService;
     }
 
     public List<Usuario> listarTodos() {
@@ -104,6 +107,9 @@ public class UsuarioService {
         usuario.setEmail(request.getEmail().trim().toLowerCase());
         usuario.setTelefone(request.getTelefone().trim());
         usuario.setPerfil(request.getPerfil() == null ? Perfil.OPERADOR : request.getPerfil());
+        if (Boolean.TRUE.equals(usuario.getAtivo()) && Boolean.FALSE.equals(request.getAtivo())) {
+            exigirCarteiraVazia(id);
+        }
         usuario.setAtivo(request.getAtivo());
         if (usuario.getPerfil() == Perfil.ADMIN) {
             usuario.setAlcadaGlobal(true);
@@ -122,8 +128,18 @@ public class UsuarioService {
     public void remover(Long id) {
         authorizationService.requirePermission(PermissaoCodigo.USUARIOS_DESATIVAR);
         Usuario usuario = buscarPorId(id);
-        usuarioRepository.delete(Objects.requireNonNull(usuario));
-        auditLogService.registrar("USUARIO_EXCLUIR", "USUARIO", String.valueOf(id), usuario.getNome(), null);
+        exigirCarteiraVazia(id);
+        // Desativa em vez de apagar: o histórico (quem concluiu, de quais clientes cuidou) continua apontando para ele
+        usuario.setAtivo(false);
+        usuarioRepository.save(usuario);
+        auditLogService.registrar("USUARIO_DESATIVAR", "USUARIO", String.valueOf(id), usuario.getNome(), null);
+    }
+
+    /** Quem sai do escritório não pode deixar clientes sem responsável. */
+    private void exigirCarteiraVazia(Long usuarioId) {
+        if (carteiraService.temCarteira(usuarioId)) {
+            throw new RegraNegocioException("Transfira os clientes deste usuário para outra pessoa antes de desativar ou excluir");
+        }
     }
 
     public Usuario uploadFoto(Long id, MultipartFile file) throws IOException {

@@ -34,4 +34,7 @@ public interface ClienteObrigacaoRepository extends JpaRepository<ClienteObrigac
     boolean existsByClienteIdAndObrigacaoIdAndDataVencimentoAndAtivoTrueAndIdNot(Long clienteId, Long obrigacaoId, LocalDate dataVencimento, Long idIgnorado);
 
     boolean existsByClienteIdAndObrigacaoIdAndAtivoTrue(Long clienteId, Long obrigacaoId);
+
+    /** Obrigações em que o usuário é o responsável direto (transferência de carteira). */
+    List<ClienteObrigacao> findByResponsavelIdAndAtivoTrue(Long usuarioId);
 }

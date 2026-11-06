@@ -16,6 +16,11 @@ describe('permissions', () => {
     expect(canAccessModule(perms, 'CLIENTES')).toBe(true);
   });
 
+  it('painel do mês (módulo OBRIGACOES) exige ver obrigações', () => {
+    expect(canAccessModule([Permissoes.OBRIGACOES_VISUALIZAR], 'OBRIGACOES')).toBe(true);
+    expect(canAccessModule([Permissoes.CLIENTES_VISUALIZAR], 'OBRIGACOES')).toBe(false);
+  });
+
   it('cenario2: honorário exige permissão específica', () => {
     expect(hasPermission([Permissoes.CLIENTES_VISUALIZAR], Permissoes.HONORARIO_VISUALIZAR)).toBe(false);
     expect(hasPermission([Permissoes.HONORARIO_VISUALIZAR], Permissoes.HONORARIO_VISUALIZAR)).toBe(true);

@@ -56,6 +56,22 @@ public class ObrigacaoOcorrenciaService {
                 .toList();
     }
 
+    /** Painel do mês: ocorrências da competência (yyyy-MM), só das empresas e setores que o usuário pode ver. */
+    @Transactional(readOnly = true)
+    public List<ObrigacaoOcorrencia> listarPorCompetencia(String competencia) {
+        authorizationService.requirePermission(br.com.someli.domain.PermissaoCodigo.OBRIGACOES_VISUALIZAR);
+        if (competencia == null || !competencia.matches("\\d{4}-(0[1-9]|1[0-2])")) {
+            throw new RegraNegocioException("Competência deve estar no formato AAAA-MM");
+        }
+        List<ObrigacaoOcorrencia> todas = ocorrenciaRepository.findByCompetenciaWithDetails(competencia);
+        Usuario u = authorizationService.currentUser();
+        if (authorizationService.hasAlcadaGlobal(u)) return todas;
+        return todas.stream()
+                .filter(oo -> authorizationService.canAccessDepartment(
+                        u, oo.getClienteObrigacao().getCliente().getId(), oo.getClienteObrigacao().resolverSetor()))
+                .toList();
+    }
+
     @Transactional(readOnly = true)
     public ObrigacaoOcorrencia buscar(Long id) {
         ObrigacaoOcorrencia oo = ocorrenciaRepository.findByIdWithDetails(id)

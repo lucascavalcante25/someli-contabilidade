@@ -134,6 +134,8 @@ export function canAccessModule(permissoes: string[] | undefined | null, modulo:
       return hasPermission(permissoes, Permissoes.FINANCEIRO_VISUALIZAR);
     case 'DESPESAS':
       return hasPermission(permissoes, Permissoes.DESPESAS_VISUALIZAR);
+    case 'OBRIGACOES':
+      return hasPermission(permissoes, Permissoes.OBRIGACOES_VISUALIZAR);
     case 'OBRIGACOES_TIPOS':
       return hasPermission(permissoes, Permissoes.OBRIGACOES_TIPOS_GERENCIAR)
         || hasPermission(permissoes, Permissoes.OBRIGACOES_VISUALIZAR);

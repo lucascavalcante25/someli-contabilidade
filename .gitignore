@@ -39,3 +39,7 @@ deploy/import/__pycache__/
 
 # Originais das logos (com margens); versões em uso já estão aparadas
 public/logos/original/
+
+# Exportações do Trello e outros JSON com dados de clientes/senhas: nunca versionar
+docs/*.json
+*trello*.json

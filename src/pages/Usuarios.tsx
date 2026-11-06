@@ -11,6 +11,8 @@ import HintTooltip from '@/components/shared/HintTooltip';
 import AppSelect from '@/components/shared/AppSelect';
 import { Checkbox } from '@/components/ui/checkbox';
 import { PERFIS, Permissoes, formatarPerfil, moduloLabel, permissaoAjuda, permissaoTitulo } from '@/lib/permissions';
+import { carregarCarteira, transferirCarteira, type CarteiraSetor } from '@/lib/responsaveis';
+import TransferirCarteiraDialog from '@/components/usuarios/TransferirCarteiraDialog';
 
 type Perfil = typeof PERFIS[number];
 
@@ -115,8 +117,43 @@ export default function Usuarios() {
     void fetchUsuarios();
   }, [fetchUsuarios]);
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Deseja realmente remover este usuário?')) return;
+  // Quem sai do escritório passa os clientes adiante antes de ser excluído
+  const [transferindo, setTransferindo] = useState<{ usuario: Usuario; carteira: CarteiraSetor[] } | null>(null);
+  const [salvandoTransferencia, setSalvandoTransferencia] = useState(false);
+
+  const pedirExclusao = async (id: number) => {
+    const usuario = usuarios.find((u) => u.id === id);
+    if (!usuario) return;
+    try {
+      const carteira = await carregarCarteira(id);
+      if (carteira.length > 0) {
+        setTransferindo({ usuario, carteira });
+        return;
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao ver os clientes do usuário');
+      return;
+    }
+    await handleDelete(id);
+  };
+
+  const transferirEExcluir = async (destinos: Record<string, number>) => {
+    if (!transferindo) return;
+    setSalvandoTransferencia(true);
+    try {
+      const n = await transferirCarteira(transferindo.usuario.id, destinos);
+      toast.success(`${n} vínculo(s) de cliente transferido(s)`);
+      setTransferindo(null);
+      await handleDelete(transferindo.usuario.id, true);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao transferir os clientes');
+    } finally {
+      setSalvandoTransferencia(false);
+    }
+  };
+
+  const handleDelete = async (id: number, jaConfirmado = false) => {
+    if (!jaConfirmado && !window.confirm('Desativar este usuário? Ele não entra mais no sistema, mas o histórico dele fica guardado.')) return;
     try {
       const response = await apiFetch(`${apiBaseUrl}/usuarios/${id}`, {
         method: 'DELETE',
@@ -125,8 +162,9 @@ export default function Usuarios() {
       if (!response.ok) {
         throw new Error(await parseApiError(response));
       }
-      setUsuarios(prev => prev.filter(u => u.id !== id));
-      toast.success('Usuário removido');
+      // O servidor desativa (não apaga) para manter o histórico de quem fez o quê
+      setUsuarios(prev => prev.map(u => (u.id === id ? { ...u, ativo: false } : u)));
+      toast.success('Usuário desativado. O histórico dele fica guardado.');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Falha ao remover usuário');
     }
@@ -307,7 +345,7 @@ export default function Usuarios() {
                     <HintTooltip content="Excluir">
                       <button
                         type="button"
-                        onClick={() => void handleDelete(u.id)}
+                        onClick={() => void pedirExclusao(u.id)}
                         className="p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"
                         aria-label="Excluir"
                       >
@@ -342,6 +380,16 @@ export default function Usuarios() {
           />
         )}
       </AnimatePresence>
+      {transferindo && (
+        <TransferirCarteiraDialog
+          usuarioNome={transferindo.usuario.nome}
+          carteira={transferindo.carteira}
+          destinos={usuarios.filter((u) => u.ativo && u.id !== transferindo.usuario.id).map((u) => ({ id: u.id, nome: u.nome }))}
+          salvando={salvandoTransferencia}
+          onConfirmar={(d) => void transferirEExcluir(d)}
+          onFechar={() => setTransferindo(null)}
+        />
+      )}
     </div>
   );
 }

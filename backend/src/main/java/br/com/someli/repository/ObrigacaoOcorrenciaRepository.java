@@ -20,6 +20,18 @@ public interface ObrigacaoOcorrenciaRepository extends JpaRepository<ObrigacaoOc
             """)
     List<ObrigacaoOcorrencia> findByClienteId(Long clienteId);
 
+    /** Painel do mês: todas as ocorrências da competência, com quem concluiu. */
+    @Query("""
+            SELECT oo FROM ObrigacaoOcorrencia oo
+            JOIN FETCH oo.clienteObrigacao co
+            JOIN FETCH co.obrigacao
+            JOIN FETCH co.cliente
+            LEFT JOIN FETCH oo.concluidaPor
+            WHERE oo.competencia = :competencia
+            ORDER BY co.cliente.razaoSocial ASC
+            """)
+    List<ObrigacaoOcorrencia> findByCompetenciaWithDetails(String competencia);
+
     @Query("""
             SELECT oo FROM ObrigacaoOcorrencia oo
             JOIN FETCH oo.clienteObrigacao co

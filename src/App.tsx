@@ -18,6 +18,7 @@ import Configuracoes from "./pages/Configuracoes";
 import Consultas from "./pages/Consultas";
 import EnviarDocumento from "./pages/EnviarDocumento";
 import NotFound from "./pages/NotFound";
+import PainelMensal from './pages/PainelMensal';
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,7 @@ const App = () => (
               <Route path="/clientes/:id" element={<PermissionRoute module="CLIENTES"><ClienteDetalhe /></PermissionRoute>} />
               <Route path="/financeiro" element={<PermissionRoute module="FINANCEIRO"><Financeiro /></PermissionRoute>} />
               <Route path="/despesas" element={<PermissionRoute module="DESPESAS"><Despesas /></PermissionRoute>} />
+              <Route path="/painel-mensal" element={<PermissionRoute module="OBRIGACOES"><PainelMensal /></PermissionRoute>} />
               <Route path="/obrigacoes-tipos" element={<PermissionRoute module="OBRIGACOES_TIPOS"><ObrigacoesTipos /></PermissionRoute>} />
               <Route path="/usuarios" element={<PermissionRoute module="USUARIOS"><Usuarios /></PermissionRoute>} />
               <Route path="/configuracoes" element={<Configuracoes />} />

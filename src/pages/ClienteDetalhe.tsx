@@ -25,6 +25,7 @@ import { ENABLE_XML_IMPORT } from '@/lib/constants';
 import SolicitacoesDocumento from '@/components/clientes/SolicitacoesDocumento';
 import NfseAdnPanel from '@/components/clientes/NfseAdnPanel';
 import DocumentosTabela from '@/components/clientes/DocumentosTabela';
+import ResponsavelLegalContato from '@/components/clientes/ResponsavelLegalContato';
 import { ACEITOS_DOCUMENTO } from '@/lib/documentoPrevia';
 import { rotuloTipoObrigacao, type TIPOS_OBRIGACAO } from '@/lib/classificacao';
 import { regraDosTipos } from '@/lib/feriados';
@@ -623,8 +624,11 @@ export function ClienteDetalhePanel({
     { label: 'CNPJ', value: cliente.cnpj ? maskCnpj(cliente.cnpj) : '—', hint: 'Cadastro Nacional da Pessoa Jurídica da empresa.' },
     { label: 'Razão Social', value: cliente.razaoSocial || '—', hint: 'Nome oficial registrado na Receita Federal.' },
     { label: 'Nome Fantasia', value: cliente.nomeFantasia || '—', hint: 'Nome comercial pelo qual a empresa é conhecida.' },
-    { label: 'Proprietário', value: cliente.proprietario || '—', hint: 'Sócio ou responsável informado no cadastro.' },
-    { label: 'Telefone', value: cliente.telefone || '—', hint: 'Contato principal para cobrança e comunicação.' },
+    {
+      label: 'Responsável legal',
+      value: <ResponsavelLegalContato nome={cliente.proprietario} telefone={cliente.telefone} />,
+      hint: 'Sócio ou responsável legal da empresa, com telefone e atalho para o WhatsApp.',
+    },
     { label: 'E-mail', value: cliente.email || '—', hint: 'E-mail para envio de avisos e documentos.' },
     { label: 'Honorário', value: cliente.honorario == null ? '—' : mascarar(formatCurrency(cliente.honorario)), hint: 'Valor mensal cobrado pelo escritório. Pode ficar oculto sem permissão de honorário.' },
     { label: 'Dia Vencimento', value: String(cliente.diaVencimento || '—'), hint: 'Dia do mês em que o honorário vence.' },
@@ -684,7 +688,6 @@ export function ClienteDetalhePanel({
       value: cliente.certificadoObservacao || '—',
       hint: 'Anotação livre sobre renovação ou localização do token.',
     },
-    { label: 'Responsável', value: cliente.responsavelNome || '—', hint: 'Responsável legado do cadastro (além dos setores).' },
     { label: 'Indicação', value: cliente.indicacao || '—', hint: 'Origem ou observação comercial do cliente.' },
     { label: 'Cliente ativo', value: cliente.ativo === false ? 'Não' : 'Sim', hint: 'Clientes inativos saem da operação normal de cobrança.' },
     {

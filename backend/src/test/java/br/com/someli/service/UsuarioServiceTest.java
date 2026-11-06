@@ -32,6 +32,7 @@ class UsuarioServiceTest {
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private AuthorizationService authorizationService;
     @Mock private AuditLogService auditLogService;
+    @Mock private UsuarioCarteiraService carteiraService;
 
     private UsuarioService usuarioService;
 
@@ -39,7 +40,7 @@ class UsuarioServiceTest {
     void setUp() {
         usuarioService = new UsuarioService(
                 usuarioRepository, passwordEncoder, "./data/uploads",
-                authorizationService, auditLogService);
+                authorizationService, auditLogService, carteiraService);
     }
 
     @Test
@@ -75,16 +76,20 @@ class UsuarioServiceTest {
     }
 
     @Test
-    void remover_comPermissao_excluiERegistraAuditoria() {
+    void remover_desativaEGuardaOHistoricoEmVezDeApagar() {
         Usuario alvo = new Usuario();
         alvo.setId(2L);
         alvo.setNome("Alvo");
+        alvo.setAtivo(true);
         when(usuarioRepository.findById(2L)).thenReturn(Optional.of(alvo));
 
         usuarioService.remover(2L);
 
-        verify(usuarioRepository).delete(alvo);
-        verify(auditLogService).registrar("USUARIO_EXCLUIR", "USUARIO", "2", "Alvo", null);
+        // Quem fez o quê (ocorrências, responsáveis antigos) continua apontando para ele
+        assertThat(alvo.getAtivo()).isFalse();
+        verify(usuarioRepository).save(alvo);
+        verify(usuarioRepository, never()).delete(any());
+        verify(auditLogService).registrar("USUARIO_DESATIVAR", "USUARIO", "2", "Alvo", null);
     }
 
     @Test
@@ -107,7 +112,7 @@ class UsuarioServiceTest {
     void uploadFoto_propria_naoExigePermissaoDeEdicao(@TempDir Path dir) throws Exception {
         usuarioService = new UsuarioService(
                 usuarioRepository, passwordEncoder, dir.toString(),
-                authorizationService, auditLogService);
+                authorizationService, auditLogService, carteiraService);
         Usuario atual = new Usuario();
         atual.setId(1L);
         when(authorizationService.currentUser()).thenReturn(atual);
@@ -118,5 +123,37 @@ class UsuarioServiceTest {
 
         assertThat(usuarioService.uploadFoto(1L, file).getFotoUrl()).startsWith("usuarios/1/");
         verify(authorizationService, never()).requirePermission(PermissaoCodigo.USUARIOS_EDITAR);
+    }
+
+    @Test
+    void remover_comClientes_exigeTransferirAntes() {
+        Usuario karol = new Usuario();
+        karol.setId(5L);
+        when(usuarioRepository.findById(5L)).thenReturn(Optional.of(karol));
+        when(carteiraService.temCarteira(5L)).thenReturn(true);
+
+        assertThatThrownBy(() -> usuarioService.remover(5L))
+                .isInstanceOf(br.com.someli.exception.RegraNegocioException.class)
+                .hasMessageContaining("Transfira");
+        verify(usuarioRepository, never()).delete(any());
+    }
+
+    @Test
+    void desativar_comClientes_exigeTransferirAntes() {
+        Usuario karol = new Usuario();
+        karol.setId(5L);
+        karol.setAtivo(true);
+        when(usuarioRepository.findById(5L)).thenReturn(Optional.of(karol));
+        when(carteiraService.temCarteira(5L)).thenReturn(true);
+        br.com.someli.dto.UpdateUsuarioRequestDTO req = new br.com.someli.dto.UpdateUsuarioRequestDTO();
+        req.setNome("Karol");
+        req.setCpf("52998224725");
+        req.setEmail("karol@someli.com.br");
+        req.setTelefone("85999990000");
+        req.setAtivo(false);
+
+        assertThatThrownBy(() -> usuarioService.atualizar(5L, req))
+                .isInstanceOf(br.com.someli.exception.RegraNegocioException.class);
+        verify(usuarioRepository, never()).save(any());
     }
 }

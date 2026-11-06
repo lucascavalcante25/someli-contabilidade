@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Search, Users, DollarSign, Receipt, UserCog, ChevronLeft, ChevronRight, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, Search, Users, DollarSign, Receipt, UserCog, ChevronLeft, ChevronRight, ClipboardList, CalendarCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import BrandLogo from '@/components/BrandLogo';
@@ -11,6 +11,7 @@ const menuItems = [
   { label: 'Clientes', icon: Users, path: '/clientes', module: 'CLIENTES' },
   { label: 'Financeiro', icon: DollarSign, path: '/financeiro', module: 'FINANCEIRO' },
   { label: 'Despesas', icon: Receipt, path: '/despesas', module: 'DESPESAS' },
+  { label: 'Painel do mês', icon: CalendarCheck, path: '/painel-mensal', module: 'OBRIGACOES' },
   { label: 'Tipos de Obrigação', icon: ClipboardList, path: '/obrigacoes-tipos', module: 'OBRIGACOES_TIPOS' },
   { label: 'Usuários', icon: UserCog, path: '/usuarios', module: 'USUARIOS' },
 ];

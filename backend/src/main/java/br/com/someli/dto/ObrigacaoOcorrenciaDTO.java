@@ -8,6 +8,8 @@ public class ObrigacaoOcorrenciaDTO {
     private Long clienteObrigacaoId;
     private Long clienteId;
     private String clienteNome;
+    /** Nome pelo qual a equipe conhece o cliente (cai na razão social se vazio). */
+    private String clienteNomeFantasia;
     private Long obrigacaoId;
     private String obrigacaoNome;
     private String urlPortal;
@@ -31,6 +33,8 @@ public class ObrigacaoOcorrenciaDTO {
     public Long getClienteId() { return clienteId; }
     public void setClienteId(Long clienteId) { this.clienteId = clienteId; }
     public String getClienteNome() { return clienteNome; }
+    public String getClienteNomeFantasia() { return clienteNomeFantasia; }
+    public void setClienteNomeFantasia(String clienteNomeFantasia) { this.clienteNomeFantasia = clienteNomeFantasia; }
     public void setClienteNome(String clienteNome) { this.clienteNome = clienteNome; }
     public Long getObrigacaoId() { return obrigacaoId; }
     public void setObrigacaoId(Long obrigacaoId) { this.obrigacaoId = obrigacaoId; }

@@ -20,6 +20,8 @@ public final class ObrigacaoOcorrenciaMapper {
         if (co.getCliente() != null) {
             dto.setClienteId(co.getCliente().getId());
             dto.setClienteNome(co.getCliente().getRazaoSocial());
+            String fantasia = co.getCliente().getNomeFantasia();
+            dto.setClienteNomeFantasia(fantasia != null && !fantasia.isBlank() ? fantasia : co.getCliente().getRazaoSocial());
         }
         if (co.getObrigacao() != null) {
             dto.setObrigacaoId(co.getObrigacao().getId());

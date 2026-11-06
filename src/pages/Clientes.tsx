@@ -24,6 +24,11 @@ import { certificadoBadgeClass, certificadoStatusLabel } from '@/lib/certificado
 import { correspondeBusca } from '@/lib/buscaClientes';
 import { rotuloRegime, rotuloTipoObrigacao } from '@/lib/classificacao';
 import { antecipaPorTipo, regraDosTipos } from '@/lib/feriados';
+import { carregarResponsaveis, salvarResponsaveis, type ResponsaveisPorSetor } from '@/lib/responsaveis';
+import ResponsaveisSetorFields from '@/components/clientes/ResponsaveisSetorFields';
+import ResponsavelLegalContato from '@/components/clientes/ResponsavelLegalContato';
+import { useAuth } from '@/contexts/AuthContext';
+import { Permissoes } from '@/lib/permissions';
 import { useFeriados } from '@/hooks/useFeriados';
 import { ClienteDetalhePanel } from '@/pages/ClienteDetalhe';
 
@@ -114,7 +119,7 @@ function compareClientes(a: Cliente, b: Cliente, key: SortKey, dir: SortDir): nu
       cmp = rotuloRegime(a.regimeTributario).localeCompare(rotuloRegime(b.regimeTributario), 'pt-BR');
       break;
     case 'responsavel':
-      cmp = (a.responsavelNome || '').localeCompare(b.responsavelNome || '', 'pt-BR', { sensitivity: 'base' });
+      cmp = (a.proprietario || '').localeCompare(b.proprietario || '', 'pt-BR', { sensitivity: 'base' });
       break;
     case 'telefone':
       cmp = (a.telefone || '').localeCompare(b.telefone || '', 'pt-BR');
@@ -153,6 +158,9 @@ interface ClienteFormData {
   certificadoTipo?: string;
   certificadoObservacao?: string;
   clienteObrigacoes: ClienteObrigacaoFormItem[];
+  /** Responsável de cada setor (usuário do sistema); originais servem para salvar só o que mudou. */
+  responsaveis?: ResponsaveisPorSetor;
+  responsaveisOriginais?: ResponsaveisPorSetor;
 }
 
 function formatCurrency(value: number): string {
@@ -561,6 +569,14 @@ export default function Clientes() {
 
       const saved = normalizeClienteFromApi(await response.json());
 
+      if (form.responsaveis) {
+        try {
+          await salvarResponsaveis(saved.id, form.responsaveis, form.responsaveisOriginais ?? {});
+        } catch (e) {
+          toast.error(`Cliente salvo, mas os responsáveis não: ${e instanceof Error ? e.message : 'erro'}`);
+        }
+      }
+
       let idsAntes: Set<number> = new Set();
       if (clienteId) {
         const resObr = await apiFetch(`${apiBaseUrl}/clientes/${clienteId}/obrigacoes`, { headers: getAuthHeaders() });
@@ -684,8 +700,7 @@ export default function Clientes() {
                 <SortableTh label="Razão Social" sortKey="razaoSocial" sortRules={sortRules} onSort={toggleSort} align="left" />
                 <SortableTh label="CNPJ" sortKey="cnpj" sortRules={sortRules} onSort={toggleSort} align="left" className="hidden sm:table-cell" />
                 <SortableTh label="Regime" sortKey="regime" sortRules={sortRules} onSort={toggleSort} align="left" className="hidden md:table-cell" />
-                <SortableTh label="Responsável" sortKey="responsavel" sortRules={sortRules} onSort={toggleSort} align="left" className="hidden md:table-cell" />
-                <SortableTh label="Telefone" sortKey="telefone" sortRules={sortRules} onSort={toggleSort} align="left" className="hidden lg:table-cell" />
+                <SortableTh label="Responsável legal" sortKey="responsavel" sortRules={sortRules} onSort={toggleSort} align="left" className="hidden md:table-cell" />
                 <SortableTh label="Honorário" sortKey="honorario" sortRules={sortRules} onSort={toggleSort} align="right" />
                 <SortableTh label="Status Pagamento" sortKey="status" sortRules={sortRules} onSort={toggleSort} align="center" />
                 <SortableTh label="Situação" sortKey="ativo" sortRules={sortRules} onSort={toggleSort} align="center" />
@@ -695,12 +710,12 @@ export default function Clientes() {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={10} className="px-4 py-6 text-center text-muted-foreground">Carregando clientes...</td>
+                  <td colSpan={9} className="px-4 py-6 text-center text-muted-foreground">Carregando clientes...</td>
                 </tr>
               )}
               {!loading && paginated.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="px-4 py-6 text-center text-muted-foreground">Nenhum cliente encontrado</td>
+                  <td colSpan={9} className="px-4 py-6 text-center text-muted-foreground">Nenhum cliente encontrado</td>
                 </tr>
               )}
               {paginated.map(c => (
@@ -748,8 +763,9 @@ export default function Clientes() {
                   </td>
                   <td className="px-3 sm:px-4 py-3 tabular-nums text-muted-foreground whitespace-nowrap hidden sm:table-cell">{c.cnpj ? maskCnpj(c.cnpj) : '—'}</td>
                   <td className="px-3 sm:px-4 py-3 hidden md:table-cell text-muted-foreground whitespace-nowrap">{rotuloRegime(c.regimeTributario)}</td>
-                  <td className="px-3 sm:px-4 py-3 hidden md:table-cell text-muted-foreground">{c.responsavelNome || '—'}</td>
-                  <td className="px-3 sm:px-4 py-3 hidden lg:table-cell text-muted-foreground tabular-nums">{c.telefone}</td>
+                  <td className="px-3 sm:px-4 py-3 hidden md:table-cell max-w-[220px]">
+                    <ResponsavelLegalContato nome={c.proprietario} telefone={c.telefone} />
+                  </td>
                   <td className="px-3 sm:px-4 py-3 text-right tabular-nums font-medium whitespace-nowrap">{mascarar(formatCurrency(c.honorario))}</td>
                   <td className="px-3 sm:px-4 py-3 text-center whitespace-nowrap">
                     <div className="flex flex-col items-center gap-0.5">
@@ -813,7 +829,7 @@ export default function Clientes() {
                 </tr>
                 {expandedClienteId === c.id && (
                   <tr key={`${c.id}-exp`} className="border-t border-border bg-muted/20">
-                    <td colSpan={10} className="px-4 py-3">
+                    <td colSpan={9} className="px-4 py-3">
                       <div className="pl-8">
                         <p className="label-text font-medium mb-2">Documentos do cliente</p>
                         {loadingDocumentos === c.id ? (
@@ -959,6 +975,7 @@ function ClienteFormModal({
   });
 
   const [usuarios, setUsuarios] = useState<UsuarioResumo[]>([]);
+  const { can } = useAuth();
 
   const [obrigacoesCatalogo, setObrigacoesCatalogo] = useState<{ id: number; nome: string; tipo: string }[]>([]);
   const [pendingObrigacaoIds, setPendingObrigacaoIds] = useState<number[]>([]);
@@ -1018,7 +1035,8 @@ function ClienteFormModal({
   useEffect(() => {
     (async () => {
       try {
-        const res = await apiFetch(`${apiBaseUrl}/usuarios`, { headers: getAuthHeaders() });
+        // Só ativos: quem saiu do escritório não pode ser escolhido
+        const res = await apiFetch(`${apiBaseUrl}/usuarios/ativos`, { headers: getAuthHeaders() });
         if (res.ok) {
           const data = await res.json();
           setUsuarios((Array.isArray(data) ? data : []).map((u: any) => ({ id: Number(u.id), nome: String(u.nome || '') })));
@@ -1028,6 +1046,13 @@ function ClienteFormModal({
       }
     })();
   }, [apiBaseUrl, getAuthHeaders]);
+
+  useEffect(() => {
+    if (!cliente?.id) return;
+    carregarResponsaveis(cliente.id)
+      .then((r) => setForm((p) => ({ ...p, responsaveis: r, responsaveisOriginais: r })))
+      .catch(() => setForm((p) => ({ ...p, responsaveis: {}, responsaveisOriginais: {} })));
+  }, [cliente?.id]);
 
   useEffect(() => {
     (async () => {
@@ -1170,8 +1195,8 @@ function ClienteFormModal({
             { key: 'cnpj', label: 'CNPJ (opcional)', placeholder: '00.000.000/0000-00' },
             { key: 'razaoSocial', label: 'Razão Social' },
             { key: 'nomeFantasia', label: 'Nome Fantasia' },
-            { key: 'proprietario', label: 'Proprietário' },
-            { key: 'telefone', label: 'Telefone' },
+            { key: 'proprietario', label: 'Responsável legal (proprietário)' },
+            { key: 'telefone', label: 'Telefone / WhatsApp do responsável', placeholder: '(85) 99999-9999' },
             { key: 'email', label: 'E-mail', type: 'email' },
           ].map(f => (
             <div key={f.key} className="space-y-1.5">
@@ -1331,17 +1356,18 @@ function ClienteFormModal({
                 className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/20 transition-all"
               />
             </div>
-            <div className="space-y-1.5">
-              <label className="label-text">Responsável</label>
-              <AppSelect
-                value={form.responsavelId != null ? String(form.responsavelId) : ''}
-                onChange={(v) => update('responsavelId', v ? Number(v) : undefined)}
-                allowEmpty
-                placeholder="Não atribuído"
-                options={[
-                  { value: '', label: 'Não atribuído' },
-                  ...usuarios.map((u) => ({ value: String(u.id), label: u.nome })),
-                ]}
+            <div className="sm:col-span-2 lg:col-span-4 rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+              <div>
+                <p className="text-sm font-medium">Responsáveis por setor</p>
+                <p className="text-xs text-muted-foreground">
+                  Cada pessoa vê no painel só os clientes e setores pelos quais responde. Deixe em branco o setor que o cliente não usa.
+                </p>
+              </div>
+              <ResponsaveisSetorFields
+                value={form.responsaveis ?? {}}
+                usuarios={usuarios}
+                onChange={(r) => setForm((p) => ({ ...p, responsaveis: r }))}
+                somenteLeitura={!can(Permissoes.CLIENTES_RESPONSAVEIS_EDITAR)}
               />
             </div>
             <div className="space-y-1.5">
