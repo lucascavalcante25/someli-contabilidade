@@ -12,9 +12,10 @@ import DateField from '@/components/shared/DateField';
 import HintTooltip from '@/components/shared/HintTooltip';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { rotuloRegime, rotuloTipoObrigacao, TIPOS_OBRIGACAO } from '@/lib/classificacao';
 
 function labelRegime(regime: string): string {
-  return (regime || '').replace(/_/g, ' ');
+  return rotuloRegime(regime);
 }
 
 function nomesDoTemplate(itens?: { obrigacaoNome?: string }[]): string[] {
@@ -36,7 +37,6 @@ interface ClienteOpt {
   tagIds?: number[];
 }
 
-const TIPOS = ['FISCAL', 'LICENCA', 'OUTROS'];
 
 export default function ObrigacoesTipos() {
   const apiBaseUrl = useMemo(() => API_BASE_URL, []);
@@ -221,10 +221,10 @@ export default function ObrigacoesTipos() {
               <Link to="/clientes" className="text-primary hover:underline font-medium">
                 Abra Clientes → Editar
               </Link>
-              {' '}e informe MEI, Simples Nacional ou Lucro Presumido.
+              {' '}e informe MEI, Simples Nacional, Lucro Presumido ou Lucro Real.
             </p>
           </div>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {templates.map((t) => {
               const nomes = nomesDoTemplate(t.itens);
               const regimeTxt = labelRegime(t.regime);
@@ -309,9 +309,9 @@ export default function ObrigacoesTipos() {
                     <HintTooltip content={o.nome} enabled={!!o.nome && o.nome.length > 22}>
                       <span className="block truncate">{o.nome}</span>
                     </HintTooltip>
-                    <span className="sm:hidden text-[10px] text-muted-foreground">{o.tipo}</span>
+                    <span className="sm:hidden text-[10px] text-muted-foreground">{rotuloTipoObrigacao(o.tipo)}</span>
                   </td>
-                  <td className="px-3 sm:px-4 py-3 hidden sm:table-cell">{o.tipo}</td>
+                  <td className="px-3 sm:px-4 py-3 hidden sm:table-cell">{rotuloTipoObrigacao(o.tipo)}</td>
                   <td className="px-3 sm:px-4 py-3 hidden lg:table-cell text-muted-foreground max-w-[160px] truncate">
                     {o.urlPortal ? (
                       <a href={o.urlPortal} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate block">
@@ -605,7 +605,7 @@ function ObrigacaoTipoFormModal({
               value={form.tipo}
               onChange={(v) => setForm((p) => ({ ...p, tipo: v }))}
               className="mt-1.5"
-              options={TIPOS.map((t) => ({ value: t, label: t }))}
+              options={TIPOS_OBRIGACAO.map((t) => ({ value: t.value, label: t.label }))}
             />
           </div>
           <div>

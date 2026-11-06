@@ -2,6 +2,7 @@ package br.com.someli.service;
 
 import br.com.someli.domain.Obrigacao;
 import br.com.someli.domain.PermissaoCodigo;
+import br.com.someli.domain.TipoObrigacao;
 import br.com.someli.dto.CreateObrigacaoRequestDTO;
 import br.com.someli.dto.UpdateObrigacaoRequestDTO;
 import br.com.someli.exception.ObrigacaoNaoEncontradaException;
@@ -36,7 +37,7 @@ public class ObrigacaoService {
         authorizationService.requirePermission(PermissaoCodigo.OBRIGACOES_TIPOS_GERENCIAR);
         Obrigacao obrigacao = new Obrigacao();
         obrigacao.setNome(request.getNome().trim());
-        obrigacao.setTipo(request.getTipo());
+        aplicarTipo(obrigacao, request.getTipo());
         obrigacao.setDescricao(trimOrNull(request.getDescricao()));
         obrigacao.setDiasAntecedenciaAlerta(request.getDiasAntecedenciaAlerta() != null ? request.getDiasAntecedenciaAlerta() : 7);
         obrigacao.setUrlPortal(trimOrNull(request.getUrlPortal()));
@@ -47,7 +48,7 @@ public class ObrigacaoService {
         authorizationService.requirePermission(PermissaoCodigo.OBRIGACOES_TIPOS_GERENCIAR);
         Obrigacao obrigacao = buscarPorId(id);
         if (request.getNome() != null) obrigacao.setNome(request.getNome().trim());
-        if (request.getTipo() != null) obrigacao.setTipo(request.getTipo());
+        if (request.getTipo() != null) aplicarTipo(obrigacao, request.getTipo());
         if (request.getDescricao() != null) obrigacao.setDescricao(trimOrNull(request.getDescricao()));
         if (request.getDiasAntecedenciaAlerta() != null) obrigacao.setDiasAntecedenciaAlerta(request.getDiasAntecedenciaAlerta());
         if (request.getUrlPortal() != null) obrigacao.setUrlPortal(trimOrNull(request.getUrlPortal()));
@@ -57,6 +58,13 @@ public class ObrigacaoService {
     public void remover(Long id) {
         authorizationService.requirePermission(PermissaoCodigo.OBRIGACOES_TIPOS_GERENCIAR);
         obrigacaoRepository.delete(buscarPorId(id));
+    }
+
+    /** O tipo define o setor que recebe as ocorrências (ex.: Pessoal vai para o Departamento Pessoal). */
+    private void aplicarTipo(Obrigacao obrigacao, String tipo) {
+        String normalizado = TipoObrigacao.normalizar(tipo);
+        obrigacao.setTipo(normalizado);
+        obrigacao.setSetor(TipoObrigacao.setor(normalizado));
     }
 
     private String trimOrNull(String value) {

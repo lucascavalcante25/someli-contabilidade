@@ -102,6 +102,36 @@ class TagSyncServiceTest {
     }
 
     @Test
+    void tagDeRegime_segueORegimeDoCadastro() {
+        Tag simples = tag("SIMPLES_NACIONAL", true, "REGIME");
+        Tag presumido = tag("LUCRO_PRESUMIDO", true, "REGIME");
+        Tag urgente = tag("URGENTE", false, null);
+        Cliente c = baseCliente();
+        c.setDataInicioCobranca(LocalDate.now().minusYears(1));
+        c.setRegimeTributario("SIMPLES_NACIONAL");
+        c.setTags(new HashSet<>(Set.of(presumido, urgente)));
+        lenient().when(tagRepository.findByNome("SIMPLES_NACIONAL")).thenReturn(Optional.of(simples));
+        when(clienteRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        assertTrue(service.aplicarRegras(c, 0, LocalDate.now()));
+
+        assertEquals(Set.of(simples, urgente), c.getTags());
+    }
+
+    @Test
+    void tagDeRegime_lucroReal() {
+        Tag real = tag("LUCRO_REAL", true, "REGIME");
+        Cliente c = baseCliente();
+        c.setDataInicioCobranca(LocalDate.now().minusYears(1));
+        c.setRegimeTributario("LUCRO_REAL");
+        lenient().when(tagRepository.findByNome("LUCRO_REAL")).thenReturn(Optional.of(real));
+        when(clienteRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        assertTrue(service.aplicarRegras(c, 0, LocalDate.now()));
+        assertTrue(c.getTags().contains(real));
+    }
+
+    @Test
     void meiManual_nuncaRemovidaPorTempo() {
         Cliente c = baseCliente();
         c.setDataInicioCobranca(LocalDate.now().minusYears(2));

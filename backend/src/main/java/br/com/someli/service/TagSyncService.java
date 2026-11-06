@@ -1,6 +1,7 @@
 package br.com.someli.service;
 
 import br.com.someli.domain.Cliente;
+import br.com.someli.domain.RegimeTributario;
 import br.com.someli.domain.Tag;
 import br.com.someli.domain.TagRegra;
 import br.com.someli.repository.ClienteRepository;
@@ -24,7 +25,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Sincroniza tags operacionais derivadas de estado (NOVO_CLIENTE, INADIMPLENTE).
+ * Sincroniza tags operacionais derivadas de estado (NOVO_CLIENTE, INADIMPLENTE e a tag do regime).
  * Tags manuais (MEI, URGENTE, regimes…) não são alteradas.
  */
 @Service
@@ -32,6 +33,9 @@ public class TagSyncService {
 
     private static final Logger log = LoggerFactory.getLogger(TagSyncService.class);
     static final int MESES_SEGUIDOS_INADIMPLENTE = 3;
+    private static final Set<String> TAGS_DE_REGIME = Set.of(
+            RegimeTributario.MEI, RegimeTributario.SIMPLES_NACIONAL,
+            RegimeTributario.LUCRO_PRESUMIDO, RegimeTributario.LUCRO_REAL);
 
     private final TagRepository tagRepository;
     private final ClienteRepository clienteRepository;
@@ -120,6 +124,11 @@ public class TagSyncService {
         if (querInad) {
             tagInad.ifPresent(proximas::add);
         }
+        // Tag de regime (MEI, SIMPLES_NACIONAL, LUCRO_PRESUMIDO, LUCRO_REAL) espelha o regime do cadastro
+        String regime = RegimeTributario.normalizar(cliente.getRegimeTributario());
+        if (regime != null && TAGS_DE_REGIME.contains(regime)) {
+            tagRepository.findByNome(regime).ifPresent(proximas::add);
+        }
 
         Set<Long> idsAntes = atuais.stream().map(Tag::getId).filter(Objects::nonNull).collect(Collectors.toSet());
         Set<Long> idsDepois = proximas.stream().map(Tag::getId).filter(Objects::nonNull).collect(Collectors.toSet());
@@ -162,6 +171,6 @@ public class TagSyncService {
 
     /** Nomes das regras automáticas conhecidas (para UI / testes). */
     public static Set<String> regrasAutomaticas() {
-        return Set.of(TagRegra.NOVO_CLIENTE, TagRegra.INADIMPLENTE);
+        return Set.of(TagRegra.NOVO_CLIENTE, TagRegra.INADIMPLENTE, TagRegra.REGIME);
     }
 }

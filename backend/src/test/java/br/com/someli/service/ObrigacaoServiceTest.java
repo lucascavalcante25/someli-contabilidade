@@ -129,4 +129,43 @@ class ObrigacaoServiceTest {
         assertEquals(9L, dto.getObrigacaoId());
         assertEquals("DEPARTAMENTO_PESSOAL", dto.getSetor());
     }
+
+    @Test
+    void criar_tipoPessoal_vaiParaODepartamentoPessoal() {
+        when(repository.save(any(Obrigacao.class))).thenAnswer(inv -> inv.getArgument(0));
+        CreateObrigacaoRequestDTO req = new CreateObrigacaoRequestDTO();
+        req.setNome("Folha de pagamento");
+        req.setTipo("pessoal");
+
+        Obrigacao o = service.criar(req);
+
+        assertEquals("PESSOAL", o.getTipo());
+        assertEquals("DEPARTAMENTO_PESSOAL", o.getSetor());
+    }
+
+    @Test
+    void atualizar_tipoContabilESocietario() {
+        Obrigacao existente = new Obrigacao();
+        existente.setId(5L);
+        existente.setNome("ECD");
+        existente.setTipo("FISCAL");
+        when(repository.findById(5L)).thenReturn(Optional.of(existente));
+        when(repository.save(any(Obrigacao.class))).thenAnswer(inv -> inv.getArgument(0));
+        UpdateObrigacaoRequestDTO req = new UpdateObrigacaoRequestDTO();
+        req.setTipo("CONTABIL");
+
+        assertEquals("CONTABIL", service.atualizar(5L, req).getSetor());
+        req.setTipo("SOCIETARIO");
+        assertEquals("SOCIETARIO", service.atualizar(5L, req).getSetor());
+    }
+
+    @Test
+    void tipoDesconhecido_recusa() {
+        CreateObrigacaoRequestDTO req = new CreateObrigacaoRequestDTO();
+        req.setNome("X");
+        req.setTipo("QUALQUER");
+
+        assertThrows(br.com.someli.exception.RegraNegocioException.class, () -> service.criar(req));
+        verify(repository, never()).save(any());
+    }
 }

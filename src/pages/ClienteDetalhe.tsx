@@ -26,10 +26,11 @@ import SolicitacoesDocumento from '@/components/clientes/SolicitacoesDocumento';
 import NfseAdnPanel from '@/components/clientes/NfseAdnPanel';
 import DocumentosTabela from '@/components/clientes/DocumentosTabela';
 import { ACEITOS_DOCUMENTO } from '@/lib/documentoPrevia';
+import { rotuloTipoObrigacao, type TIPOS_OBRIGACAO } from '@/lib/classificacao';
 import { rotuloContaRecebimento } from '@/lib/contaRecebimento';
 import { certificadoBadgeClass, certificadoStatusLabel, formatCertificadoResumo } from '@/lib/certificado';
 
-type TipoObrigacao = 'FISCAL' | 'LICENCA' | 'OUTROS';
+type TipoObrigacao = (typeof TIPOS_OBRIGACAO)[number]['value'];
 type StatusObrigacao = 'em_dia' | 'a_vencer' | 'atrasado' | 'proximo_vencimento';
 
 interface Obrigacao {
@@ -1447,7 +1448,7 @@ function ObrigacaoFormModal({
                     />
                     <span className="text-sm font-medium flex-1 min-w-0 truncate">{o.nome}</span>
                     <span className="text-[10px] uppercase tracking-wide text-muted-foreground shrink-0 rounded-full bg-muted px-2 py-0.5">
-                      {o.tipo}
+                      {rotuloTipoObrigacao(o.tipo)}
                     </span>
                   </label>
                 );

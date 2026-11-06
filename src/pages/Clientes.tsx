@@ -21,6 +21,8 @@ import ToggleValoresButton from '@/components/shared/ToggleValoresButton';
 import { useValoresVisibilidade } from '@/contexts/ValoresVisibilidadeContext';
 import { PAGE_SIZE } from '@/lib/constants';
 import { certificadoBadgeClass, certificadoStatusLabel } from '@/lib/certificado';
+import { correspondeBusca } from '@/lib/buscaClientes';
+import { rotuloRegime } from '@/lib/classificacao';
 import { ClienteDetalhePanel } from '@/pages/ClienteDetalhe';
 
 type TipoPagamento = 'pessoa_fisica' | 'pessoa_juridica' | 'terceiros';
@@ -90,7 +92,7 @@ interface ClienteDocumento {
   descricao?: string;
 }
 
-type SortKey = 'razaoSocial' | 'cnpj' | 'responsavel' | 'telefone' | 'honorario' | 'status' | 'ativo';
+type SortKey = 'razaoSocial' | 'cnpj' | 'regime' | 'responsavel' | 'telefone' | 'honorario' | 'status' | 'ativo';
 type SortRule = { key: SortKey; dir: SortDir };
 
 function compareClientes(a: Cliente, b: Cliente, key: SortKey, dir: SortDir): number {
@@ -105,6 +107,9 @@ function compareClientes(a: Cliente, b: Cliente, key: SortKey, dir: SortDir): nu
       break;
     case 'cnpj':
       cmp = (a.cnpj || '').localeCompare(b.cnpj || '', 'pt-BR');
+      break;
+    case 'regime':
+      cmp = rotuloRegime(a.regimeTributario).localeCompare(rotuloRegime(b.regimeTributario), 'pt-BR');
       break;
     case 'responsavel':
       cmp = (a.responsavelNome || '').localeCompare(b.responsavelNome || '', 'pt-BR', { sensitivity: 'base' });
@@ -387,14 +392,8 @@ export default function Clientes() {
   }, [location.state, navigate, clientes]);
 
   const filtered = useMemo(() => {
-    const q = search.toLowerCase();
     const list = clientes.filter(c => {
-      const matchText =
-        c.razaoSocial.toLowerCase().includes(q) ||
-        c.cnpj.includes(q) ||
-        c.proprietario.toLowerCase().includes(q) ||
-        c.email.toLowerCase().includes(q) ||
-        (c.tags || []).some((t) => t.nome.toLowerCase().includes(q));
+      const matchText = correspondeBusca(c, search);
       const matchTag = !tagFilter || (c.tags || []).some((t) => String(t.id) === tagFilter);
       const st = c.certificadoStatus || 'NAO_INFORMADO';
       const matchCert =
@@ -649,7 +648,7 @@ export default function Clientes() {
             className="sm:w-44"
             options={[
               { value: '', label: 'Todas as tags' },
-              ...tagOptions.map((t) => ({ value: String(t.id), label: t.nome })),
+              ...tagOptions.map((t) => ({ value: String(t.id), label: t.nome.replace(/_/g, ' ') })),
             ]}
           />
           <AppSelect
@@ -682,6 +681,7 @@ export default function Clientes() {
                 <th className="label-text px-2 py-3 text-center w-9"></th>
                 <SortableTh label="Razão Social" sortKey="razaoSocial" sortRules={sortRules} onSort={toggleSort} align="left" />
                 <SortableTh label="CNPJ" sortKey="cnpj" sortRules={sortRules} onSort={toggleSort} align="left" className="hidden sm:table-cell" />
+                <SortableTh label="Regime" sortKey="regime" sortRules={sortRules} onSort={toggleSort} align="left" className="hidden md:table-cell" />
                 <SortableTh label="Responsável" sortKey="responsavel" sortRules={sortRules} onSort={toggleSort} align="left" className="hidden md:table-cell" />
                 <SortableTh label="Telefone" sortKey="telefone" sortRules={sortRules} onSort={toggleSort} align="left" className="hidden lg:table-cell" />
                 <SortableTh label="Honorário" sortKey="honorario" sortRules={sortRules} onSort={toggleSort} align="right" />
@@ -693,12 +693,12 @@ export default function Clientes() {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={9} className="px-4 py-6 text-center text-muted-foreground">Carregando clientes...</td>
+                  <td colSpan={10} className="px-4 py-6 text-center text-muted-foreground">Carregando clientes...</td>
                 </tr>
               )}
               {!loading && paginated.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-4 py-6 text-center text-muted-foreground">Nenhum cliente encontrado</td>
+                  <td colSpan={10} className="px-4 py-6 text-center text-muted-foreground">Nenhum cliente encontrado</td>
                 </tr>
               )}
               {paginated.map(c => (
@@ -720,6 +720,9 @@ export default function Clientes() {
                     <HintTooltip content={c.razaoSocial} enabled={!!c.razaoSocial && c.razaoSocial.length > 28}>
                       <span className={`block truncate ${c.ativo === false ? 'line-through text-muted-foreground' : ''}`}>{c.razaoSocial}</span>
                     </HintTooltip>
+                    {c.nomeFantasia && c.nomeFantasia.trim().toLowerCase() !== c.razaoSocial.trim().toLowerCase() && (
+                      <span className="block truncate text-xs font-normal text-muted-foreground">{c.nomeFantasia}</span>
+                    )}
                     <div className="flex flex-wrap gap-1 mt-1">
                       {(c.certificadoStatus === 'VENCIDO' || c.certificadoStatus === 'VENCENDO') && (
                         <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${certificadoBadgeClass(c.certificadoStatus)}`}>
@@ -742,6 +745,7 @@ export default function Clientes() {
                     <span className="sm:hidden text-[11px] text-muted-foreground tabular-nums block truncate">{c.cnpj ? maskCnpj(c.cnpj) : '—'}</span>
                   </td>
                   <td className="px-3 sm:px-4 py-3 tabular-nums text-muted-foreground whitespace-nowrap hidden sm:table-cell">{c.cnpj ? maskCnpj(c.cnpj) : '—'}</td>
+                  <td className="px-3 sm:px-4 py-3 hidden md:table-cell text-muted-foreground whitespace-nowrap">{rotuloRegime(c.regimeTributario)}</td>
                   <td className="px-3 sm:px-4 py-3 hidden md:table-cell text-muted-foreground">{c.responsavelNome || '—'}</td>
                   <td className="px-3 sm:px-4 py-3 hidden lg:table-cell text-muted-foreground tabular-nums">{c.telefone}</td>
                   <td className="px-3 sm:px-4 py-3 text-right tabular-nums font-medium whitespace-nowrap">{mascarar(formatCurrency(c.honorario))}</td>
@@ -807,7 +811,7 @@ export default function Clientes() {
                 </tr>
                 {expandedClienteId === c.id && (
                   <tr key={`${c.id}-exp`} className="border-t border-border bg-muted/20">
-                    <td colSpan={9} className="px-4 py-3">
+                    <td colSpan={10} className="px-4 py-3">
                       <div className="pl-8">
                         <p className="label-text font-medium mb-2">Documentos do cliente</p>
                         {loadingDocumentos === c.id ? (
