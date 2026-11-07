@@ -4,6 +4,7 @@ import br.com.someli.domain.Cliente;
 import br.com.someli.domain.ClienteAcesso;
 import br.com.someli.domain.PermissaoCodigo;
 import br.com.someli.domain.Usuario;
+import br.com.someli.dto.ClienteAcessoAbertoDTO;
 import br.com.someli.dto.ClienteAcessoAtualizarRequest;
 import br.com.someli.dto.ClienteAcessoCriarRequest;
 import br.com.someli.dto.ClienteAcessoResumoDTO;
@@ -59,6 +60,22 @@ public class ClienteAcessoService {
                 .filter(a -> setorGuard.visivel(clienteId, a.getSetor()))
                 .map(this::resumo)
                 .toList();
+    }
+
+    /** Todos os acessos do cliente já em claro. Uma linha de auditoria por abertura da ficha, sem valores. */
+    @Transactional
+    public List<ClienteAcessoAbertoDTO> listarAbertos(Long clienteId) {
+        authorizationService.requirePermission(PermissaoCodigo.CLIENTE_ACESSOS_VER);
+        authorizationService.requireCompanyAccess(clienteId);
+        exigirCofre();
+        revelarRateLimiter.consumir(authorizationService.currentUser().getId());
+        List<ClienteAcessoAbertoDTO> lista = acessoRepository.findAtivosByClienteId(clienteId).stream()
+                .filter(a -> setorGuard.visivel(clienteId, a.getSetor()))
+                .map(this::aberto)
+                .toList();
+        auditLogService.registrar("ACESSOS_VISUALIZADOS", "CLIENTE", String.valueOf(clienteId), null,
+                lista.size() + " acesso(s)");
+        return lista;
     }
 
     @Transactional
@@ -221,6 +238,22 @@ public class ClienteAcessoService {
                 acesso.getSistema(),
                 acesso.getUrl(),
                 mascararLogin(login),
+                acesso.getSetor(),
+                acesso.getOrigem(),
+                acesso.getAtualizadoPor() == null ? null : acesso.getAtualizadoPor().getNome(),
+                acesso.getAtualizadoEm()
+        );
+    }
+
+    private ClienteAcessoAbertoDTO aberto(ClienteAcesso acesso) {
+        return new ClienteAcessoAbertoDTO(
+                acesso.getId(),
+                acesso.getCliente().getId(),
+                acesso.getSistema(),
+                acesso.getUrl(),
+                decifrar(acesso.getLogin(), acesso, "login"),
+                decifrar(acesso.getSenha(), acesso, "senha"),
+                acesso.getObservacao() == null ? null : decifrar(acesso.getObservacao(), acesso, "observacao"),
                 acesso.getSetor(),
                 acesso.getOrigem(),
                 acesso.getAtualizadoPor() == null ? null : acesso.getAtualizadoPor().getNome(),

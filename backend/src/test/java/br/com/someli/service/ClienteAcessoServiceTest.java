@@ -105,6 +105,38 @@ class ClienteAcessoServiceTest {
     }
 
     @Test
+    void listarAbertos_devolveTudoEmClaro_eAuditaUmaVezSemValores() {
+        when(authorizationService.currentUser()).thenReturn(usuario);
+        when(authorizationService.hasAlcadaGlobal(any())).thenReturn(true);
+        ClienteAcesso acesso = acesso("Acessos (Trello)", "joao", SENHA, "FISCAL");
+        acesso.setObservacao(crypto.cifrarTexto("GOV\nCPF 000", "cliente:7:acesso:observacao"));
+        when(acessoRepository.findAtivosByClienteId(7L)).thenReturn(List.of(acesso));
+
+        var lista = service.listarAbertos(7L);
+
+        assertThat(lista).hasSize(1);
+        assertThat(lista.get(0).login()).isEqualTo("joao");
+        assertThat(lista.get(0).senha()).isEqualTo(SENHA);
+        assertThat(lista.get(0).observacao()).isEqualTo("GOV\nCPF 000");
+        assertThat(lista.get(0).sistema()).isEqualTo("Acessos (Trello)");
+        verify(authorizationService).requirePermission(PermissaoCodigo.CLIENTE_ACESSOS_VER);
+        verify(authorizationService).requireCompanyAccess(7L);
+        ArgumentCaptor<String> valores = ArgumentCaptor.forClass(String.class);
+        verify(auditLogService, times(1)).registrar(eq("ACESSOS_VISUALIZADOS"), eq("CLIENTE"), eq("7"), isNull(), valores.capture());
+        assertThat(valores.getValue()).doesNotContain(SENHA).doesNotContain("joao");
+    }
+
+    @Test
+    void listarAbertos_semAlcada_naoDecifraNada() {
+        doThrow(new AcessoNegadoException("Sem alçada sobre este cliente"))
+                .when(authorizationService).requireCompanyAccess(8L);
+
+        assertThatThrownBy(() -> service.listarAbertos(8L)).isInstanceOf(AcessoNegadoException.class);
+        verify(acessoRepository, never()).findAtivosByClienteId(any());
+        verify(auditLogService, never()).registrar(anyString(), anyString(), anyString(), any(), any());
+    }
+
+    @Test
     void semPermissao_naoLista() {
         doThrow(new AcessoNegadoException("Sem permissão: CLIENTE_ACESSOS_VER"))
                 .when(authorizationService).requirePermission(PermissaoCodigo.CLIENTE_ACESSOS_VER);

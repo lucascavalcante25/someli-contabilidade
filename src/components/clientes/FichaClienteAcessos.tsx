@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Copy, Eye, EyeOff, KeyRound, Loader2, Pencil, Pin, Plus, StickyNote, Trash2 } from 'lucide-react';
+import { Copy, KeyRound, Loader2, Pencil, Pin, Plus, StickyNote, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import AppSelect from '@/components/shared/AppSelect';
 import { Badge } from '@/components/ui/badge';
@@ -18,11 +18,10 @@ import {
   criarAcesso,
   desativarAcesso,
   ErroAcesso,
-  listarAcessos,
-  revelarAcesso,
+  listarAcessosAbertos,
+  valorPreenchido,
+  type AcessoAberto,
   type AcessoForm,
-  type AcessoResumo,
-  type AcessoRevelado,
 } from '@/lib/acessos';
 import {
   atualizarAnotacao,
@@ -120,69 +119,28 @@ function AcessosLista({ clienteId }: { clienteId: number }) {
   const { can } = useAuth();
   const podeEditar = can(Permissoes.CLIENTE_ACESSOS_EDITAR);
   const queryClient = useQueryClient();
+  // A ficha abre mostrando tudo (como no Trello). Não guarda em cache depois de fechar.
   const consulta = useQuery({
     queryKey: CHAVE_ACESSOS(clienteId),
-    queryFn: () => listarAcessos(clienteId),
+    queryFn: () => listarAcessosAbertos(clienteId),
+    gcTime: 0,
+    staleTime: 0,
   });
-  const [revelados, setRevelados] = useState<Record<number, AcessoRevelado>>({});
   const [formulario, setFormulario] = useState<number | 'novo' | null>(null);
   const [confirmar, setConfirmar] = useState<number | null>(null);
   const [ocupado, setOcupado] = useState(false);
-  const timers = useRef<number[]>([]);
-
-  useEffect(() => () => {
-    timers.current.forEach((id) => window.clearTimeout(id));
-    setRevelados({});
-  }, []);
 
   async function recarregar() {
     await queryClient.invalidateQueries({ queryKey: CHAVE_ACESSOS(clienteId) });
     await queryClient.invalidateQueries({ queryKey: CHAVE_CONTAGENS });
   }
 
-  function agendarEsquecer(acessoId: number) {
-    const id = window.setTimeout(() => {
-      setRevelados((atual) => {
-        const proximo = { ...atual };
-        delete proximo[acessoId];
-        return proximo;
-      });
-    }, 30_000);
-    timers.current.push(id);
-  }
-
-  function agendarLimparClipboard() {
-    const id = window.setTimeout(() => {
-      navigator.clipboard.writeText('').catch(() => undefined);
-    }, 30_000);
-    timers.current.push(id);
-  }
-
-  async function revelar(acessoId: number) {
-    setOcupado(true);
+  async function copiar(valor: string, rotulo: string) {
     try {
-      const dados = await revelarAcesso(acessoId);
-      setRevelados((atual) => ({ ...atual, [acessoId]: dados }));
-      agendarEsquecer(acessoId);
-    } catch (erro) {
-      toast.error(textoErro(erro, 'Não foi possível revelar o acesso.'));
-    } finally {
-      setOcupado(false);
-    }
-  }
-
-  async function copiar(acessoId: number, campo: 'login' | 'senha') {
-    setOcupado(true);
-    try {
-      const dados = revelados[acessoId] ?? await revelarAcesso(acessoId);
-      const valor = campo === 'login' ? dados.login : dados.senha;
       await navigator.clipboard.writeText(valor);
-      agendarLimparClipboard();
-      toast.success(campo === 'login' ? 'Login copiado. A área de transferência será limpa em 30 segundos.' : 'Senha copiada. A área de transferência será limpa em 30 segundos.');
-    } catch (erro) {
-      toast.error(textoErro(erro, 'Não foi possível copiar.'));
-    } finally {
-      setOcupado(false);
+      toast.success(`${rotulo} copiado`);
+    } catch {
+      toast.error('Não foi possível copiar. Selecione o texto e copie manualmente.');
     }
   }
 
@@ -190,11 +148,6 @@ function AcessosLista({ clienteId }: { clienteId: number }) {
     setOcupado(true);
     try {
       await desativarAcesso(acessoId);
-      setRevelados((atual) => {
-        const proximo = { ...atual };
-        delete proximo[acessoId];
-        return proximo;
-      });
       setConfirmar(null);
       await recarregar();
       toast.success('Acesso desativado');
@@ -232,16 +185,14 @@ function AcessosLista({ clienteId }: { clienteId: number }) {
       {consulta.isError && <Estado erro={consulta.error} vazio="" onTentar={() => void consulta.refetch()} />}
       {consulta.isSuccess && consulta.data.length === 0 && <Estado erro={null} vazio="Nenhum acesso cadastrado" onTentar={() => undefined} />}
       {consulta.data?.map((acesso) => {
-        const aberto = revelados[acesso.id];
+        const login = valorPreenchido(acesso.login);
+        const senha = valorPreenchido(acesso.senha);
         return (
           <article key={acesso.id} className="min-w-0 space-y-2 rounded-lg border border-border p-3">
             <div className="flex min-w-0 items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold">{acesso.sistema}</p>
-                <p className="text-xs text-muted-foreground">
-                  {aberto ? aberto.login : acesso.loginMascarado}
-                  {acesso.atualizadoPorNome ? ` · ${acesso.atualizadoPorNome}` : ''}
-                </p>
+                {acesso.atualizadoPorNome && <p className="text-xs text-muted-foreground">{acesso.atualizadoPorNome}</p>}
               </div>
               {rotuloSetor(acesso.setor) && <Badge variant="secondary" className="shrink-0">{rotuloSetor(acesso.setor)}</Badge>}
             </div>
@@ -250,23 +201,41 @@ function AcessosLista({ clienteId }: { clienteId: number }) {
                 {acesso.url}
               </a>
             )}
-            {aberto?.observacao && <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">{aberto.observacao}</p>}
-            {aberto && (
-              <p className="break-all text-sm">
-                <span className="text-muted-foreground">Senha: </span>
-                <span className="font-mono">{aberto.senha}</span>
-              </p>
+            {(login || senha) && (
+              <dl className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-x-2 gap-y-1 text-sm">
+                {login && (
+                  <>
+                    <dt className="text-muted-foreground">Login</dt>
+                    <dd className="break-all font-mono select-text">{login}</dd>
+                  </>
+                )}
+                {senha && (
+                  <>
+                    <dt className="text-muted-foreground">Senha</dt>
+                    <dd className="break-all font-mono select-text">{senha}</dd>
+                  </>
+                )}
+              </dl>
+            )}
+            {acesso.observacao && (
+              <p className="whitespace-pre-wrap break-words rounded-md bg-muted/40 px-2.5 py-2 text-sm select-text">{acesso.observacao}</p>
             )}
             <div className="flex flex-wrap gap-1.5">
-              <Button type="button" size="sm" variant="outline" disabled={ocupado} onClick={() => (aberto ? setRevelados((atual) => { const n = { ...atual }; delete n[acesso.id]; return n; }) : void revelar(acesso.id))}>
-                {aberto ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />} {aberto ? 'Ocultar' : 'Revelar'}
-              </Button>
-              <Button type="button" size="sm" variant="outline" disabled={ocupado} onClick={() => void copiar(acesso.id, 'login')}>
-                <Copy className="h-4 w-4" /> Copiar login
-              </Button>
-              <Button type="button" size="sm" variant="outline" disabled={ocupado} onClick={() => void copiar(acesso.id, 'senha')}>
-                <Copy className="h-4 w-4" /> Copiar senha
-              </Button>
+              {login && (
+                <Button type="button" size="sm" variant="outline" onClick={() => void copiar(login, 'Login')}>
+                  <Copy className="h-4 w-4" /> Copiar login
+                </Button>
+              )}
+              {senha && (
+                <Button type="button" size="sm" variant="outline" onClick={() => void copiar(senha, 'Senha')}>
+                  <Copy className="h-4 w-4" /> Copiar senha
+                </Button>
+              )}
+              {acesso.observacao && !login && !senha && (
+                <Button type="button" size="sm" variant="outline" onClick={() => void copiar(acesso.observacao ?? '', 'Texto')}>
+                  <Copy className="h-4 w-4" /> Copiar texto
+                </Button>
+              )}
               {podeEditar && (
                 <Button type="button" size="sm" variant="ghost" onClick={() => setFormulario(acesso.id)}>
                   <Pencil className="h-4 w-4" /> Editar
@@ -292,11 +261,6 @@ function AcessosLista({ clienteId }: { clienteId: number }) {
                 onCancelar={() => setFormulario(null)}
                 onSalvo={async () => {
                   setFormulario(null);
-                  setRevelados((atual) => {
-                    const proximo = { ...atual };
-                    delete proximo[acesso.id];
-                    return proximo;
-                  });
                   await recarregar();
                 }}
               />
@@ -315,57 +279,40 @@ function AcessoFormulario({
   onSalvo,
 }: {
   clienteId: number;
-  acesso?: AcessoResumo;
+  acesso?: AcessoAberto;
   onCancelar: () => void;
   onSalvo: () => Promise<void>;
 }) {
   const [sistema, setSistema] = useState(acesso?.sistema ?? '');
   const [url, setUrl] = useState(acesso?.url ?? '');
-  const [login, setLogin] = useState('');
-  const [senha, setSenha] = useState('');
-  const [observacao, setObservacao] = useState('');
+  const [login, setLogin] = useState(valorPreenchido(acesso?.login) ?? '');
+  const [senha, setSenha] = useState(valorPreenchido(acesso?.senha) ?? '');
+  const [observacao, setObservacao] = useState(acesso?.observacao ?? '');
   const [setor, setSetor] = useState(acesso?.setor ?? '');
   const [salvando, setSalvando] = useState(false);
-  const [carregando, setCarregando] = useState(Boolean(acesso));
-
-  useEffect(() => {
-    if (!acesso) return;
-    let ativo = true;
-    revelarAcesso(acesso.id)
-      .then((dados) => {
-        if (!ativo) return;
-        setLogin(dados.login);
-        setObservacao(dados.observacao ?? '');
-      })
-      .catch((erro) => {
-        if (ativo) toast.error(textoErro(erro, 'Não foi possível carregar o acesso para edição.'));
-      })
-      .finally(() => {
-        if (ativo) setCarregando(false);
-      });
-    return () => {
-      ativo = false;
-    };
-  }, [acesso]);
 
   async function salvar() {
-    if (!sistema.trim() || !login.trim() || (!acesso && !senha)) {
-      toast.error('Informe sistema, login e senha.');
+    if (!sistema.trim()) {
+      toast.error('Informe o nome do acesso (ex.: Gov.br, ISS, e-CAC).');
+      return;
+    }
+    if (!login.trim() && !senha.trim() && !observacao.trim()) {
+      toast.error('Preencha login e senha, ou escreva os dados na observação.');
       return;
     }
     const dados: AcessoForm = {
       sistema: sistema.trim(),
       url: url.trim() || null,
-      login: login.trim(),
+      // Quando tudo está no texto livre, login/senha vão com marcador (o servidor exige os campos)
+      login: login.trim() || '—',
+      senha: senha || '—',
       observacao: observacao.trim() || null,
       setor: setor || null,
     };
-    if (senha) dados.senha = senha;
     setSalvando(true);
     try {
       if (acesso) await atualizarAcesso(acesso.id, dados);
-      else await criarAcesso(clienteId, { ...dados, senha });
-      setSenha('');
+      else await criarAcesso(clienteId, dados);
       toast.success(acesso ? 'Acesso atualizado' : 'Acesso cadastrado');
       await onSalvo();
     } catch (erro) {
@@ -375,34 +322,35 @@ function AcessoFormulario({
     }
   }
 
+  const id = acesso?.id ?? 'novo';
   return (
     <form className="grid min-w-0 grid-cols-1 gap-3 rounded-lg border border-border bg-muted/20 p-3 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); void salvar(); }}>
       <div className="space-y-1.5">
-        <Label htmlFor={`sistema-${acesso?.id ?? 'novo'}`}>Sistema</Label>
-        <Input id={`sistema-${acesso?.id ?? 'novo'}`} value={sistema} onChange={(e) => setSistema(e.target.value)} maxLength={120} placeholder="e-CAC, prefeitura, banco..." />
+        <Label htmlFor={`sistema-${id}`}>Acesso</Label>
+        <Input id={`sistema-${id}`} value={sistema} onChange={(e) => setSistema(e.target.value)} maxLength={120} placeholder="Gov.br, ISS, e-CAC, banco..." />
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor={`url-${acesso?.id ?? 'novo'}`}>URL</Label>
-        <Input id={`url-${acesso?.id ?? 'novo'}`} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://" inputMode="url" />
+        <Label htmlFor={`url-${id}`}>URL</Label>
+        <Input id={`url-${id}`} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://" inputMode="url" />
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor={`login-${acesso?.id ?? 'novo'}`}>Login</Label>
-        <Input id={`login-${acesso?.id ?? 'novo'}`} value={login} onChange={(e) => setLogin(e.target.value)} autoComplete="off" spellCheck={false} disabled={carregando} />
+        <Label htmlFor={`login-${id}`}>Login</Label>
+        <Input id={`login-${id}`} value={login} onChange={(e) => setLogin(e.target.value)} autoComplete="off" spellCheck={false} placeholder="CPF, CNPJ ou usuário" />
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor={`senha-${acesso?.id ?? 'novo'}`}>Senha</Label>
-        <Input id={`senha-${acesso?.id ?? 'novo'}`} type="password" value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="new-password" placeholder={acesso ? 'Em branco mantém a atual' : ''} />
+        <Label htmlFor={`senha-${id}`}>Senha</Label>
+        <Input id={`senha-${id}`} value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="off" spellCheck={false} />
       </div>
       <div className="space-y-1.5 sm:col-span-2">
         <Label>Setor</Label>
         <AppSelect value={setor} onChange={setSetor} options={SETORES} allowEmpty placeholder="Sem setor" />
       </div>
       <div className="space-y-1.5 sm:col-span-2">
-        <Label htmlFor={`obs-${acesso?.id ?? 'novo'}`}>Observação</Label>
-        <Textarea id={`obs-${acesso?.id ?? 'novo'}`} value={observacao} onChange={(e) => setObservacao(e.target.value)} rows={2} placeholder="Opcional. Também fica no cofre." disabled={carregando} />
+        <Label htmlFor={`obs-${id}`}>Observação</Label>
+        <Textarea id={`obs-${id}`} value={observacao} onChange={(e) => setObservacao(e.target.value)} rows={4} maxLength={2000} placeholder="Outros dados do acesso (CNPJ, pergunta secreta, instruções). Fica guardado cifrado." />
       </div>
       <div className="flex flex-wrap gap-2 sm:col-span-2">
-        <Button type="submit" size="sm" disabled={salvando || carregando}>{carregando ? 'Carregando...' : salvando ? 'Salvando...' : 'Salvar'}</Button>
+        <Button type="submit" size="sm" disabled={salvando}>{salvando ? 'Salvando...' : 'Salvar'}</Button>
         <Button type="button" size="sm" variant="ghost" onClick={onCancelar}>Cancelar</Button>
       </div>
     </form>

@@ -20,6 +20,29 @@ export interface AcessoRevelado {
   observacao: string | null;
 }
 
+/** Acesso já em claro: a ficha abre mostrando tudo, como era no Trello. */
+export interface AcessoAberto {
+  id: number;
+  clienteId: number;
+  sistema: string;
+  url: string | null;
+  login: string;
+  senha: string;
+  observacao: string | null;
+  setor: string | null;
+  origem: string;
+  atualizadoPorNome: string | null;
+  atualizadoEm: string | null;
+}
+
+/** Marcadores usados na importação quando login/senha estão só no texto da observação. */
+const MARCADORES = new Set(['—', '-', 'ver observação', 'ver observacao']);
+
+export function valorPreenchido(valor: string | null | undefined): string | null {
+  const texto = (valor ?? '').trim();
+  return texto && !MARCADORES.has(texto.toLowerCase()) ? texto : null;
+}
+
 export interface AcessoForm {
   sistema: string;
   url?: string | null;
@@ -78,6 +101,10 @@ async function requisicao<T>(url: string, init?: RequestInit): Promise<T> {
 
 export function listarAcessos(clienteId: number) {
   return requisicao<AcessoResumo[]>(`${API_BASE_URL}/clientes/${clienteId}/acessos`);
+}
+
+export function listarAcessosAbertos(clienteId: number) {
+  return requisicao<AcessoAberto[]>(`${API_BASE_URL}/clientes/${clienteId}/acessos/abertos`);
 }
 
 export function criarAcesso(clienteId: number, dados: AcessoForm) {

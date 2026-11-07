@@ -19,6 +19,7 @@ import getpass
 import json
 import re
 import sys
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -44,6 +45,8 @@ CAMPO = re.compile(
     re.I,
 )
 URL_RE = re.compile(r"https?://\S+")
+TENTATIVAS = 5
+PAUSA_ENTRE_PEDIDOS = 0.3
 COLUNAS = [
     "tipo", "situacao", "cliente", "cartao", "sistema", "url", "login", "senha",
     "observacao", "titulo", "texto", "setor", "origem",
@@ -251,13 +254,27 @@ def _json(url: str, token: str, metodo: str = "GET", corpo: dict | None = None, 
     req.add_header("Accept", "application/json")
     if corpo is not None:
         req.add_header("Content-Type", "application/json")
-    try:
-        with abrir(req, timeout=60) as resp:
-            bruto = resp.read().decode("utf-8")
-            status = getattr(resp, "status", 200)
-            return status, json.loads(bruto) if bruto else None
-    except urllib.error.HTTPError as ex:
-        return ex.code, None
+    # Conexões seguidas às vezes são derrubadas pelo servidor: espera e tenta de novo.
+    # Reenviar é seguro: o backend não duplica acesso do Trello com o mesmo sistema.
+    for tentativa in range(TENTATIVAS):
+        if abrir is urllib.request.urlopen:
+            time.sleep(PAUSA_ENTRE_PEDIDOS)
+        try:
+            with abrir(req, timeout=60) as resp:
+                bruto = resp.read().decode("utf-8")
+                status = getattr(resp, "status", 200)
+                return status, json.loads(bruto) if bruto else None
+        except urllib.error.HTTPError as ex:
+            if ex.code in (429, 502, 503, 504) and tentativa < TENTATIVAS - 1:
+                time.sleep(2 ** (tentativa + 1))
+                continue
+            return ex.code, None
+        except (urllib.error.URLError, ConnectionError, TimeoutError):
+            if tentativa == TENTATIVAS - 1:
+                raise
+            print(f"conexão caiu, tentando de novo ({tentativa + 2}/{TENTATIVAS})...", file=sys.stderr)
+            time.sleep(2 ** (tentativa + 1))
+    return 0, None
 
 
 def _id_cliente(clientes: list, nome: str) -> int | None:
@@ -279,7 +296,7 @@ def enviar(csv_path: Path, api: str, token: str, abrir=urllib.request.urlopen) -
         contagem["falhas"] += 1
         return contagem
     with csv_path.open(encoding="utf-8-sig", newline="") as arq:
-        for linha in csv.DictReader(arq):
+        for numero, linha in enumerate(csv.DictReader(arq), start=2):
             cliente_id = _id_cliente(clientes, linha.get("cliente") or "")
             if not cliente_id or (linha.get("situacao") or "").strip() == "revisar":
                 contagem["pulados"] += 1
@@ -291,6 +308,7 @@ def enviar(csv_path: Path, api: str, token: str, abrir=urllib.request.urlopen) -
                 st, atuais = _json(f"{api}/clientes/{cliente_id}/acessos", token, abrir=abrir)
                 if st != 200 or not isinstance(atuais, list):
                     contagem["falhas"] += 1
+                    print(f"falha na linha {numero} do CSV (consulta): HTTP {st}", file=sys.stderr)
                     continue
                 if any(item.get("origem") == "TRELLO" and chave(str(item.get("sistema") or "")) == chave(linha["sistema"])
                        for item in atuais):
@@ -309,6 +327,7 @@ def enviar(csv_path: Path, api: str, token: str, abrir=urllib.request.urlopen) -
                     contagem["acessos_criados" if st == 201 else "acessos_existentes"] += 1
                 else:
                     contagem["falhas"] += 1
+                    print(f"falha na linha {numero} do CSV (acesso): HTTP {st}", file=sys.stderr)
             elif linha.get("tipo") == "ANOTACAO":
                 texto = (linha.get("texto") or "").strip()
                 if not texto:
@@ -317,6 +336,7 @@ def enviar(csv_path: Path, api: str, token: str, abrir=urllib.request.urlopen) -
                 st, atuais = _json(f"{api}/clientes/{cliente_id}/anotacoes", token, abrir=abrir)
                 if st != 200 or not isinstance(atuais, list):
                     contagem["falhas"] += 1
+                    print(f"falha na linha {numero} do CSV (consulta): HTTP {st}", file=sys.stderr)
                     continue
                 titulo = (linha.get("titulo") or "").strip() or None
                 if any(item.get("origem") == "TRELLO" and (item.get("titulo") or None) == titulo and item.get("texto") == texto
@@ -334,6 +354,7 @@ def enviar(csv_path: Path, api: str, token: str, abrir=urllib.request.urlopen) -
                     contagem["anotacoes_criadas" if st == 201 else "anotacoes_existentes"] += 1
                 else:
                     contagem["falhas"] += 1
+                    print(f"falha na linha {numero} do CSV (anotação): HTTP {st}", file=sys.stderr)
             else:
                 contagem["pulados"] += 1
     return contagem

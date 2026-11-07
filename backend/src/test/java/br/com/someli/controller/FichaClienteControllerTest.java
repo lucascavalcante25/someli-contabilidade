@@ -128,6 +128,37 @@ class FichaClienteControllerTest {
     }
 
     @Test
+    void abertos_semToken_403() throws Exception {
+        mockMvc.perform(get("/clientes/7/acessos/abertos")).andExpect(status().isForbidden());
+        verifyNoInteractions(acessoService);
+    }
+
+    @Test
+    @WithMockUser
+    void abertos_semPermissaoOuSemAlcada_403() throws Exception {
+        when(acessoService.listarAbertos(7L)).thenThrow(new AcessoNegadoException("Sem permissão: CLIENTE_ACESSOS_VER"));
+        when(acessoService.listarAbertos(8L)).thenThrow(new AcessoNegadoException("Sem alçada sobre este cliente"));
+
+        mockMvc.perform(get("/clientes/7/acessos/abertos")).andExpect(status().isForbidden());
+        mockMvc.perform(get("/clientes/8/acessos/abertos")).andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser
+    void abertos_trazValores_eNaoFicaEmCache() throws Exception {
+        when(acessoService.listarAbertos(7L)).thenReturn(java.util.List.of(new br.com.someli.dto.ClienteAcessoAbertoDTO(
+                9L, 7L, "Gov.br", null, "joao", "x", "CPF 000", "FISCAL", "TRELLO", "Ana",
+                LocalDateTime.parse("2026-11-06T12:00:00"))));
+
+        mockMvc.perform(get("/clientes/7/acessos/abertos"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$[0].login").value("joao"))
+                .andExpect(jsonPath("$[0].senha").value("x"))
+                .andExpect(jsonPath("$[0].observacao").value("CPF 000"));
+    }
+
+    @Test
     @WithMockUser
     void listar_naoTrazSenha_eRevelarNaoFicaEmCache() throws Exception {
         when(acessoService.listar(7L)).thenReturn(java.util.List.of(new ClienteAcessoResumoDTO(

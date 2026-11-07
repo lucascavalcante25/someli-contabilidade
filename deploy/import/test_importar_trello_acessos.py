@@ -126,6 +126,35 @@ class EnviarTest(unittest.TestCase):
         self.assertGreaterEqual(contagem["acessos_existentes"], 1)
         self.assertGreaterEqual(contagem["anotacoes_criadas"], 1)
 
+    def test_conexao_derrubada_tenta_de_novo(self):
+        import urllib.error
+        import importar_trello_acessos as mod
+
+        class Resp:
+            status = 200
+
+            def read(self):
+                return b'{"ok": true}'
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+        tentativas = []
+
+        def abrir(req, timeout=60):
+            tentativas.append(1)
+            if len(tentativas) < 3:
+                raise urllib.error.URLError(ConnectionResetError(10054, "reset"))
+            return Resp()
+
+        with patch.object(mod.time, "sleep"), patch("sys.stderr", new=io.StringIO()):
+            status, corpo = mod._json("https://api.exemplo.test/clientes", "tok", abrir=abrir)
+        self.assertEqual((status, corpo), (200, {"ok": True}))
+        self.assertEqual(len(tentativas), 3)
+
     def test_token_nao_entra_em_argumento(self):
         code = main(["enviar", "--csv", "x.csv", "--api", "https://api.exemplo.test", "--token", "segredo"])
         self.assertEqual(code, 2)

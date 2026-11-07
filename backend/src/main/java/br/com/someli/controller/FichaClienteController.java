@@ -1,5 +1,6 @@
 package br.com.someli.controller;
 
+import br.com.someli.dto.ClienteAcessoAbertoDTO;
 import br.com.someli.dto.ClienteAcessoAtualizarRequest;
 import br.com.someli.dto.ClienteAcessoCriarRequest;
 import br.com.someli.dto.ClienteAcessoResumoDTO;
@@ -48,6 +49,13 @@ public class FichaClienteController {
     @GetMapping("/clientes/{clienteId}/acessos")
     public List<ClienteAcessoResumoDTO> listarAcessos(@PathVariable Long clienteId) {
         return acessoService.listar(clienteId);
+    }
+
+    @GetMapping("/clientes/{clienteId}/acessos/abertos")
+    public ResponseEntity<List<ClienteAcessoAbertoDTO>> listarAcessosAbertos(@PathVariable Long clienteId) {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CACHE_CONTROL, "no-store")
+                .body(acessoService.listarAbertos(clienteId));
     }
 
     @PostMapping("/clientes/{clienteId}/acessos")
