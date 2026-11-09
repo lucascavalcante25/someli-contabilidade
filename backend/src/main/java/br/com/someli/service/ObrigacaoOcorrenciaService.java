@@ -212,6 +212,12 @@ public class ObrigacaoOcorrenciaService {
         return resolverDataVencimento(ym, dia);
     }
 
+    /** Próxima data (mês/dia padrão) a partir de {@code base}, inclusive. Dia além do fim do mês vira o último dia. */
+    public static LocalDate proximoVencimentoAnual(LocalDate base, int mes, int dia) {
+        LocalDate data = resolverDataVencimento(YearMonth.of(base.getYear(), mes), dia);
+        return data.isBefore(base) ? resolverDataVencimento(YearMonth.of(base.getYear() + 1, mes), dia) : data;
+    }
+
     public static LocalDate resolverDataVencimento(YearMonth ym, int dia) {
         int max = ym.lengthOfMonth();
         return ym.atDay(Math.min(Math.max(dia, 1), max));
@@ -219,10 +225,9 @@ public class ObrigacaoOcorrenciaService {
 
     public static String competenciaDe(LocalDate vencimento, String periodicidade) {
         if (vencimento == null) return null;
-        // Competência típica: mês anterior ao vencimento para obrigações mensais
-        YearMonth comp = PeriodicidadeObrigacao.MENSAL.equals(periodicidade)
-                ? YearMonth.from(vencimento).minusMonths(1)
-                : YearMonth.from(vencimento);
+        // Competência = mês anterior ao vencimento, para todas as periodicidades. É assim que o Painel do mês
+        // agrupa: o painel de outubro traz o que vence em novembro (DAS, folha e também o adiantamento do 13º).
+        YearMonth comp = YearMonth.from(vencimento).minusMonths(1);
         return String.format("%04d-%02d", comp.getYear(), comp.getMonthValue());
     }
 

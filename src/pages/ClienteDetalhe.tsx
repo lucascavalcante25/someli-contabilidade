@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { dataParaObrigacao, proximaDataPadrao, temDataPropria, type VencimentoPadrao } from '@/lib/vencimentoPadrao';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Pencil, Trash2, X, FileText, ClipboardList, File, Download, Loader2, PowerOff, Power, ListChecks, Shield, BadgeDollarSign, Radar, LayoutDashboard, Link2, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
@@ -37,7 +38,7 @@ import { certificadoBadgeClass, certificadoStatusLabel, formatCertificadoResumo 
 type TipoObrigacao = (typeof TIPOS_OBRIGACAO)[number]['value'];
 type StatusObrigacao = 'em_dia' | 'a_vencer' | 'atrasado' | 'proximo_vencimento';
 
-interface Obrigacao {
+interface Obrigacao extends VencimentoPadrao {
   id: number;
   nome: string;
   tipo: string;
@@ -351,7 +352,9 @@ export function ClienteDetalhePanel({
 
   const handleSaveObrigacao = async (form: ClienteObrigacaoForm, clienteObrigacaoId?: number) => {
     if (!id) return;
-    if (!form.dataVencimento) {
+    const todasComDataPropria = !clienteObrigacaoId && form.obrigacaoIds.length > 0
+      && form.obrigacaoIds.every((oid) => temDataPropria(obrigacoesCatalogo.find((o) => o.id === oid)));
+    if (!form.dataVencimento && !todasComDataPropria) {
       toast.error('Informe a data de vencimento');
       return;
     }
@@ -385,7 +388,8 @@ export function ClienteDetalhePanel({
             body: JSON.stringify({
               clienteId: Number(id),
               obrigacaoId,
-              dataVencimento: form.dataVencimento,
+              // Anual com data própria (DEFIS 31/03, 13º 20/12) usa a sua; as demais, a data escolhida
+              dataVencimento: dataParaObrigacao(obrigacoesCatalogo.find((o) => o.id === obrigacaoId), form.dataVencimento),
               ativo: true,
               observacao: form.observacao?.trim() || null,
             }),
@@ -1496,9 +1500,10 @@ function ObrigacaoFormModal({
           </div>
           {!editing && selectedIds.length > 1 && (
             <p className="text-[11px] text-muted-foreground mt-1">
-              A mesma data será aplicada a todas as obrigações selecionadas
+              A mesma data será aplicada a todas as obrigações selecionadas, menos as anuais com data própria
             </p>
           )}
+          {!editing && <DatasProprias obrigacoes={obrigacoes.filter((o) => selectedIds.includes(o.id))} />}
         </div>
         <div>
           <label className="label-text">Observação</label>
@@ -1545,4 +1550,22 @@ export default function ClienteDetalhePage() {
     return <Navigate to="/clientes" replace />;
   }
   return <Navigate to="/clientes" replace state={{ viewClienteId: clienteId }} />;
+}
+
+/** Anuais com data própria entram na próxima data padrão, não na data escolhida no formulário. */
+function DatasProprias({ obrigacoes }: { obrigacoes: Obrigacao[] }) {
+  const proprias = obrigacoes.filter((o) => temDataPropria(o));
+  if (proprias.length === 0) return null;
+  return (
+    <ul className="mt-1.5 space-y-0.5 text-[11px] text-muted-foreground">
+      {proprias.map((o) => {
+        const data = proximaDataPadrao(o);
+        return (
+          <li key={o.id}>
+            {o.nome}: anual, vence em {data ? `${data.slice(8, 10)}/${data.slice(5, 7)}/${data.slice(0, 4)}` : '—'}
+          </li>
+        );
+      })}
+    </ul>
+  );
 }

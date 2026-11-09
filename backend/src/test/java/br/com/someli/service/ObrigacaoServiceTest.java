@@ -168,4 +168,57 @@ class ObrigacaoServiceTest {
         assertThrows(br.com.someli.exception.RegraNegocioException.class, () -> service.criar(req));
         verify(repository, never()).save(any());
     }
+
+    @Test
+    void criar_anualGuardaPeriodicidadeDiaEMes() {
+        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        CreateObrigacaoRequestDTO req = new CreateObrigacaoRequestDTO();
+        req.setNome("13º salário");
+        req.setTipo("PESSOAL");
+        req.setPeriodicidadePadrao("ANUAL");
+        req.setDiaVencimentoPadrao(20);
+        req.setMesVencimentoPadrao(12);
+
+        Obrigacao salva = service.criar(req);
+
+        assertEquals("ANUAL", salva.getPeriodicidadePadrao());
+        assertEquals(20, salva.getDiaVencimentoPadrao());
+        assertEquals(12, salva.getMesVencimentoPadrao());
+        assertEquals("DEPARTAMENTO_PESSOAL", salva.getSetor());
+    }
+
+    @Test
+    void atualizar_periodicidadeInvalidaOuMesForaDoAno_recusa() {
+        Obrigacao existente = new Obrigacao();
+        existente.setNome("DEFIS");
+        lenient().when(repository.findById(1L)).thenReturn(Optional.of(existente));
+        UpdateObrigacaoRequestDTO req = new UpdateObrigacaoRequestDTO();
+        req.setPeriodicidadePadrao("BIENAL");
+        assertThrows(br.com.someli.exception.RegraNegocioException.class, () -> service.atualizar(1L, req));
+
+        UpdateObrigacaoRequestDTO mes = new UpdateObrigacaoRequestDTO();
+        mes.setPeriodicidadePadrao("ANUAL");
+        mes.setMesVencimentoPadrao(13);
+        assertThrows(br.com.someli.exception.RegraNegocioException.class, () -> service.atualizar(1L, mes));
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void atualizar_paraMensal_limpaOMes() {
+        Obrigacao existente = new Obrigacao();
+        existente.setNome("Adiantamento de folha");
+        existente.setPeriodicidadePadrao("ANUAL");
+        existente.setMesVencimentoPadrao(11);
+        when(repository.findById(1L)).thenReturn(Optional.of(existente));
+        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        UpdateObrigacaoRequestDTO req = new UpdateObrigacaoRequestDTO();
+        req.setPeriodicidadePadrao("MENSAL");
+        req.setDiaVencimentoPadrao(15);
+
+        Obrigacao salva = service.atualizar(1L, req);
+
+        assertEquals("MENSAL", salva.getPeriodicidadePadrao());
+        assertEquals(15, salva.getDiaVencimentoPadrao());
+        assertNull(salva.getMesVencimentoPadrao());
+    }
 }

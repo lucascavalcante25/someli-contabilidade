@@ -55,4 +55,16 @@ public class ObrigacaoDTO {
     public void setUrlPortal(String urlPortal) {
         this.urlPortal = urlPortal;
     }
+
+    /** Para periodicidade ANUAL: mes (1-12) e dia padrao do vencimento. */
+    private String periodicidadePadrao;
+    private Integer diaVencimentoPadrao;
+    private Integer mesVencimentoPadrao;
+
+    public String getPeriodicidadePadrao() { return periodicidadePadrao; }
+    public void setPeriodicidadePadrao(String periodicidadePadrao) { this.periodicidadePadrao = periodicidadePadrao; }
+    public Integer getDiaVencimentoPadrao() { return diaVencimentoPadrao; }
+    public void setDiaVencimentoPadrao(Integer diaVencimentoPadrao) { this.diaVencimentoPadrao = diaVencimentoPadrao; }
+    public Integer getMesVencimentoPadrao() { return mesVencimentoPadrao; }
+    public void setMesVencimentoPadrao(Integer mesVencimentoPadrao) { this.mesVencimentoPadrao = mesVencimentoPadrao; }
 }
