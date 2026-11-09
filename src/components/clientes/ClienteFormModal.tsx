@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { dataParaObrigacao, type VencimentoPadrao } from '@/lib/vencimentoPadrao';
 import { Info, Plus, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import ContaRecebimentoField from '@/components/clientes/ContaRecebimentoField';
@@ -182,7 +183,7 @@ export function ClienteFormModal({
   const [usuarios, setUsuarios] = useState<UsuarioResumo[]>([]);
   const { can } = useAuth();
 
-  const [obrigacoesCatalogo, setObrigacoesCatalogo] = useState<{ id: number; nome: string; tipo: string }[]>([]);
+  const [obrigacoesCatalogo, setObrigacoesCatalogo] = useState<({ id: number; nome: string; tipo: string } & VencimentoPadrao)[]>([]);
   const [pendingObrigacaoIds, setPendingObrigacaoIds] = useState<number[]>([]);
   const [batchDataVencimento, setBatchDataVencimento] = useState('');
   const feriados = useFeriados(batchDataVencimento);
@@ -344,7 +345,7 @@ export function ClienteFormModal({
             _key: nextObrKeyRef.current,
             obrigacaoId: id,
             obrigacaoNome: obr?.nome,
-            dataVencimento: data,
+            dataVencimento: dataParaObrigacao(obr, data),
             observacao: '',
           };
         });

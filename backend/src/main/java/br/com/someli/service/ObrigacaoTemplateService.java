@@ -1,5 +1,6 @@
 package br.com.someli.service;
 
+import br.com.someli.domain.PeriodicidadeObrigacao;
 import br.com.someli.domain.Obrigacao;
 import br.com.someli.domain.ObrigacaoTemplate;
 import br.com.someli.domain.ObrigacaoTemplateItem;
@@ -106,9 +107,17 @@ public class ObrigacaoTemplateService {
                 CreateClienteObrigacaoRequestDTO one = new CreateClienteObrigacaoRequestDTO();
                 one.setClienteId(clienteId);
                 one.setObrigacaoId(obrigacaoId);
-                one.setDataVencimento(ajustarVencimento(request.getDataVencimento(), item.getDiaVencimento()));
-                one.setPeriodicidade(item.getPeriodicidade() != null ? item.getPeriodicidade()
-                        : item.getObrigacao().getPeriodicidadePadrao());
+                String periodicidade = item.getPeriodicidade() != null ? item.getPeriodicidade()
+                        : item.getObrigacao().getPeriodicidadePadrao();
+                Integer mesAnual = item.getObrigacao().getMesVencimentoPadrao();
+                Integer diaItem = item.getDiaVencimento() != null ? item.getDiaVencimento()
+                        : item.getObrigacao().getDiaVencimentoPadrao();
+                // Anual com mês padrão (DEFIS em março, 13º em dezembro): próxima data desse mês, não o mês do pedido
+                one.setDataVencimento(PeriodicidadeObrigacao.ANUAL.equals(periodicidade) && mesAnual != null
+                        ? ObrigacaoOcorrenciaService.proximoVencimentoAnual(request.getDataVencimento(), mesAnual,
+                                diaItem != null ? diaItem : 1)
+                        : ajustarVencimento(request.getDataVencimento(), item.getDiaVencimento()));
+                one.setPeriodicidade(periodicidade);
                 one.setDiaVencimento(item.getDiaVencimento() != null ? item.getDiaVencimento()
                         : item.getObrigacao().getDiaVencimentoPadrao());
                 one.setSetor(item.getObrigacao().getSetor());

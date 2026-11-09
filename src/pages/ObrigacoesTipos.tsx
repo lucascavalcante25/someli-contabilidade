@@ -13,6 +13,8 @@ import HintTooltip from '@/components/shared/HintTooltip';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { rotuloRegime, rotuloTipoObrigacao, TIPOS_OBRIGACAO } from '@/lib/classificacao';
+import { proximaDataPadrao, rotuloVencimento, type VencimentoPadrao } from '@/lib/vencimentoPadrao';
+import VencimentoPadraoFields, { type VencimentoPadraoForm } from '@/components/obrigacoes/VencimentoPadraoFields';
 
 function labelRegime(regime: string): string {
   return rotuloRegime(regime);
@@ -22,7 +24,7 @@ function nomesDoTemplate(itens?: { obrigacaoNome?: string }[]): string[] {
   return (itens || []).map((i) => i.obrigacaoNome).filter((n): n is string => !!n && n.trim().length > 0);
 }
 
-interface ObrigacaoTipo {
+interface ObrigacaoTipo extends VencimentoPadrao {
   id: number;
   nome: string;
   tipo: string;
@@ -124,13 +126,7 @@ export default function ObrigacoesTipos() {
     void carregar();
   }, [carregar]);
 
-  const handleSave = async (form: {
-    nome: string;
-    tipo: string;
-    descricao: string;
-    diasAntecedenciaAlerta: number;
-    urlPortal: string;
-  }) => {
+  const handleSave = async (form: TipoForm) => {
     if (!form.nome.trim()) {
       toast.error('Nome é obrigatório');
       return;
@@ -143,6 +139,9 @@ export default function ObrigacoesTipos() {
         descricao: form.descricao?.trim() || null,
         diasAntecedenciaAlerta: form.diasAntecedenciaAlerta ?? 7,
         urlPortal: form.urlPortal?.trim() ?? '',
+        periodicidadePadrao: form.vencimento.periodicidadePadrao,
+        diaVencimentoPadrao: form.vencimento.diaVencimentoPadrao ? Number(form.vencimento.diaVencimentoPadrao) : null,
+        mesVencimentoPadrao: form.vencimento.mesVencimentoPadrao ? Number(form.vencimento.mesVencimentoPadrao) : null,
       };
       const url = editing ? `${apiBaseUrl}/obrigacoes/${editing.id}` : `${apiBaseUrl}/obrigacoes`;
       const res = await apiFetch(url, {
@@ -290,6 +289,7 @@ export default function ObrigacoesTipos() {
               <tr className="bg-muted/50">
                 <th className="label-text px-3 sm:px-4 py-3 text-left">Nome</th>
                 <th className="label-text px-3 sm:px-4 py-3 text-left hidden sm:table-cell">Tipo</th>
+                <th className="label-text px-3 sm:px-4 py-3 text-left hidden sm:table-cell whitespace-nowrap">Vencimento</th>
                 <th className="label-text px-3 sm:px-4 py-3 text-left hidden lg:table-cell">Portal</th>
                 <th className="label-text px-3 sm:px-4 py-3 text-left hidden md:table-cell">Descrição</th>
                 <th className="label-text px-3 sm:px-4 py-3 text-center whitespace-nowrap">Dias</th>
@@ -298,10 +298,10 @@ export default function ObrigacoesTipos() {
             </thead>
             <tbody>
               {loading && (
-                <tr><td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">Carregando...</td></tr>
+                <tr><td colSpan={7} className="px-4 py-6 text-center text-muted-foreground">Carregando...</td></tr>
               )}
               {!loading && obrigacoes.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">Nenhum tipo cadastrado</td></tr>
+                <tr><td colSpan={7} className="px-4 py-6 text-center text-muted-foreground">Nenhum tipo cadastrado</td></tr>
               )}
               {obrigacoes.map(o => (
                 <tr key={o.id} className="border-t border-border hover:bg-muted/30">
@@ -309,9 +309,10 @@ export default function ObrigacoesTipos() {
                     <HintTooltip content={o.nome} enabled={!!o.nome && o.nome.length > 22}>
                       <span className="block truncate">{o.nome}</span>
                     </HintTooltip>
-                    <span className="sm:hidden text-[10px] text-muted-foreground">{rotuloTipoObrigacao(o.tipo)}</span>
+                    <span className="sm:hidden text-[10px] text-muted-foreground">{rotuloTipoObrigacao(o.tipo)} · {rotuloVencimento(o)}</span>
                   </td>
                   <td className="px-3 sm:px-4 py-3 hidden sm:table-cell">{rotuloTipoObrigacao(o.tipo)}</td>
+                  <td className="px-3 sm:px-4 py-3 hidden sm:table-cell whitespace-nowrap text-muted-foreground">{rotuloVencimento(o)}</td>
                   <td className="px-3 sm:px-4 py-3 hidden lg:table-cell text-muted-foreground max-w-[160px] truncate">
                     {o.urlPortal ? (
                       <a href={o.urlPortal} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate block">
@@ -405,11 +406,18 @@ function AplicarEmMassaModal({
   const [selected, setSelected] = useState<number[]>([]);
   const [tagId, setTagId] = useState('');
   const [tags, setTags] = useState<{ id: number; nome: string }[]>([]);
-  const [dataVencimento, setDataVencimento] = useState(() => {
+  const dataSugerida = (id: string) => {
+    const tipo = tipos.find((t) => String(t.id) === id);
+    if (tipo) {
+      const padrao = proximaDataPadrao(tipo);
+      if (padrao) return padrao;
+    }
     const d = new Date();
     d.setDate(20);
     return d.toISOString().slice(0, 10);
-  });
+  };
+  const [dataVencimento, setDataVencimento] = useState(() => dataSugerida(String(tipoInicial?.id ?? tipos[0]?.id ?? '')));
+  const tipoSelecionado = tipos.find((t) => String(t.id) === obrigacaoId);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -461,8 +469,7 @@ function AplicarEmMassaModal({
           clienteIds: selected,
           obrigacaoId: Number(obrigacaoId),
           dataVencimento,
-          periodicidade: 'MENSAL',
-          diaVencimento: Number(dataVencimento.slice(8, 10)) || 20,
+          // Periodicidade e dia vêm do tipo (anual continua anual)
           tagId: tagId ? Number(tagId) : null,
         }),
       });
@@ -495,7 +502,7 @@ function AplicarEmMassaModal({
           <AppSelect
             className="mt-1.5"
             value={obrigacaoId}
-            onChange={setObrigacaoId}
+            onChange={(v) => { setObrigacaoId(v); setDataVencimento(dataSugerida(v)); }}
             options={tipos.map((t) => ({ value: String(t.id), label: t.nome }))}
           />
         </div>
@@ -516,6 +523,9 @@ function AplicarEmMassaModal({
         <div>
           <label className="label-text">Data de vencimento (1ª ocorrência)</label>
           <DateField value={dataVencimento} onChange={setDataVencimento} className="mt-1.5" />
+          {tipoSelecionado && (
+            <p className="mt-1 text-[11px] text-muted-foreground">Repete: {rotuloVencimento(tipoSelecionado)}</p>
+          )}
         </div>
         <div>
           <div className="flex items-center justify-between mb-2">
@@ -564,28 +574,12 @@ function ObrigacaoTipoFormModal({
   editing: ObrigacaoTipo | null;
   loading: boolean;
   onClose: () => void;
-  onSave: (f: { nome: string; tipo: string; descricao: string; diasAntecedenciaAlerta: number; urlPortal: string }) => void;
+  onSave: (f: TipoForm) => void;
 }) {
-  const [form, setForm] = useState({
-    nome: editing?.nome ?? '',
-    tipo: editing?.tipo ?? 'FISCAL',
-    descricao: editing?.descricao ?? '',
-    diasAntecedenciaAlerta: editing?.diasAntecedenciaAlerta ?? 7,
-    urlPortal: editing?.urlPortal ?? '',
-  });
+  const [form, setForm] = useState<TipoForm>(() => formDoTipo(editing));
 
   useEffect(() => {
-    if (editing) {
-      setForm({
-        nome: editing.nome,
-        tipo: editing.tipo,
-        descricao: editing.descricao ?? '',
-        diasAntecedenciaAlerta: editing.diasAntecedenciaAlerta,
-        urlPortal: editing.urlPortal ?? '',
-      });
-    } else {
-      setForm({ nome: '', tipo: 'FISCAL', descricao: '', diasAntecedenciaAlerta: 7, urlPortal: '' });
-    }
+    setForm(formDoTipo(editing));
   }, [editing]);
 
   return (
@@ -608,6 +602,7 @@ function ObrigacaoTipoFormModal({
               options={TIPOS_OBRIGACAO.map((t) => ({ value: t.value, label: t.label }))}
             />
           </div>
+          <VencimentoPadraoFields value={form.vencimento} onChange={(vencimento) => setForm((p) => ({ ...p, vencimento }))} />
           <div>
             <label className="label-text">Link rápido (portal)</label>
             <input
@@ -635,4 +630,28 @@ function ObrigacaoTipoFormModal({
         </div>
     </ModalShell>
   );
+}
+
+interface TipoForm {
+  nome: string;
+  tipo: string;
+  descricao: string;
+  diasAntecedenciaAlerta: number;
+  urlPortal: string;
+  vencimento: VencimentoPadraoForm;
+}
+
+function formDoTipo(t: ObrigacaoTipo | null): TipoForm {
+  return {
+    nome: t?.nome ?? '',
+    tipo: t?.tipo ?? 'FISCAL',
+    descricao: t?.descricao ?? '',
+    diasAntecedenciaAlerta: t?.diasAntecedenciaAlerta ?? 7,
+    urlPortal: t?.urlPortal ?? '',
+    vencimento: {
+      periodicidadePadrao: t?.periodicidadePadrao ?? 'MENSAL',
+      diaVencimentoPadrao: t?.diaVencimentoPadrao ? String(t.diaVencimentoPadrao) : '',
+      mesVencimentoPadrao: t?.mesVencimentoPadrao ? String(t.mesVencimentoPadrao) : '',
+    },
+  };
 }

@@ -36,6 +36,10 @@ public class Obrigacao {
     @Column(name = "dia_vencimento_padrao")
     private Integer diaVencimentoPadrao;
 
+    /** Mês do vencimento padrão (1-12), usado nas obrigações anuais (ex.: DEFIS em março). */
+    @Column(name = "mes_vencimento_padrao")
+    private Integer mesVencimentoPadrao;
+
     @Column(name = "tipo_regra_vencimento", nullable = false, length = 40)
     private String tipoRegraVencimento = "DIA_FIXO";
 
@@ -90,6 +94,8 @@ public class Obrigacao {
     public void setSetor(String setor) { this.setor = setor; }
     public String getPeriodicidadePadrao() { return periodicidadePadrao; }
     public void setPeriodicidadePadrao(String periodicidadePadrao) { this.periodicidadePadrao = periodicidadePadrao; }
+    public Integer getMesVencimentoPadrao() { return mesVencimentoPadrao; }
+    public void setMesVencimentoPadrao(Integer mesVencimentoPadrao) { this.mesVencimentoPadrao = mesVencimentoPadrao; }
     public Integer getDiaVencimentoPadrao() { return diaVencimentoPadrao; }
     public void setDiaVencimentoPadrao(Integer diaVencimentoPadrao) { this.diaVencimentoPadrao = diaVencimentoPadrao; }
     public String getTipoRegraVencimento() { return tipoRegraVencimento; }
