@@ -1,13 +1,11 @@
 package br.com.someli.service;
 
 import br.com.someli.domain.Obrigacao;
-import br.com.someli.domain.PeriodicidadeObrigacao;
 import br.com.someli.domain.PermissaoCodigo;
 import br.com.someli.domain.TipoObrigacao;
 import br.com.someli.dto.CreateObrigacaoRequestDTO;
 import br.com.someli.dto.UpdateObrigacaoRequestDTO;
 import br.com.someli.exception.ObrigacaoNaoEncontradaException;
-import br.com.someli.exception.RegraNegocioException;
 import br.com.someli.repository.ObrigacaoRepository;
 import org.springframework.stereotype.Service;
 
@@ -43,8 +41,6 @@ public class ObrigacaoService {
         obrigacao.setDescricao(trimOrNull(request.getDescricao()));
         obrigacao.setDiasAntecedenciaAlerta(request.getDiasAntecedenciaAlerta() != null ? request.getDiasAntecedenciaAlerta() : 7);
         obrigacao.setUrlPortal(trimOrNull(request.getUrlPortal()));
-        aplicarVencimentoPadrao(obrigacao, request.getPeriodicidadePadrao(), request.getDiaVencimentoPadrao(),
-                request.getMesVencimentoPadrao());
         return obrigacaoRepository.save(obrigacao);
     }
 
@@ -56,34 +52,7 @@ public class ObrigacaoService {
         if (request.getDescricao() != null) obrigacao.setDescricao(trimOrNull(request.getDescricao()));
         if (request.getDiasAntecedenciaAlerta() != null) obrigacao.setDiasAntecedenciaAlerta(request.getDiasAntecedenciaAlerta());
         if (request.getUrlPortal() != null) obrigacao.setUrlPortal(trimOrNull(request.getUrlPortal()));
-        if (request.getPeriodicidadePadrao() != null) {
-            aplicarVencimentoPadrao(obrigacao, request.getPeriodicidadePadrao(), request.getDiaVencimentoPadrao(),
-                    request.getMesVencimentoPadrao());
-        }
         return obrigacaoRepository.save(obrigacao);
-    }
-
-    private static final java.util.Set<String> PERIODICIDADES = java.util.Set.of(
-            PeriodicidadeObrigacao.UNICA, PeriodicidadeObrigacao.MENSAL, PeriodicidadeObrigacao.TRIMESTRAL,
-            PeriodicidadeObrigacao.SEMESTRAL, PeriodicidadeObrigacao.ANUAL);
-
-    /** Periodicidade e vencimento padrão do tipo. O mês só vale para as anuais. */
-    static void aplicarVencimentoPadrao(Obrigacao obrigacao, String periodicidade, Integer dia, Integer mes) {
-        if (periodicidade == null) return;
-        String valor = periodicidade.trim().toUpperCase();
-        if (!PERIODICIDADES.contains(valor)) {
-            throw new RegraNegocioException("Periodicidade inválida");
-        }
-        if (dia != null && (dia < 1 || dia > 31)) {
-            throw new RegraNegocioException("Dia do vencimento deve ser entre 1 e 31");
-        }
-        boolean anual = PeriodicidadeObrigacao.ANUAL.equals(valor);
-        if (anual && mes != null && (mes < 1 || mes > 12)) {
-            throw new RegraNegocioException("Mês do vencimento deve ser entre 1 e 12");
-        }
-        obrigacao.setPeriodicidadePadrao(valor);
-        obrigacao.setDiaVencimentoPadrao(dia);
-        obrigacao.setMesVencimentoPadrao(anual ? mes : null);
     }
 
     public void remover(Long id) {

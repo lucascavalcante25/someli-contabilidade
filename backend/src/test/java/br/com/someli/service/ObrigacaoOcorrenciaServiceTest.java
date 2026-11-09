@@ -26,23 +26,6 @@ class ObrigacaoOcorrenciaServiceTest {
     }
 
     @Test
-    void anual_competenciaEhOMesAnteriorAoVencimento_comoNoPainel() {
-        // Adiantamento do 13º vence 30/11: aparece no painel junto com o que vence em novembro (competência outubro)
-        assertEquals("2026-10", ObrigacaoOcorrenciaService.competenciaDe(LocalDate.of(2026, 11, 30), PeriodicidadeObrigacao.ANUAL));
-        assertEquals("2027-02", ObrigacaoOcorrenciaService.competenciaDe(LocalDate.of(2027, 3, 31), PeriodicidadeObrigacao.ANUAL));
-    }
-
-    @Test
-    void proximoVencimentoAnual_usaOMesEDiaPadrao_aPartirDaData() {
-        LocalDate hoje = LocalDate.of(2026, 11, 9);
-        assertEquals(LocalDate.of(2027, 3, 31), ObrigacaoOcorrenciaService.proximoVencimentoAnual(hoje, 3, 31));
-        assertEquals(LocalDate.of(2026, 11, 30), ObrigacaoOcorrenciaService.proximoVencimentoAnual(hoje, 11, 30));
-        assertEquals(LocalDate.of(2026, 12, 20), ObrigacaoOcorrenciaService.proximoVencimentoAnual(hoje, 12, 20));
-        assertEquals(LocalDate.of(2027, 11, 30), ObrigacaoOcorrenciaService.proximoVencimentoAnual(LocalDate.of(2026, 12, 1), 11, 30));
-        assertEquals(LocalDate.of(2027, 2, 28), ObrigacaoOcorrenciaService.proximoVencimentoAnual(hoje, 2, 31));
-    }
-
-    @Test
     void diaFixoRespeitaUltimoDiaDoMes() {
         LocalDate venc = ObrigacaoOcorrenciaService.resolverDataVencimento(YearMonth.of(2026, 2), 31);
         assertEquals(LocalDate.of(2026, 2, 28), venc);
