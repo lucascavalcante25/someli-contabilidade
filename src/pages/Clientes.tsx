@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import StatusBadge from '@/components/shared/StatusBadge';
 import AppSelect from '@/components/shared/AppSelect';
-import { Search, Plus, Pencil, Trash2, Eye, ChevronDown, ChevronRight, Download, File, FileText, Image } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, Eye, Download, File, FileText, Image } from 'lucide-react';
 import SortableTh from '@/components/shared/SortableTh';
 import { comparePagamentoStatus, type SortDir } from '@/lib/pagamento-sort';
 import { toast } from 'sonner';
@@ -10,13 +10,14 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
 import ListPagination from '@/components/shared/ListPagination';
-import TableScroll from '@/components/shared/TableScroll';
+import TabelaCongelada from '@/components/shared/TabelaCongelada';
+import ClienteNomeCelula from '@/components/clientes/ClienteNomeCelula';
+import { maskCnpj } from '@/lib/masks';
 import ModalShell from '@/components/shared/ModalShell';
 import HintTooltip from '@/components/shared/HintTooltip';
 import ToggleValoresButton from '@/components/shared/ToggleValoresButton';
 import { useValoresVisibilidade } from '@/contexts/ValoresVisibilidadeContext';
 import { PAGE_SIZE } from '@/lib/constants';
-import { certificadoBadgeClass, certificadoStatusLabel } from '@/lib/certificado';
 import { correspondeBusca } from '@/lib/buscaClientes';
 import { rotuloRegime } from '@/lib/classificacao';
 import { salvarResponsaveis, type ResponsaveisPorSetor } from '@/lib/responsaveis';
@@ -147,15 +148,6 @@ function formatCurrency(value: number): string {
 
 function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-}
-
-function maskCnpj(value: string): string {
-  const nums = value.replace(/\D/g, '').slice(0, 14);
-  return nums
-    .replace(/(\d{2})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d)/, '$1/$2')
-    .replace(/(\d{4})(\d{1,2})$/, '$1-$2');
 }
 
 function isCobravel(dataInicioCobranca?: string): boolean {
@@ -644,75 +636,40 @@ export default function Clientes() {
 
       {/* Table */}
       <div className="card-surface overflow-hidden max-w-full">
-        <TableScroll>
+        {/* Nome e cabeçalho congelados, barra lateral sempre visível (pedido da Karol, igual ao Painel do mês) */}
+        <TabelaCongelada rotulo="Lista de clientes">
           <table className="w-full text-sm min-w-[360px]">
             <thead>
-              <tr className="bg-muted/50">
-                <th className="label-text px-2 py-3 text-center w-9"></th>
-                <SortableTh label="Razão Social" sortKey="razaoSocial" sortRules={sortRules} onSort={toggleSort} align="left" />
-                <SortableTh label="CNPJ" sortKey="cnpj" sortRules={sortRules} onSort={toggleSort} align="left" className="hidden sm:table-cell" />
-                <SortableTh label="Regime" sortKey="regime" sortRules={sortRules} onSort={toggleSort} align="left" className="hidden md:table-cell" />
-                <SortableTh label="Responsável legal" sortKey="responsavel" sortRules={sortRules} onSort={toggleSort} align="left" className="hidden md:table-cell" />
-                <SortableTh label="Honorário" sortKey="honorario" sortRules={sortRules} onSort={toggleSort} align="right" />
-                <SortableTh label="Status Pagamento" sortKey="status" sortRules={sortRules} onSort={toggleSort} align="center" />
-                <SortableTh label="Situação" sortKey="ativo" sortRules={sortRules} onSort={toggleSort} align="center" />
-                <th className="label-text px-3 sm:px-4 py-3 text-center whitespace-nowrap">Ações</th>
+              <tr>
+                <SortableTh label="Razão Social" sortKey="razaoSocial" sortRules={sortRules} onSort={toggleSort} align="left" className="sticky left-0 top-0 z-30 bg-muted pl-9 sm:pl-9" />
+                <SortableTh label="CNPJ" sortKey="cnpj" sortRules={sortRules} onSort={toggleSort} align="left" className="sticky top-0 z-20 bg-muted hidden sm:table-cell" />
+                <SortableTh label="Regime" sortKey="regime" sortRules={sortRules} onSort={toggleSort} align="left" className="sticky top-0 z-20 bg-muted hidden md:table-cell" />
+                <SortableTh label="Responsável legal" sortKey="responsavel" sortRules={sortRules} onSort={toggleSort} align="left" className="sticky top-0 z-20 bg-muted hidden md:table-cell" />
+                <SortableTh label="Honorário" sortKey="honorario" sortRules={sortRules} onSort={toggleSort} align="right" className="sticky top-0 z-20 bg-muted" />
+                <SortableTh label="Status Pagamento" sortKey="status" sortRules={sortRules} onSort={toggleSort} align="center" className="sticky top-0 z-20 bg-muted" />
+                <SortableTh label="Situação" sortKey="ativo" sortRules={sortRules} onSort={toggleSort} align="center" className="sticky top-0 z-20 bg-muted" />
+                <th className="label-text sticky top-0 z-20 bg-muted px-3 sm:px-4 py-3 text-center whitespace-nowrap">Ações</th>
               </tr>
             </thead>
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={9} className="px-4 py-6 text-center text-muted-foreground">Carregando clientes...</td>
+                  <td colSpan={8} className="px-4 py-6 text-center text-muted-foreground">Carregando clientes...</td>
                 </tr>
               )}
               {!loading && paginated.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-4 py-6 text-center text-muted-foreground">Nenhum cliente encontrado</td>
+                  <td colSpan={8} className="px-4 py-6 text-center text-muted-foreground">Nenhum cliente encontrado</td>
                 </tr>
               )}
               {paginated.map(c => (
                 <React.Fragment key={c.id}>
                 <tr className="border-t border-border hover:bg-muted/30 transition-colors">
-                  <td className="px-2 py-3 text-center">
-                    <HintTooltip content={expandedClienteId === c.id ? 'Recolher documentos' : 'Ver documentos'}>
-                      <button
-                        type="button"
-                        onClick={() => void toggleExpand(c.id)}
-                        className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
-                        aria-label={expandedClienteId === c.id ? 'Recolher documentos' : 'Ver documentos'}
-                      >
-                        {expandedClienteId === c.id ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                      </button>
-                    </HintTooltip>
-                  </td>
-                  <td className="px-3 sm:px-4 py-3 font-medium min-w-[120px] max-w-[180px] sm:max-w-none">
-                    <HintTooltip content={c.razaoSocial} enabled={!!c.razaoSocial && c.razaoSocial.length > 28}>
-                      <span className={`block truncate ${c.ativo === false ? 'line-through text-muted-foreground' : ''}`}>{c.razaoSocial}</span>
-                    </HintTooltip>
-                    {c.nomeFantasia && c.nomeFantasia.trim().toLowerCase() !== c.razaoSocial.trim().toLowerCase() && (
-                      <span className="block truncate text-xs font-normal text-muted-foreground">{c.nomeFantasia}</span>
-                    )}
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {(c.certificadoStatus === 'VENCIDO' || c.certificadoStatus === 'VENCENDO') && (
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${certificadoBadgeClass(c.certificadoStatus)}`}>
-                          {certificadoStatusLabel(c.certificadoStatus)}
-                        </span>
-                      )}
-                      {(c.tags || []).slice(0, 3).map((t) => (
-                        <span
-                          key={t.id}
-                          title={t.automatica ? 'Tag automática' : 'Tag manual'}
-                          className="text-[10px] px-1.5 py-0.5 rounded border border-border/80 inline-flex items-center gap-0.5"
-                          style={{ borderColor: t.cor || undefined, color: t.cor || undefined }}
-                        >
-                          {t.nome.replace(/_/g, ' ')}
-                          {t.automatica ? <span className="opacity-60">·</span> : null}
-                        </span>
-                      ))}
-                    </div>
-                    {c.ativo === false && <span className="text-[10px] uppercase text-muted-foreground">(inativo)</span>}
-                    <span className="sm:hidden text-[11px] text-muted-foreground tabular-nums block truncate">{c.cnpj ? maskCnpj(c.cnpj) : '—'}</span>
-                  </td>
+                  <ClienteNomeCelula
+                    cliente={c}
+                    aberto={expandedClienteId === c.id}
+                    onAlternarDocumentos={() => void toggleExpand(c.id)}
+                  />
                   <td className="px-3 sm:px-4 py-3 tabular-nums text-muted-foreground whitespace-nowrap hidden sm:table-cell">{c.cnpj ? maskCnpj(c.cnpj) : '—'}</td>
                   <td className="px-3 sm:px-4 py-3 hidden md:table-cell text-muted-foreground whitespace-nowrap">{rotuloRegime(c.regimeTributario)}</td>
                   <td className="px-3 sm:px-4 py-3 hidden md:table-cell max-w-[220px]">
@@ -781,7 +738,7 @@ export default function Clientes() {
                 </tr>
                 {expandedClienteId === c.id && (
                   <tr key={`${c.id}-exp`} className="border-t border-border bg-muted/20">
-                    <td colSpan={9} className="px-4 py-3">
+                    <td colSpan={8} className="px-4 py-3">
                       <div className="pl-8">
                         <p className="label-text font-medium mb-2">Documentos do cliente</p>
                         {loadingDocumentos === c.id ? (
@@ -838,7 +795,7 @@ export default function Clientes() {
               ))}
             </tbody>
           </table>
-        </TableScroll>
+        </TabelaCongelada>
         <ListPagination
           totalItems={filtered.length}
           currentPage={currentPage}
