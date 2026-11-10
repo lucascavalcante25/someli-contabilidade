@@ -15,6 +15,7 @@ public interface ObrigacaoOcorrenciaRepository extends JpaRepository<ObrigacaoOc
             JOIN FETCH oo.clienteObrigacao co
             JOIN FETCH co.obrigacao
             JOIN FETCH co.cliente
+            LEFT JOIN FETCH oo.concluidaPor
             WHERE co.cliente.id = :clienteId
             ORDER BY oo.dataVencimento ASC
             """)
@@ -37,6 +38,7 @@ public interface ObrigacaoOcorrenciaRepository extends JpaRepository<ObrigacaoOc
             JOIN FETCH oo.clienteObrigacao co
             JOIN FETCH co.obrigacao
             JOIN FETCH co.cliente
+            LEFT JOIN FETCH oo.concluidaPor
             WHERE oo.id = :id
             """)
     Optional<ObrigacaoOcorrencia> findByIdWithDetails(Long id);
