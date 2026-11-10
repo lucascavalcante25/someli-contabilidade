@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { limparTextoTrello } from '@/lib/textoTrello';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, KeyRound, Loader2, Pencil, Pin, Plus, StickyNote, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -224,8 +225,8 @@ export function AcessosLista({ clienteId }: { clienteId: number }) {
                 )}
               </dl>
             )}
-            {acesso.observacao && (
-              <p className="whitespace-pre-wrap break-words rounded-md bg-muted/40 px-2.5 py-2 text-sm select-text">{acesso.observacao}</p>
+            {limparTextoTrello(acesso.observacao) && (
+              <p className="whitespace-pre-wrap break-words rounded-md bg-muted/40 px-2.5 py-2 text-sm select-text">{limparTextoTrello(acesso.observacao)}</p>
             )}
             <div className="flex flex-wrap gap-1.5">
               {login && (
@@ -239,7 +240,7 @@ export function AcessosLista({ clienteId }: { clienteId: number }) {
                 </Button>
               )}
               {acesso.observacao && !login && !senha && (
-                <Button type="button" size="sm" variant="outline" onClick={() => void copiar(acesso.observacao ?? '', 'Texto')}>
+                <Button type="button" size="sm" variant="outline" onClick={() => void copiar(limparTextoTrello(acesso.observacao), 'Texto')}>
                   <Copy className="h-4 w-4" /> Copiar texto
                 </Button>
               )}
@@ -294,7 +295,8 @@ function AcessoFormulario({
   const [url, setUrl] = useState(acesso?.url ?? '');
   const [login, setLogin] = useState(valorPreenchido(acesso?.login) ?? '');
   const [senha, setSenha] = useState(valorPreenchido(acesso?.senha) ?? '');
-  const [observacao, setObservacao] = useState(acesso?.observacao ?? '');
+  // Ao editar já vem sem o Markdown do Trello; salvando, fica limpo
+  const [observacao, setObservacao] = useState(limparTextoTrello(acesso?.observacao));
   const [setor, setSetor] = useState(acesso?.setor ?? '');
   const [salvando, setSalvando] = useState(false);
 
@@ -373,6 +375,8 @@ export function AnotacoesLista({ clienteId }: { clienteId: number }) {
     queryFn: () => listarAnotacoes(clienteId),
     retry: tentarDeNovo,
   });
+  // Anotação que fica vazia depois de tirar o Markdown do Trello (só ``` ou espaços) nem aparece
+  const notas = (consulta.data ?? []).filter((n) => limparTextoTrello(n.texto));
   const [formulario, setFormulario] = useState<number | 'novo' | null>(null);
   const [confirmar, setConfirmar] = useState<number | null>(null);
   const [ocupado, setOcupado] = useState(false);
@@ -385,7 +389,7 @@ export function AnotacoesLista({ clienteId }: { clienteId: number }) {
   async function alternarFixada(nota: Anotacao) {
     setOcupado(true);
     try {
-      await atualizarAnotacao(nota.id, { titulo: nota.titulo, texto: nota.texto, setor: nota.setor, fixada: !nota.fixada });
+      await atualizarAnotacao(nota.id, { titulo: nota.titulo, texto: limparTextoTrello(nota.texto) || nota.texto, setor: nota.setor, fixada: !nota.fixada });
       await recarregar();
     } catch (erro) {
       toast.error(textoErro(erro, 'Não foi possível fixar a anotação.'));
@@ -426,8 +430,8 @@ export function AnotacoesLista({ clienteId }: { clienteId: number }) {
         </p>
       )}
       {consulta.isError && <Estado erro={consulta.error} vazio="" onTentar={() => void consulta.refetch()} />}
-      {consulta.isSuccess && consulta.data.length === 0 && <Estado erro={null} vazio="Nenhuma anotação cadastrada" onTentar={() => undefined} />}
-      {consulta.data?.map((nota) => (
+      {consulta.isSuccess && notas.length === 0 && <Estado erro={null} vazio="Nenhuma anotação cadastrada" onTentar={() => undefined} />}
+      {notas.map((nota) => (
         <article key={nota.id} className="min-w-0 space-y-2 rounded-lg border border-border p-3">
           <div className="flex min-w-0 items-start justify-between gap-2">
             <p className="min-w-0 truncate text-sm font-semibold">{nota.titulo || 'Anotação'}</p>
@@ -437,7 +441,7 @@ export function AnotacoesLista({ clienteId }: { clienteId: number }) {
             </div>
           </div>
           <p className="whitespace-pre-wrap break-words text-sm">
-            {partesDoTexto(nota.texto).map((parte, indice) => parte.tipo === 'link' ? (
+            {partesDoTexto(limparTextoTrello(nota.texto)).map((parte, indice) => parte.tipo === 'link' ? (
               <a key={indice} href={parte.valor} target="_blank" rel="noopener noreferrer" className="break-all text-primary underline">{parte.valor}</a>
             ) : (
               <span key={indice}>{parte.valor}</span>
@@ -489,7 +493,7 @@ function AnotacaoFormulario({
   onSalvo: () => Promise<void>;
 }) {
   const [titulo, setTitulo] = useState(anotacao?.titulo ?? '');
-  const [texto, setTexto] = useState(anotacao?.texto ?? '');
+  const [texto, setTexto] = useState(limparTextoTrello(anotacao?.texto));
   const [setor, setSetor] = useState(anotacao?.setor ?? '');
   const [fixada, setFixada] = useState(anotacao?.fixada ?? false);
   const [salvando, setSalvando] = useState(false);
