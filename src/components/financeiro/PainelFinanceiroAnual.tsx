@@ -27,7 +27,13 @@ function Indicador({ titulo, valor, destaque }: { titulo: string; valor: string;
   );
 }
 
-export default function PainelFinanceiroAnual({ ano }: { ano: number }) {
+interface PainelFinanceiroAnualProps {
+  ano: number;
+  /** Muda a cada pagamento ou despesa salvos na tela: o painel recarrega sem recarregar a página. */
+  versao?: number;
+}
+
+export default function PainelFinanceiroAnual({ ano, versao = 0 }: PainelFinanceiroAnualProps) {
   const { mascarar } = useValoresVisibilidade();
   const [painel, setPainel] = useState<PainelFinanceiro | null>(null);
   const [erro, setErro] = useState(false);
@@ -47,7 +53,7 @@ export default function PainelFinanceiroAnual({ ano }: { ano: number }) {
     return () => {
       ativo = false;
     };
-  }, [ano]);
+  }, [ano, versao]);
 
   if (erro) {
     return <div className="card-surface p-4 text-sm text-muted-foreground">Não foi possível carregar o painel do escritório.</div>;

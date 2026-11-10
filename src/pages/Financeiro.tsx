@@ -131,6 +131,9 @@ export default function Financeiro() {
     });
   }, []);
 
+  // Salvamentos em andamento: recarga silenciosa que chega no meio deles é descartada (a última salva recarrega de novo)
+  const salvandoRef = useRef(0);
+
   const carregarResumo = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) setLoading(true);
     try {
@@ -140,6 +143,7 @@ export default function Financeiro() {
       );
       if (!res.ok) throw new Error('Erro ao carregar resumo');
       const data = await res.json();
+      if (opts?.silent && salvandoRef.current > 0) return;
       setResumo({
         receitaTotal: Number(data.receitaTotal ?? 0),
         receitaRecebida: Number(data.receitaRecebida ?? 0),
@@ -268,6 +272,13 @@ export default function Financeiro() {
   }, [isMobile, chartDataFull, selectedMonth]);
 
   const [togglingPagamento, setTogglingPagamento] = useState<Set<number>>(new Set());
+  // Sobe a cada pagamento/despesa salvos: painel do ano e situação dos clientes atualizam sem recarregar a página
+  const [versaoPagamentos, setVersaoPagamentos] = useState(0);
+  const aposSalvarPagamento = () => {
+    setVersaoPagamentos((v) => v + 1);
+    void carregarResumo({ silent: true });
+    void carregarGrafico();
+  };
   const [togglingDespesa, setTogglingDespesa] = useState<Set<number>>(new Set());
   const [salvandoBoleto, setSalvandoBoleto] = useState<Set<number>>(new Set());
 
@@ -323,6 +334,7 @@ export default function Financeiro() {
       saldo: resumo.saldo + (novoPago ? delta : -delta),
     });
     setTogglingPagamento((prev) => new Set(prev).add(clienteId));
+    salvandoRef.current += 1;
 
     try {
       const url = `${apiBaseUrl}/financeiro/pagamentos/${clienteId}/${acao}?mes=${mesAtual}&ano=${selectedYear}`;
@@ -333,11 +345,12 @@ export default function Financeiro() {
           ? `Pagamento registrado: ${formatCurrency(cliente.honorario)}`
           : 'Pagamento desmarcado'
       );
-      void carregarGrafico();
+      aposSalvarPagamento();
     } catch (e) {
       setResumo(snapshot);
       toast.error(e instanceof Error ? e.message : 'Erro ao atualizar pagamento');
     } finally {
+      salvandoRef.current -= 1;
       setTogglingPagamento((prev) => {
         const next = new Set(prev);
         next.delete(clienteId);
@@ -364,17 +377,19 @@ export default function Financeiro() {
       saldo: resumo.saldo + (novaPaga ? -delta : delta),
     });
     setTogglingDespesa((prev) => new Set(prev).add(despesaId));
+    salvandoRef.current += 1;
 
     try {
       const url = `${apiBaseUrl}/financeiro/despesas/${despesaId}/${acao}?mes=${mesAtual}&ano=${selectedYear}`;
       const res = await apiFetch(url, { method: 'POST', headers: getAuthHeaders() });
       if (!res.ok) throw new Error('Erro ao atualizar despesa');
       toast.success('Despesa atualizada');
-      void carregarGrafico();
+      aposSalvarPagamento();
     } catch (e) {
       setResumo(snapshot);
       toast.error(e instanceof Error ? e.message : 'Erro ao atualizar despesa');
     } finally {
+      salvandoRef.current -= 1;
       setTogglingDespesa((prev) => {
         const next = new Set(prev);
         next.delete(despesaId);
@@ -421,7 +436,7 @@ export default function Financeiro() {
         </div>
       </div>
 
-      <PainelFinanceiroAnual ano={selectedYear} />
+      <PainelFinanceiroAnual ano={selectedYear} versao={versaoPagamentos} />
 
       {/* Stats do mês selecionado */}
       <div className="space-y-2 min-w-0">
