@@ -70,6 +70,7 @@ public class AlertasOperacionaisService {
                 .sorted((a, b) -> a.getDataVencimento().compareTo(b.getDataVencimento()))
                 .toList();
 
+        boolean veValores = authorizationService.canViewFinancialData(u);
         List<Cliente> clientes = clienteRepository.findAllWithResponsavel().stream()
                 .filter(c -> Boolean.TRUE.equals(c.getAtivo()))
                 .filter(c -> alcadaSet == null || alcadaSet.contains(c.getId()))
@@ -109,7 +110,12 @@ public class AlertasOperacionaisService {
                 item.setRazaoSocial(c.getRazaoSocial());
                 item.setStatus(c.getStatus());
                 item.setMesesPendentes(c.getMesesPendentes());
-                item.setValorPendente(c.getValorPendente());
+                item.setMesesAbertos(c.getMesesAbertos() != null ? c.getMesesAbertos() : List.of());
+                // Valores só para quem vê honorário/financeiro; os demais veem só quantos meses
+                if (veValores) {
+                    item.setValorPendente(c.getValorPendente());
+                    item.setHonorario(c.getHonorario());
+                }
                 inad.add(item);
             }
         }

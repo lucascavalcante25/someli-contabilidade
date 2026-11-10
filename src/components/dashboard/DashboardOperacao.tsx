@@ -14,21 +14,24 @@ interface DashboardOperacaoProps {
   onTentarDeNovo: () => void;
 }
 
-/** "Hoje" e "Andamento do mês": substituem Meu Trabalho, Visão gerencial e a Fila de trabalho. */
+/**
+ * "Hoje" e "Andamento do mês": substituem Meu Trabalho, Visão gerencial e a Fila de trabalho.
+ * Devolve os dois cartões soltos para a página pôr na mesma linha que Inadimplentes.
+ */
 export default function DashboardOperacao({ ocorrencias, competencia, hoje, carregando, erro, onTentarDeNovo }: DashboardOperacaoProps) {
   const navigate = useNavigate();
   const abrirPainel = () => navigate('/painel-mensal');
 
   if (carregando) {
     return (
-      <div className="card-surface flex items-center justify-center gap-2 p-8 text-sm text-muted-foreground">
+      <div className="card-surface flex items-center justify-center gap-2 p-8 text-sm text-muted-foreground lg:col-span-2">
         <Loader2 size={16} className="animate-spin" /> Carregando as atividades do mês...
       </div>
     );
   }
   if (erro) {
     return (
-      <div className="card-surface space-y-3 p-6 text-center">
+      <div className="card-surface space-y-3 p-6 text-center lg:col-span-2">
         <p className="text-sm text-destructive">{erro}</p>
         <button type="button" onClick={onTentarDeNovo} className="rounded-md border border-input px-4 py-2 text-sm hover:bg-muted">
           Tentar de novo
@@ -47,10 +50,10 @@ export default function DashboardOperacao({ ocorrencias, competencia, hoje, carr
   ];
 
   return (
-    <div className="grid gap-4 lg:grid-cols-5">
-      <section aria-label="Hoje" className="card-surface p-4 sm:p-5 lg:col-span-3">
+    <>
+      <section aria-label="Hoje" className="card-surface min-w-0 p-4 sm:p-5">
         <h2 className="text-sm font-semibold">Hoje</h2>
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2">
           {numeros.map(({ rotulo, valor, icone: Icone, destaque }) => (
             <button
               key={rotulo}
@@ -68,7 +71,7 @@ export default function DashboardOperacao({ ocorrencias, competencia, hoje, carr
         </div>
       </section>
 
-      <section aria-label="Andamento do mês" className="card-surface flex flex-col p-4 sm:p-5 lg:col-span-2">
+      <section aria-label="Andamento do mês" className="card-surface flex min-w-0 flex-col p-4 sm:p-5">
         <div className="flex items-baseline justify-between gap-2">
           <h2 className="text-sm font-semibold">Andamento do mês</h2>
           <span className="text-xs text-muted-foreground">{rotuloCompetencia(competencia)}</span>
@@ -97,6 +100,6 @@ export default function DashboardOperacao({ ocorrencias, competencia, hoje, carr
           Abrir Painel do mês <ArrowRight size={14} />
         </button>
       </section>
-    </div>
+    </>
   );
 }

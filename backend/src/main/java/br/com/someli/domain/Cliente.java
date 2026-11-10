@@ -119,6 +119,13 @@ public class Cliente {
     @Transient
     private java.util.List<String> mesesPendentesDetalhe;
 
+    /** Meses em aberto em "yyyy-MM", para marcar o pagamento de cada um (não persistido). */
+    @Transient
+    private java.util.List<String> mesesAbertos;
+
+    public java.util.List<String> getMesesAbertos() { return mesesAbertos; }
+    public void setMesesAbertos(java.util.List<String> mesesAbertos) { this.mesesAbertos = mesesAbertos; }
+
     /** Valor total em aberto = honorário × meses pendentes (não persistido). */
     @Transient
     private java.math.BigDecimal valorPendente;

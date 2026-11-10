@@ -108,6 +108,7 @@ public class ClienteService {
                 .filter(m -> mesAtualVencido || !m.equals(referencia))
                 .toList()));
         c.setMesesPendentesDetalhe(rotulosMeses(pendentes));
+        c.setMesesAbertos(pendentes.stream().map(YearMonth::toString).toList());
         BigDecimal honorario = c.getHonorario() != null ? c.getHonorario() : BigDecimal.ZERO;
         c.setValorPendente(honorario.multiply(BigDecimal.valueOf(mesesPendentes)));
     }

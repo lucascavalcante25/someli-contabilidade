@@ -52,6 +52,14 @@ public class AlertasOperacionaisDTO {
         private String status;
         private Integer mesesPendentes;
         private java.math.BigDecimal valorPendente;
+        /** Meses em aberto ("yyyy-MM") e honorário do mês: o Dashboard marca o pagamento de cada mês. */
+        private List<String> mesesAbertos = new ArrayList<>();
+        private java.math.BigDecimal honorario;
+
+        public List<String> getMesesAbertos() { return mesesAbertos; }
+        public void setMesesAbertos(List<String> mesesAbertos) { this.mesesAbertos = mesesAbertos; }
+        public java.math.BigDecimal getHonorario() { return honorario; }
+        public void setHonorario(java.math.BigDecimal honorario) { this.honorario = honorario; }
 
         public Long getId() { return id; }
         public void setId(Long id) { this.id = id; }

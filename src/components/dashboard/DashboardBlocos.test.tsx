@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import DashboardOperacao from './DashboardOperacao';
-import DashboardAtencao from './DashboardAtencao';
+import { CertificadosCard, InadimplentesCard } from './DashboardAtencao';
 import DashboardFinanceiro from './DashboardFinanceiro';
 import type { OcorrenciaPainel } from '@/lib/painelMensal';
 
@@ -61,31 +61,41 @@ describe('DashboardOperacao', () => {
   });
 });
 
-describe('DashboardAtencao', () => {
-  it('lista certificados e os maiores inadimplentes; clicar abre o cliente', () => {
+describe('Inadimplentes e Certificados', () => {
+  it('inadimplentes em ordem do maior valor; clicar abre a inadimplência do cliente', () => {
     const onAbrir = vi.fn();
     render(
-      <DashboardAtencao
-        certificados={[{ clienteId: 4, razaoSocial: 'Clínica Miranda', status: 'VENCENDO', certificadoVencimento: '2026-11-30' }]}
+      <InadimplentesCard
         inadimplentes={[
           { id: 5, razaoSocial: 'Bom Pão', mesesPendentes: 2, valorPendente: 760 },
           { id: 6, razaoSocial: 'Horizonte', mesesPendentes: 14, valorPendente: 30800 },
         ]}
         mascarar={(v) => v}
-        onAbrirCliente={onAbrir}
+        onAbrir={onAbrir}
       />,
     );
     const inad = screen.getByRole('region', { name: 'Inadimplentes' });
-    const nomes = within(inad).getAllByRole('button').map((b) => b.textContent);
-    expect(nomes[0]).toMatch(/Horizonte/);
-    fireEvent.click(within(screen.getByRole('region', { name: 'Certificados' })).getByRole('button', { name: /Clínica Miranda/ }));
-    expect(onAbrir).toHaveBeenCalledWith(4);
+    const botoes = within(inad).getAllByRole('button');
+    expect(botoes[0].textContent).toMatch(/Horizonte/);
+    fireEvent.click(botoes[1]);
+    expect(onAbrir).toHaveBeenCalledWith(expect.objectContaining({ id: 5 }));
   });
 
-  it('sem alertas mostra mensagem tranquila', () => {
-    render(<DashboardAtencao certificados={[]} inadimplentes={[]} mascarar={(v) => v} onAbrirCliente={vi.fn()} />);
+  it('sem inadimplentes o card fica no lugar, zerado', () => {
+    render(<InadimplentesCard inadimplentes={[]} mascarar={(v) => v} onAbrir={vi.fn()} />);
+    expect(within(screen.getByRole('region', { name: 'Inadimplentes' })).getByText('Nenhum cliente em atraso')).toBeTruthy();
+  });
+
+  it('certificados: clicar abre o cliente; vazio mostra mensagem', () => {
+    const onAbrir = vi.fn();
+    const { unmount } = render(
+      <CertificadosCard certificados={[{ clienteId: 4, razaoSocial: 'Clínica Miranda', status: 'VENCENDO', certificadoVencimento: '2026-11-30' }]} onAbrirCliente={onAbrir} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Clínica Miranda/ }));
+    expect(onAbrir).toHaveBeenCalledWith(4);
+    unmount();
+    render(<CertificadosCard certificados={[]} onAbrirCliente={vi.fn()} />);
     expect(screen.getByText('Nenhum certificado vencendo')).toBeTruthy();
-    expect(screen.getByText('Nenhum cliente em atraso')).toBeTruthy();
   });
 });
 

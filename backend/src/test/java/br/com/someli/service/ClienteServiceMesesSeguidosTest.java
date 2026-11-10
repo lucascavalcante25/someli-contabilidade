@@ -63,4 +63,14 @@ class ClienteServiceMesesSeguidosTest {
 
         assertThat(c.getMesesPendentesSeguidos()).isEqualTo(3);
     }
+
+    @Test
+    void mesesAbertos_saemEmAnoMes_paraOModalDeInadimplenciaMarcarPagamento() {
+        Cliente c = clienteComSetembroEOutubroEmAberto();
+
+        service().enriquecerStatusPagamento(c, YearMonth.of(2026, 11), LocalDate.of(2026, 11, 2),
+                pagosAteAgosto(), Set.of());
+
+        assertThat(c.getMesesAbertos()).containsExactly("2026-09", "2026-10", "2026-11");
+    }
 }

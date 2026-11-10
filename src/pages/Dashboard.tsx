@@ -3,7 +3,8 @@ import ToggleValoresButton from '@/components/shared/ToggleValoresButton';
 import ModalShell from '@/components/shared/ModalShell';
 import BuscaRapidaCliente, { type ClienteParaBusca } from '@/components/dashboard/BuscaRapidaCliente';
 import DashboardOperacao from '@/components/dashboard/DashboardOperacao';
-import DashboardAtencao, { type CertificadoAlerta, type InadimplenteAlerta } from '@/components/dashboard/DashboardAtencao';
+import { CertificadosCard, InadimplentesCard, type CertificadoAlerta, type InadimplenteAlerta } from '@/components/dashboard/DashboardAtencao';
+import InadimplenciaDialog from '@/components/dashboard/InadimplenciaDialog';
 import DashboardFinanceiro, { type ResumoFinanceiroMes } from '@/components/dashboard/DashboardFinanceiro';
 import { ClienteDetalhePanel } from '@/pages/ClienteDetalhe';
 import { getGreeting } from '@/data/mockData';
@@ -53,6 +54,8 @@ export default function Dashboard() {
   const [viewClienteId, setViewClienteId] = useState<number | null>(null);
   // A lupa abre direto nas obrigações; os demais atalhos abrem no resumo
   const [abaInicial, setAbaInicial] = useState<'resumo' | 'obrigacoes'>('resumo');
+  const [inadimplente, setInadimplente] = useState<InadimplenteAlerta | null>(null);
+  const podeVerInadimplentes = podeFinanceiro || podeHonorario;
 
   const carregarOperacao = useCallback(async () => {
     setCarregandoOperacao(true);
@@ -66,8 +69,44 @@ export default function Dashboard() {
     }
   }, [competencia]);
 
+  const carregarAlertas = useCallback(() => {
+    lerJson(`${API_BASE_URL}/alertas-operacionais`)
+      .then((data) => {
+        const d = objeto(data);
+        setAlertas({
+          certificados: lista(d.certificados) as CertificadoAlerta[],
+          inadimplentes: lista(d.inadimplentesItens) as InadimplenteAlerta[],
+        });
+      })
+      .catch(() => setAlertas({ certificados: [], inadimplentes: [] }));
+  }, []);
+
+  const carregarFinanceiro = useCallback(() => {
+    if (!podeFinanceiro) return;
+    lerJson(`${API_BASE_URL}/financeiro/resumo`)
+      .then((data) => {
+        const d = objeto(data);
+        setResumo({
+          receitaTotal: Number(d.receitaTotal ?? 0),
+          receitaRecebida: Number(d.receitaRecebida ?? 0),
+          receitaPendente: Number(d.receitaPendente ?? 0),
+          despesaTotal: Number(d.despesaTotal ?? 0),
+          saldo: Number(d.saldo ?? 0),
+        });
+      })
+      .catch(() => setResumo(null));
+    lerJson(`${API_BASE_URL}/financeiro/grafico`)
+      .then((data) => setGrafico(lista(data).map((item) => {
+        const g = objeto(item);
+        return { mes: String(g.mes ?? ''), receita: Number(g.receita ?? 0), despesa: Number(g.despesa ?? 0) };
+      })))
+      .catch(() => setGrafico([]));
+  }, [podeFinanceiro]);
+
   useEffect(() => {
     void carregarOperacao();
+    carregarAlertas();
+    carregarFinanceiro();
     lerJson(`${API_BASE_URL}/clientes`)
       .then((data) => setClientes(lista(data).map((item) => {
         const c = objeto(item);
@@ -82,36 +121,7 @@ export default function Dashboard() {
         };
       })))
       .catch(() => setClientes([]));
-    lerJson(`${API_BASE_URL}/alertas-operacionais`)
-      .then((data) => {
-        const d = objeto(data);
-        setAlertas({
-          certificados: lista(d.certificados) as CertificadoAlerta[],
-          inadimplentes: lista(d.inadimplentesItens) as InadimplenteAlerta[],
-        });
-      })
-      .catch(() => setAlertas({ certificados: [], inadimplentes: [] }));
-    if (podeFinanceiro) {
-      lerJson(`${API_BASE_URL}/financeiro/resumo`)
-        .then((data) => {
-          const d = objeto(data);
-          setResumo({
-            receitaTotal: Number(d.receitaTotal ?? 0),
-            receitaRecebida: Number(d.receitaRecebida ?? 0),
-            receitaPendente: Number(d.receitaPendente ?? 0),
-            despesaTotal: Number(d.despesaTotal ?? 0),
-            saldo: Number(d.saldo ?? 0),
-          });
-        })
-        .catch(() => setResumo(null));
-      lerJson(`${API_BASE_URL}/financeiro/grafico`)
-        .then((data) => setGrafico(lista(data).map((item) => {
-          const g = objeto(item);
-          return { mes: String(g.mes ?? ''), receita: Number(g.receita ?? 0), despesa: Number(g.despesa ?? 0) };
-        })))
-        .catch(() => setGrafico([]));
-    }
-  }, [carregarOperacao, podeFinanceiro]);
+  }, [carregarOperacao, carregarAlertas, carregarFinanceiro]);
 
   // No celular o gráfico mostra só mês anterior, atual e próximo
   const graficoVisivel = useMemo(() => {
@@ -149,23 +159,43 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <DashboardOperacao
-        ocorrencias={ocorrencias}
-        competencia={competencia}
-        hoje={hojeIso()}
-        carregando={carregandoOperacao}
-        erro={erroOperacao}
-        onTentarDeNovo={() => void carregarOperacao()}
-      />
-
-      <DashboardAtencao
-        certificados={alertas.certificados}
-        inadimplentes={podeFinanceiro || podeHonorario ? alertas.inadimplentes : null}
-        mascarar={mascarar}
-        onAbrirCliente={(id) => setViewClienteId(id)}
-      />
+      {/* Hoje, Andamento do mês e Inadimplentes na mesma linha */}
+      <div className={podeVerInadimplentes ? 'grid gap-4 lg:grid-cols-3' : 'grid gap-4 lg:grid-cols-2'}>
+        <DashboardOperacao
+          ocorrencias={ocorrencias}
+          competencia={competencia}
+          hoje={hojeIso()}
+          carregando={carregandoOperacao}
+          erro={erroOperacao}
+          onTentarDeNovo={() => void carregarOperacao()}
+        />
+        {podeVerInadimplentes && (
+          <InadimplentesCard inadimplentes={alertas.inadimplentes} mascarar={mascarar} onAbrir={setInadimplente} />
+        )}
+      </div>
 
       {podeFinanceiro && <DashboardFinanceiro resumo={resumo} grafico={graficoVisivel} mascarar={mascarar} />}
+
+      {/* Certificados por último: costuma ficar vazio até cadastrarem os vencimentos */}
+      <CertificadosCard certificados={alertas.certificados} onAbrirCliente={(id) => setViewClienteId(id)} />
+
+      {inadimplente && (
+        <InadimplenciaDialog
+          cliente={inadimplente}
+          mascarar={mascarar}
+          onFechar={(mudou) => {
+            setInadimplente(null);
+            if (mudou) {
+              carregarAlertas();
+              carregarFinanceiro();
+            }
+          }}
+          onVerFicha={(id) => {
+            setInadimplente(null);
+            setViewClienteId(id);
+          }}
+        />
+      )}
 
       {viewClienteId != null && (
         <ModalShell onClose={fecharCliente} maxWidth="3xl" fixedSize className="sm:h-[min(860px,92vh)] sm:max-h-[92vh]">
