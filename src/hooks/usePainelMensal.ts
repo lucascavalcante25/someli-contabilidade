@@ -4,7 +4,8 @@ import { toast } from 'sonner';
 import { carregarContagens, CHAVE_CONTAGENS, type FichaContagem } from '@/lib/acessos';
 import { correspondeBusca } from '@/lib/buscaClientes';
 import {
-  alterarConclusao,
+  AGUARDANDO_CLIENTE,
+  alterarStatus,
   carregarPainel,
   carregarSegmentos,
   definirSegmento,
@@ -84,12 +85,12 @@ export function usePainelMensal() {
     return soPendentes ? { ...m, linhas: m.linhas.filter((l) => l.feitas < l.total) } : m;
   }, [ocorrencias, setor, segmento, segmentos, busca, soPendentes]);
 
-  const alternar = useCallback(async (o: OcorrenciaPainel, concluir: boolean) => {
+  const mudarStatus = useCallback(async (o: OcorrenciaPainel, status: Parameters<typeof alterarStatus>[1]) => {
     const anterior = o;
-    setOcorrencias((lista) => lista.map((x) => (x.id === o.id ? { ...x, status: concluir ? 'CONCLUIDA' : 'PENDENTE' } : x)));
+    setOcorrencias((lista) => lista.map((x) => (x.id === o.id ? { ...x, status } : x)));
     setSalvando((s) => new Set(s).add(o.id));
     try {
-      const atualizada = await alterarConclusao(o.id, concluir);
+      const atualizada = await alterarStatus(o.id, status);
       setOcorrencias((lista) => lista.map((x) => (x.id === o.id ? { ...x, ...atualizada } : x)));
     } catch (e) {
       setOcorrencias((lista) => lista.map((x) => (x.id === o.id ? anterior : x)));
@@ -102,6 +103,15 @@ export function usePainelMensal() {
       });
     }
   }, []);
+
+  const alternar = useCallback(
+    (o: OcorrenciaPainel, concluir: boolean) => mudarStatus(o, concluir ? 'CONCLUIDA' : 'PENDENTE'),
+    [mudarStatus],
+  );
+  const aguardarCliente = useCallback(
+    (o: OcorrenciaPainel, aguardar: boolean) => mudarStatus(o, aguardar ? AGUARDANDO_CLIENTE : 'PENDENTE'),
+    [mudarStatus],
+  );
 
   /** Arrastar o cartão para o outro segmento: muda na hora e grava; se falhar, volta. */
   const moverSegmento = useCallback(async (clienteId: number, novo: Segmento) => {
@@ -131,7 +141,7 @@ export function usePainelMensal() {
     competencia, setCompetencia,
     ocorrencias, segmentos, carregando, erro, carregar, recarregarSemPiscar, salvando,
     busca, setBusca, setor, setSetor, segmento, setSegmento, soPendentes, setSoPendentes,
-    contagens, matriz, alternar, moverSegmento, percentual, atrasadas,
+    contagens, matriz, alternar, aguardarCliente, moverSegmento, percentual, atrasadas,
   };
 }
 

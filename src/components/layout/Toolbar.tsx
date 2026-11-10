@@ -4,10 +4,10 @@ import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
 import UserAvatar from '@/components/UserAvatar';
 import BrandLogo from '@/components/BrandLogo';
-import TypewriterText from '@/components/shared/TypewriterText';
 import HintTooltip from '@/components/shared/HintTooltip';
 import { LogOut, Bell, ChevronRight, Menu, AlertCircle, Settings, UserRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useMensagemDoDia } from '@/lib/mensagemDiaria';
 import { useIsMobile } from '@/hooks/useMediaQuery';
 import {
   DropdownMenu,
@@ -29,39 +29,6 @@ interface Notificacao {
   lida: boolean;
 }
 
-interface MensagemDiaria {
-  id?: number;
-  diaAno?: number;
-  texto: string;
-  referencia?: string;
-  tipo?: string;
-}
-
-/** Autor (citação) ou referência bíblica (versículo). Ignora rótulo genérico. */
-function autorOuReferencia(ref?: string): string | undefined {
-  if (!ref) return undefined;
-  const t = ref.trim();
-  if (!t) return undefined;
-  const n = t.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
-  if (n === 'mensagem de animo' || n.startsWith('mensagem de animo')) return undefined;
-  return t;
-}
-
-/**
- * Sempre: texto + ponto + autor/referência bíblica na mesma linha.
- * Ex.: "...lugar. — João 14:2"
- */
-function montarMensagem(texto: string, referencia?: string): string {
-  const base = (texto || '').trim();
-  if (!base) return '';
-  const autor = autorOuReferencia(referencia);
-  const comPonto = /[.!?…]$/.test(base) ? base : `${base}.`;
-  if (!autor) return comPonto;
-  if (base.includes(`— ${autor}`) || base.endsWith(autor)) return comPonto;
-  // NBSP evita quebrar a referência para a linha de baixo
-  return `${comPonto}\u00A0—\u00A0${autor.replace(/ /g, '\u00A0')}`;
-}
-
 function getAuthHeaders() {
   return {
     'Content-Type': 'application/json',
@@ -78,7 +45,6 @@ export default function Toolbar({ onMenuClick }: ToolbarProps) {
   const isMobile = useIsMobile();
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
   const [count, setCount] = useState(0);
-  const [mensagem, setMensagem] = useState<MensagemDiaria | null>(null);
 
   const apiBaseUrl = API_BASE_URL;
 
@@ -102,33 +68,11 @@ export default function Toolbar({ onMenuClick }: ToolbarProps) {
     }
   }, [apiBaseUrl]);
 
-  const carregarMensagem = useCallback(async () => {
-    try {
-      const res = await apiFetch(`${apiBaseUrl}/mensagens-diarias/hoje`, {
-        headers: getAuthHeaders(),
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      setMensagem({
-        id: data.id,
-        diaAno: data.diaAno,
-        texto: String(data.texto || ''),
-        referencia: data.referencia ? String(data.referencia) : undefined,
-        tipo: data.tipo ? String(data.tipo) : undefined,
-      });
-    } catch {
-      setMensagem(null);
-    }
-  }, [apiBaseUrl]);
-
-  const mensagemExibida = mensagem?.texto
-    ? montarMensagem(mensagem.texto, mensagem.referencia)
-    : '';
+  const mensagemExibida = useMensagemDoDia();
 
   useEffect(() => {
     void carregarNotificacoes();
-    void carregarMensagem();
-  }, [carregarNotificacoes, carregarMensagem]);
+  }, [carregarNotificacoes]);
 
   const handleOpenChange = useCallback(
     (open: boolean) => {
@@ -182,8 +126,9 @@ export default function Toolbar({ onMenuClick }: ToolbarProps) {
       <div className="hidden md:flex flex-1 min-w-0 items-center justify-center px-2">
         {!isMobile && mensagemExibida ? (
           <div className="max-w-4xl w-full text-center">
-            <p className="text-[13px] leading-snug text-sidebar-foreground/95 font-medium whitespace-normal">
-              <TypewriterText text={mensagemExibida} speedMs={34} />
+            {/* Fixo e discreto: sem efeito de digitação a cada página */}
+            <p className="text-[12.5px] italic leading-snug text-sidebar-foreground/75 whitespace-normal line-clamp-2">
+              {mensagemExibida}
             </p>
           </div>
         ) : null}
@@ -330,13 +275,7 @@ export default function Toolbar({ onMenuClick }: ToolbarProps) {
         />
       ) : null}
 
-      {isMobile && mensagemExibida ? (
-        <div className="md:hidden px-3 pb-2.5 pt-0.5 bg-sidebar">
-          <p className="text-[11px] leading-snug text-sidebar-foreground/90">
-            <TypewriterText text={mensagemExibida} speedMs={30} />
-          </p>
-        </div>
-      ) : null}
+      {/* No celular o versículo fica no Dashboard, abaixo da saudação (não empurra todas as telas) */}
     </>
   );
 }

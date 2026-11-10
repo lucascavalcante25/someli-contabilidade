@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { CheckSquare, Clock, KeyRound, StickyNote } from 'lucide-react';
+import { CheckSquare, Clock, Hourglass, KeyRound, StickyNote } from 'lucide-react';
 import { AcessosLista, AnotacoesLista } from '@/components/clientes/FichaClienteAcessos';
 import AdicionarItemChecklist from '@/components/painel/AdicionarItemChecklist';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
-import { estaFeita, NAO_APLICAVEL, rotuloCompetencia, type LinhaPainel, type OcorrenciaPainel, type Segmento } from '@/lib/painelMensal';
+import { AGUARDANDO_CLIENTE, estaFeita, NAO_APLICAVEL, rotuloCompetencia, type LinhaPainel, type OcorrenciaPainel, type Segmento } from '@/lib/painelMensal';
 import { estaAtrasada, itensDoCartao, ORDEM_SEGMENTOS, ROTULO_SEGMENTO } from '@/lib/painelQuadro';
 import { Permissoes } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
@@ -26,6 +26,8 @@ interface PainelCartaoDialogProps {
   segmentoDefinido?: boolean;
   /** Troca o segmento do cliente (vale para os próximos meses). Sem ele, a escolha não aparece. */
   onMoverSegmento?: (clienteId: number, segmento: Segmento) => void;
+  /** Marca/desmarca "aguardando cliente" (antes só na Fila de trabalho do Dashboard). */
+  onAguardarCliente?: (ocorrencia: OcorrenciaPainel, aguardar: boolean) => void;
 }
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -53,7 +55,7 @@ function Secao({ icone, titulo, acao, children }: { icone: React.ReactNode; titu
  * os acessos e as anotações do cliente (os mesmos do cadastro e do Painel V1).
  */
 export default function PainelCartaoDialog({
-  linha, colunas, competencia, hoje, salvando, onAlternar, onItemAdicionado, onFechar, segmento, segmentoDefinido, onMoverSegmento,
+  linha, colunas, competencia, hoje, salvando, onAlternar, onItemAdicionado, onFechar, segmento, segmentoDefinido, onMoverSegmento, onAguardarCliente,
 }: PainelCartaoDialogProps) {
   const { can } = useAuth();
   const [ocultarMarcados, setOcultarMarcados] = useState(false);
@@ -156,7 +158,27 @@ export default function PainelCartaoDialog({
                                 ? <span className="inline-flex items-center gap-1"><Clock size={11} />{atrasada ? 'Atrasada · venceu' : 'Vence'} {diaMes(o.dataVencimento)}</span>
                                 : 'Pendente'}
                         </p>
+                        {o.status === AGUARDANDO_CLIENTE && (
+                          <span className="mt-1 inline-flex items-center gap-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400">
+                            <Hourglass size={11} aria-hidden /> Aguardando cliente
+                          </span>
+                        )}
                       </div>
+                      {!feita && !naoAplica && onAguardarCliente && (
+                        <button
+                          type="button"
+                          disabled={salvando.has(o.id)}
+                          onClick={() => onAguardarCliente(o, o.status !== AGUARDANDO_CLIENTE)}
+                          aria-label={`${o.obrigacaoNome}: ${o.status === AGUARDANDO_CLIENTE ? 'tirar de aguardando cliente' : 'marcar aguardando cliente'}`}
+                          title={o.status === AGUARDANDO_CLIENTE ? 'Tirar de aguardando cliente' : 'Aguardando o cliente (documento, informação...)'}
+                          className={cn(
+                            'shrink-0 rounded-md p-1.5 transition-colors hover:bg-muted disabled:opacity-50',
+                            o.status === AGUARDANDO_CLIENTE ? 'text-amber-600' : 'text-muted-foreground/60 hover:text-foreground',
+                          )}
+                        >
+                          <Hourglass size={15} />
+                        </button>
+                      )}
                     </li>
                   );
                 })}

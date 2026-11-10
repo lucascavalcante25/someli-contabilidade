@@ -134,12 +134,18 @@ export async function carregarSegmentos(): Promise<Record<number, Segmento>> {
   return mapa;
 }
 
-export function alterarConclusao(ocorrenciaId: number, concluir: boolean) {
+export const AGUARDANDO_CLIENTE = 'AGUARDANDO_CLIENTE';
+
+export function alterarStatus(ocorrenciaId: number, status: 'CONCLUIDA' | 'PENDENTE' | typeof AGUARDANDO_CLIENTE) {
   return requisicao<OcorrenciaPainel>(`${API_BASE_URL}/ocorrencias/${ocorrenciaId}/status`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status: concluir ? 'CONCLUIDA' : 'PENDENTE' }),
+    body: JSON.stringify({ status }),
   });
+}
+
+export function alterarConclusao(ocorrenciaId: number, concluir: boolean) {
+  return alterarStatus(ocorrenciaId, concluir ? 'CONCLUIDA' : 'PENDENTE');
 }
 
 /** Tipo do catálogo de obrigações (GET /obrigacoes). */

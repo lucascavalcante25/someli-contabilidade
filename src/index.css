@@ -7,6 +7,9 @@
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
+    /* iOS 26 deixou de deixar a barra de status transparente nos apps da tela inicial e passou a mostrar
+       o fundo da página ali (faixa clara sobre o cabeçalho). Fundo roxo atrás; o conteúdo (body) continua claro. */
+    background-color: hsl(var(--sidebar-background));
   }
 
   :root {

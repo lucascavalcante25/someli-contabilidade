@@ -64,6 +64,46 @@ function soltar(cartao: HTMLElement, lista: HTMLElement) {
   fireEvent.drop(lista, { dataTransfer });
 }
 
+describe('PainelQuadro · aguardando cliente', () => {
+  const comAguardando = montarMatriz([
+    base({ id: 7, obrigacaoNome: 'Folha de pagamento', status: 'AGUARDANDO_CLIENTE' }),
+    base({ id: 8, obrigacaoNome: 'DCTFWeb' }),
+  ]);
+
+  function abrir(onAguardar = vi.fn()) {
+    render(
+      <TooltipProvider>
+        <PainelQuadro matriz={comAguardando} competencia="2026-10" hoje="2026-11-10" salvando={new Set()}
+          onAlternar={vi.fn()} onAguardarCliente={onAguardar} />
+      </TooltipProvider>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Abrir cartão de Fra Carnes/ }));
+    return { dialogo: screen.getByRole('dialog'), onAguardar };
+  }
+
+  it('marca um item pendente como aguardando o cliente (o que antes só a Fila de trabalho fazia)', () => {
+    const { dialogo, onAguardar } = abrir();
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'DCTFWeb: marcar aguardando cliente' }));
+    expect(onAguardar).toHaveBeenCalledWith(expect.objectContaining({ id: 8 }), true);
+  });
+
+  it('item aguardando mostra o aviso e pode voltar a pendente', () => {
+    const { dialogo, onAguardar } = abrir();
+    expect(within(dialogo).getByText('Aguardando cliente')).toBeTruthy();
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Folha de pagamento: tirar de aguardando cliente' }));
+    expect(onAguardar).toHaveBeenCalledWith(expect.objectContaining({ id: 7 }), false);
+  });
+
+  it('o cartão avisa que há item aguardando o cliente', () => {
+    render(
+      <TooltipProvider>
+        <PainelQuadro matriz={comAguardando} competencia="2026-10" hoje="2026-11-10" salvando={new Set()} onAlternar={vi.fn()} />
+      </TooltipProvider>,
+    );
+    expect(within(screen.getByRole('button', { name: /Abrir cartão de Fra Carnes/ })).getByText('Aguardando cliente')).toBeTruthy();
+  });
+});
+
 describe('PainelQuadro · segmento', () => {
   it('arrastar o cartão para a lista do outro segmento grava o segmento do cliente', () => {
     const onMover = vi.fn();

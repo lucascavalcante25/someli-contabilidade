@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
-import { CheckSquare, Clock, KeyRound } from 'lucide-react';
+import { CheckSquare, Clock, Hourglass, KeyRound } from 'lucide-react';
 import PainelCartaoDialog from '@/components/painel/PainelCartaoDialog';
 import { useArrastarParaRolar } from '@/hooks/useArrastarParaRolar';
-import type { MatrizPainel, OcorrenciaPainel, Segmento } from '@/lib/painelMensal';
+import { AGUARDANDO_CLIENTE, type MatrizPainel, type OcorrenciaPainel, type Segmento } from '@/lib/painelMensal';
 import { agruparEmListas, segmentoDe, temAtrasada, type ListaQuadro } from '@/lib/painelQuadro';
 import { cn } from '@/lib/utils';
 
@@ -25,6 +25,7 @@ interface PainelQuadroProps {
    * valendo para este mês e os próximos. Sem ele (sem permissão de editar cliente), o cartão não arrasta.
    */
   onMoverSegmento?: (clienteId: number, segmento: Segmento) => void;
+  onAguardarCliente?: (ocorrencia: OcorrenciaPainel, aguardar: boolean) => void;
 }
 
 const COR_LISTA: Record<string, string> = {
@@ -34,7 +35,7 @@ const COR_LISTA: Record<string, string> = {
 };
 
 /** Painel V2: quadro como o Trello. Cada cliente é um cartão; o cartão muda de lista conforme o checklist anda. */
-export default function PainelQuadro({ matriz, hoje, salvando, onAlternar, contagens, onAbrirCartao, competencia, onItemAdicionado, segmentos = {}, onMoverSegmento }: PainelQuadroProps) {
+export default function PainelQuadro({ matriz, hoje, salvando, onAlternar, contagens, onAbrirCartao, competencia, onItemAdicionado, segmentos = {}, onMoverSegmento, onAguardarCliente }: PainelQuadroProps) {
   const [abertoId, setAbertoId] = useState<number | null>(null);
   const listas = useMemo(() => agruparEmListas(matriz.linhas, segmentos), [matriz.linhas, segmentos]);
   // Sempre a linha atual da matriz: o cartão aberto reflete na hora o que foi marcado
@@ -137,6 +138,11 @@ export default function PainelQuadro({ matriz, hoje, salvando, onAlternar, conta
                           </span>
                         )}
                         {temFicha && <KeyRound size={13} className="text-primary" aria-label="Tem acessos ou anotações" />}
+                        {Object.values(l.celulas).some((o) => o.status === AGUARDANDO_CLIENTE) && (
+                          <span className="inline-flex items-center gap-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400">
+                            <Hourglass size={11} aria-hidden /> Aguardando cliente
+                          </span>
+                        )}
                         {!segmentos[l.clienteId] && (
                           <span className="rounded border border-dashed border-muted-foreground/40 px-1.5 py-0.5 text-[11px] text-muted-foreground">
                             Segmento a confirmar
@@ -165,6 +171,7 @@ export default function PainelQuadro({ matriz, hoje, salvando, onAlternar, conta
         segmento={aberto ? segmentoDe(aberto.clienteId, segmentos) : null}
         segmentoDefinido={aberto ? !!segmentos[aberto.clienteId] : false}
         onMoverSegmento={onMoverSegmento}
+        onAguardarCliente={onAguardarCliente}
         onFechar={() => setAbertoId(null)}
       />
     </>

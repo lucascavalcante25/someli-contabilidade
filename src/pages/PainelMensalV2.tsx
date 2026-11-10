@@ -35,6 +35,7 @@ export default function PainelMensalV2() {
             hoje={hojeIso()}
             salvando={painel.salvando}
             onAlternar={(o, c) => void painel.alternar(o, c)}
+            onAguardarCliente={(o, a) => void painel.aguardarCliente(o, a)}
             contagens={painel.contagens}
             onAbrirCartao={() => void queryClient.invalidateQueries({ queryKey: CHAVE_CONTAGENS })}
             competencia={painel.competencia}
