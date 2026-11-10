@@ -62,6 +62,12 @@ function textoErro(erro: unknown, vazio: string) {
   return erro instanceof Error ? erro.message : vazio;
 }
 
+/** Só tenta de novo quando caiu a conexão; erro do servidor, permissão ou sessão aparece na hora. */
+function tentarDeNovo(tentativas: number, erro: unknown) {
+  const tipo = erro instanceof ErroAcesso || erro instanceof ErroAnotacao ? erro.tipo : 'servidor';
+  return tipo === 'rede' && tentativas < 2;
+}
+
 interface FichaClienteAcessosProps {
   clienteId: number;
   clienteNome: string;
@@ -115,7 +121,7 @@ function Estado({ erro, vazio, onTentar }: { erro: unknown; vazio: string; onTen
   );
 }
 
-function AcessosLista({ clienteId }: { clienteId: number }) {
+export function AcessosLista({ clienteId }: { clienteId: number }) {
   const { can } = useAuth();
   const podeEditar = can(Permissoes.CLIENTE_ACESSOS_EDITAR);
   const queryClient = useQueryClient();
@@ -125,6 +131,7 @@ function AcessosLista({ clienteId }: { clienteId: number }) {
     queryFn: () => listarAcessosAbertos(clienteId),
     gcTime: 0,
     staleTime: 0,
+    retry: tentarDeNovo,
   });
   const [formulario, setFormulario] = useState<number | 'novo' | null>(null);
   const [confirmar, setConfirmar] = useState<number | null>(null);
@@ -357,13 +364,14 @@ function AcessoFormulario({
   );
 }
 
-function AnotacoesLista({ clienteId }: { clienteId: number }) {
+export function AnotacoesLista({ clienteId }: { clienteId: number }) {
   const { can } = useAuth();
   const podeEditar = can(Permissoes.CLIENTES_EDITAR);
   const queryClient = useQueryClient();
   const consulta = useQuery({
     queryKey: CHAVE_ANOTACOES(clienteId),
     queryFn: () => listarAnotacoes(clienteId),
+    retry: tentarDeNovo,
   });
   const [formulario, setFormulario] = useState<number | 'novo' | null>(null);
   const [confirmar, setConfirmar] = useState<number | null>(null);

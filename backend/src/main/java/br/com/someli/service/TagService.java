@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -80,6 +81,39 @@ public class TagService {
         Cliente atualizado = clienteRepository.findByIdWithResponsavel(clienteId)
                 .orElseThrow(() -> new ClienteNaoEncontradoException("Cliente não encontrado"));
         return atualizado.getTags().stream().map(this::toDto).collect(Collectors.toList());
+    }
+
+    /** Segmentos do Painel do mês (eram os dois quadros do Trello), gravados como tag manual do cliente. */
+    public static final Map<String, String> SEGMENTOS = Map.of("SERVICOS", "#2563EB", "COMERCIO_INDUSTRIA", "#D97706");
+
+    /**
+     * Troca só a tag de segmento do cliente (as outras ficam). Vale para este mês e os próximos,
+     * porque o painel lê o segmento do cliente, não da competência.
+     */
+    @Transactional
+    public List<TagDTO> definirSegmento(Long clienteId, String segmento) {
+        if (segmento == null || !SEGMENTOS.containsKey(segmento)) {
+            throw new RegraNegocioException("Segmento inválido: use SERVICOS ou COMERCIO_INDUSTRIA");
+        }
+        authorizationService.requirePermission(PermissaoCodigo.CLIENTES_EDITAR);
+        authorizationService.requireCompanyAccess(clienteId);
+        Cliente c = clienteRepository.findByIdWithResponsavel(clienteId)
+                .orElseThrow(() -> new ClienteNaoEncontradoException("Cliente não encontrado"));
+
+        Tag alvo = tagRepository.findByNome(segmento).orElseGet(() -> {
+            Tag nova = new Tag();
+            nova.setNome(segmento);
+            nova.setCor(SEGMENTOS.get(segmento));
+            nova.setAutomatica(false);
+            return tagRepository.save(nova);
+        });
+        Set<Tag> tags = c.getTags().stream()
+                .filter(t -> !SEGMENTOS.containsKey(t.getNome()))
+                .collect(Collectors.toCollection(HashSet::new));
+        tags.add(alvo);
+        c.setTags(tags);
+        clienteRepository.save(c);
+        return tags.stream().map(this::toDto).toList();
     }
 
     public TagDTO toDto(Tag tag) {

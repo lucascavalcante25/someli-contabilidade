@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import FichaClienteAcessos from './FichaClienteAcessos';
+import FichaClienteAcessos, { AcessosLista } from './FichaClienteAcessos';
 
 vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({ can: () => true }),
@@ -46,6 +46,22 @@ describe('FichaClienteAcessos', () => {
     expect(screen.getByText('segredo-2')).toBeTruthy();
     expect(screen.getByText('joao')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /Revelar/ })).toBeNull();
+  });
+
+  it('erro do servidor (ex.: cofre sem chave, 409) aparece na hora, sem ficar em "Carregando" tentando de novo', async () => {
+    const { listarAcessosAbertos, ErroAcesso } = await import('@/lib/acessos');
+    const mock = vi.mocked(listarAcessosAbertos);
+    mock.mockClear();
+    mock.mockRejectedValueOnce(new ErroAcesso('Cofre de acessos não configurado', 'servidor'));
+    // QueryClient com as opções padrão do app (que tentam de novo 3 vezes)
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <AcessosLista clienteId={2} />
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByText('Cofre de acessos não configurado')).toBeTruthy();
+    expect(screen.queryByText(/Carregando acessos/)).toBeNull();
+    expect(mock).toHaveBeenCalledTimes(1);
   });
 
   it('não mostra login e senha de marcador quando o texto todo está na observação', async () => {

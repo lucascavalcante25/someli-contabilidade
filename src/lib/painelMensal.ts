@@ -141,3 +141,47 @@ export function alterarConclusao(ocorrenciaId: number, concluir: boolean) {
     body: JSON.stringify({ status: concluir ? 'CONCLUIDA' : 'PENDENTE' }),
   });
 }
+
+/** Tipo do catálogo de obrigações (GET /obrigacoes). */
+export interface TipoObrigacao {
+  id: number;
+  nome: string;
+  tipo: string;
+  periodicidadePadrao?: string | null;
+  diaVencimentoPadrao?: number | null;
+  mesVencimentoPadrao?: number | null;
+}
+
+export function carregarCatalogo() {
+  return requisicao<TipoObrigacao[]>(`${API_BASE_URL}/obrigacoes`);
+}
+
+/**
+ * Liga a obrigação ao cliente: é o mesmo vínculo do "Editar cliente", então aparece no cadastro,
+ * no Painel V1 e no V2. O backend já cria a atividade da competência.
+ */
+export function adicionarAoChecklist(clienteId: number, obrigacaoId: number, dataVencimento: string) {
+  return requisicao<{ id: number }>(`${API_BASE_URL}/clientes/${clienteId}/obrigacoes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ clienteId, obrigacaoId, dataVencimento, ativo: true }),
+  });
+}
+
+/** Obrigação nova no catálogo (vale para o sistema todo; ajustes finos em Tipos de Obrigação). Mensal. */
+export function criarTipoObrigacao(dados: { nome: string; tipo: string; diaVencimentoPadrao: number }) {
+  return requisicao<TipoObrigacao>(`${API_BASE_URL}/obrigacoes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...dados, diasAntecedenciaAlerta: 7, periodicidadePadrao: 'MENSAL' }),
+  });
+}
+
+/** Grava o segmento do cliente (tag manual). Vale para este mês e os próximos. */
+export function definirSegmento(clienteId: number, segmento: Segmento) {
+  return requisicao<unknown>(`${API_BASE_URL}/clientes/${clienteId}/segmento`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ segmento }),
+  });
+}

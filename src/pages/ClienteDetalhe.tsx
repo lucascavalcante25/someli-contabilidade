@@ -33,6 +33,7 @@ import { regraDosTipos } from '@/lib/feriados';
 import { useFeriados } from '@/hooks/useFeriados';
 import { rotuloContaRecebimento } from '@/lib/contaRecebimento';
 import FichaClienteAcessos from '@/components/clientes/FichaClienteAcessos';
+import ClienteDetalheModalCabecalho from '@/components/clientes/ClienteDetalheModalCabecalho';
 import { certificadoBadgeClass, certificadoStatusLabel, formatCertificadoResumo } from '@/lib/certificado';
 
 type TipoObrigacao = (typeof TIPOS_OBRIGACAO)[number]['value'];
@@ -807,22 +808,7 @@ export function ClienteDetalhePanel({
           <ToggleValoresButton className="shrink-0" />
         </div>
       ) : (
-        <div className="mb-3 flex shrink-0 items-center justify-between gap-3">
-          <div className="min-w-0">
-            <h2 className="text-lg font-semibold truncate">Detalhes do Cliente</h2>
-            <HintTooltip content={cliente.razaoSocial}>
-              <p className="cursor-default truncate text-sm text-muted-foreground">{cliente.razaoSocial}</p>
-            </HintTooltip>
-          </div>
-          <div className="flex shrink-0 items-center gap-1">
-            <ToggleValoresButton compact />
-            <HintTooltip content="Fechar detalhes">
-              <button onClick={onClose} className="rounded p-1 transition-colors hover:bg-muted" aria-label="Fechar">
-                <X size={18} />
-              </button>
-            </HintTooltip>
-          </div>
-        </div>
+        <ClienteDetalheModalCabecalho razaoSocial={cliente.razaoSocial} onEditar={onEdit} onFechar={onClose} />
       )}
 
       <Tabs

@@ -15,6 +15,8 @@ export function useArrastarParaRolar<T extends HTMLElement>() {
   const onMouseDown = useCallback((e: ReactMouseEvent<T>) => {
     const el = ref.current;
     if (!el || e.button !== 0) return;
+    // Cartão que se arrasta para outra lista (Painel V2) não rola o quadro
+    if (e.target instanceof Element && e.target.closest('[draggable="true"]')) return;
     const inicioX = e.clientX;
     const inicioScroll = el.scrollLeft;
     arrastou.current = false;

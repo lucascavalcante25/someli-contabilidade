@@ -1,9 +1,11 @@
 package br.com.someli.controller;
 
+import br.com.someli.dto.DefinirSegmentoRequestDTO;
 import br.com.someli.dto.TagDTO;
 import br.com.someli.dto.UpdateClienteTagsRequestDTO;
 import br.com.someli.service.TagService;
 import br.com.someli.service.TagSyncService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -43,6 +45,14 @@ public class TagController {
             @PathVariable Long clienteId,
             @RequestBody UpdateClienteTagsRequestDTO request) {
         return ResponseEntity.ok(tagService.substituirTagsDoCliente(clienteId, request));
+    }
+
+    /** Segmento do cliente (Serviços / Comércio e Indústria): arrastar o cartão no Painel V2. */
+    @PutMapping("/clientes/{clienteId}/segmento")
+    public ResponseEntity<List<TagDTO>> definirSegmento(
+            @PathVariable Long clienteId,
+            @Valid @RequestBody DefinirSegmentoRequestDTO request) {
+        return ResponseEntity.ok(tagService.definirSegmento(clienteId, request.getSegmento()));
     }
 
     /** Força ressincronização de tags automáticas (NOVO_CLIENTE / INADIMPLENTE). */
