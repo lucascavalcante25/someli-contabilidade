@@ -1,5 +1,6 @@
 import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
+import { segmentoDasTags } from '@/lib/segmentoCliente';
 
 /**
  * Painel do mês: substitui o checklist do Trello. Cada competência é uma folha nova
@@ -121,17 +122,26 @@ export function carregarPainel(competencia: string) {
 }
 
 export type Segmento = 'SERVICOS' | 'COMERCIO_INDUSTRIA';
-const SEGMENTOS: Segmento[] = ['SERVICOS', 'COMERCIO_INDUSTRIA'];
 
-/** Segmento de cada cliente (antes eram os painéis do Trello), pela tag. */
-export async function carregarSegmentos(): Promise<Record<number, Segmento>> {
-  const clientes = await requisicao<{ id: number; tags?: { nome: string }[] }[]>(`${API_BASE_URL}/clientes`);
-  const mapa: Record<number, Segmento> = {};
+export interface ClientesDoPainel {
+  /** Segmento de cada cliente (antes eram os painéis do Trello), pela tag. */
+  segmentos: Record<number, Segmento>;
+  /** CNPJ só com números, para copiar no cartão. */
+  cnpjs: Record<number, string>;
+}
+
+/** Segmento e CNPJ de cada cliente, numa chamada só a /clientes. */
+export async function carregarClientesDoPainel(): Promise<ClientesDoPainel> {
+  const clientes = await requisicao<{ id: number; cnpj?: string | null; tags?: { nome: string }[] }[]>(`${API_BASE_URL}/clientes`);
+  const segmentos: Record<number, Segmento> = {};
+  const cnpjs: Record<number, string> = {};
   for (const c of clientes) {
-    const seg = (c.tags ?? []).map((t) => t.nome).find((n): n is Segmento => SEGMENTOS.includes(n as Segmento));
-    if (seg) mapa[c.id] = seg;
+    const seg = segmentoDasTags(c.tags);
+    if (seg) segmentos[c.id] = seg;
+    const numeros = (c.cnpj ?? '').replace(/\D/g, '');
+    if (numeros) cnpjs[c.id] = numeros;
   }
-  return mapa;
+  return { segmentos, cnpjs };
 }
 
 export const AGUARDANDO_CLIENTE = 'AGUARDANDO_CLIENTE';
@@ -164,7 +174,7 @@ export function carregarCatalogo() {
 
 /**
  * Liga a obrigação ao cliente: é o mesmo vínculo do "Editar cliente", então aparece no cadastro,
- * no Painel V1 e no V2. O backend já cria a atividade da competência.
+ * no Painel do mês. O backend já cria a atividade da competência.
  */
 export function adicionarAoChecklist(clienteId: number, obrigacaoId: number, dataVencimento: string) {
   return requisicao<{ id: number }>(`${API_BASE_URL}/clientes/${clienteId}/obrigacoes`, {

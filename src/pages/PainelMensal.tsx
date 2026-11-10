@@ -6,8 +6,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { CHAVE_CONTAGENS } from '@/lib/acessos';
 import { Permissoes } from '@/lib/permissions';
 
-/** Painel do mês em formato de quadro (Trello), para comparar com o V1. Mesmos dados e marcações. */
-export default function PainelMensalV2() {
+/** Painel do mês em formato de quadro (como o Trello): cada cliente é um cartão com o checklist da competência. */
+export default function PainelMensal() {
   const painel = usePainelMensal();
   const queryClient = useQueryClient();
   const { can } = useAuth();
@@ -16,12 +16,9 @@ export default function PainelMensalV2() {
     <div className="page-shell">
       <div className="page-header">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">
-            Painel do mês <span className="ml-1 rounded bg-primary/10 px-1.5 py-0.5 align-middle text-xs font-semibold text-primary">V2 · teste</span>
-          </h1>
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Painel do mês</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Cada cliente é um cartão. Clique para abrir o checklist do mês; o cartão muda de lista conforme as atividades são marcadas.
-            As marcações são as mesmas do Painel do mês.
           </p>
         </div>
       </div>
@@ -42,6 +39,7 @@ export default function PainelMensalV2() {
             segmentos={painel.segmentos}
             onMoverSegmento={can(Permissoes.CLIENTES_EDITAR) ? (id, seg) => void painel.moverSegmento(id, seg) : undefined}
             onItemAdicionado={() => void painel.recarregarSemPiscar()}
+            cnpjs={painel.cnpjs}
           />
         </PainelMensalEstados>
       </div>

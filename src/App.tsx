@@ -19,7 +19,6 @@ import Consultas from "./pages/Consultas";
 import EnviarDocumento from "./pages/EnviarDocumento";
 import NotFound from "./pages/NotFound";
 import PainelMensal from './pages/PainelMensal';
-import PainelMensalV2 from './pages/PainelMensalV2';
 
 const queryClient = new QueryClient();
 
@@ -42,7 +41,8 @@ const App = () => (
               <Route path="/financeiro" element={<PermissionRoute module="FINANCEIRO"><Financeiro /></PermissionRoute>} />
               <Route path="/despesas" element={<PermissionRoute module="DESPESAS"><Despesas /></PermissionRoute>} />
               <Route path="/painel-mensal" element={<PermissionRoute module="OBRIGACOES"><PainelMensal /></PermissionRoute>} />
-              <Route path="/painel-mensal-v2" element={<PermissionRoute module="OBRIGACOES"><PainelMensalV2 /></PermissionRoute>} />
+              {/* Endereço do período de teste do quadro (V2): continua abrindo o Painel do mês */}
+              <Route path="/painel-mensal-v2" element={<Navigate to="/painel-mensal" replace />} />
               <Route path="/obrigacoes-tipos" element={<PermissionRoute module="OBRIGACOES_TIPOS"><ObrigacoesTipos /></PermissionRoute>} />
               <Route path="/usuarios" element={<PermissionRoute module="USUARIOS"><Usuarios /></PermissionRoute>} />
               <Route path="/configuracoes" element={<Configuracoes />} />

@@ -194,4 +194,26 @@ describe('PainelQuadro', () => {
     expect(within(dialogo).getByText('Lista de anotações do cliente 1')).toBeTruthy();
     expect(within(dialogo).getByRole('button', { name: 'Adicionar item' })).toBeTruthy();
   });
+
+  it('o cartão aberto mostra o CNPJ ao lado do nome e copia com um clique (só os números)', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+    render(
+      <TooltipProvider>
+        <PainelQuadro matriz={matriz} competencia="2026-10" hoje="2026-11-10" salvando={new Set()} onAlternar={vi.fn()}
+          cnpjs={{ 1: '54247625000181' }} />
+      </TooltipProvider>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Abrir cartão de Fra Carnes/ }));
+    const dialogo = screen.getByRole('dialog');
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Copiar CNPJ 54.247.625/0001-81' }));
+    expect(writeText).toHaveBeenCalledWith('54247625000181');
+    expect(await within(dialogo).findByText('Copiado')).toBeTruthy();
+  });
+
+  it('cliente sem CNPJ não mostra o botão de copiar', () => {
+    renderizar();
+    fireEvent.click(screen.getByRole('button', { name: /Abrir cartão de Fra Carnes/ }));
+    expect(within(screen.getByRole('dialog')).queryByRole('button', { name: /Copiar CNPJ/ })).toBeNull();
+  });
 });

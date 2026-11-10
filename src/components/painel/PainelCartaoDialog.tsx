@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckSquare, Clock, Hourglass, KeyRound, StickyNote } from 'lucide-react';
+import { Check, CheckSquare, Clock, Copy, Hourglass, KeyRound, StickyNote } from 'lucide-react';
 import { AcessosLista, AnotacoesLista } from '@/components/clientes/FichaClienteAcessos';
 import AdicionarItemChecklist from '@/components/painel/AdicionarItemChecklist';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -7,8 +7,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useAuth } from '@/contexts/AuthContext';
 import { AGUARDANDO_CLIENTE, estaFeita, NAO_APLICAVEL, rotuloCompetencia, type LinhaPainel, type OcorrenciaPainel, type Segmento } from '@/lib/painelMensal';
 import { estaAtrasada, itensDoCartao, ORDEM_SEGMENTOS, ROTULO_SEGMENTO } from '@/lib/painelQuadro';
+import { copiarTexto } from '@/lib/copiarTexto';
+import { maskCnpj } from '@/lib/masks';
 import { Permissoes } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface PainelCartaoDialogProps {
   linha: LinhaPainel | null;
@@ -28,6 +31,8 @@ interface PainelCartaoDialogProps {
   onMoverSegmento?: (clienteId: number, segmento: Segmento) => void;
   /** Marca/desmarca "aguardando cliente" (antes só na Fila de trabalho do Dashboard). */
   onAguardarCliente?: (ocorrencia: OcorrenciaPainel, aguardar: boolean) => void;
+  /** CNPJ só com números; aparece ao lado do nome e copia com um clique. */
+  cnpj?: string;
 }
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -36,6 +41,32 @@ function quando(iso: string | null) {
   if (!iso) return '';
   const d = new Date(iso);
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)} às ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** CNPJ ao lado do nome: um clique copia só os números, para colar no portal (antes copiavam do Trello). */
+function CopiarCnpj({ cnpj }: { cnpj: string }) {
+  const [copiado, setCopiado] = useState(false);
+  const formatado = maskCnpj(cnpj);
+  const copiar = async () => {
+    if (await copiarTexto(cnpj)) {
+      setCopiado(true);
+      window.setTimeout(() => setCopiado(false), 1500);
+    } else {
+      toast.error('Não foi possível copiar o CNPJ');
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={() => void copiar()}
+      aria-label={`Copiar CNPJ ${formatado}`}
+      title="Clique para copiar o CNPJ"
+      className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-muted/60 px-2 py-0.5 text-xs font-medium tabular-nums text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      {copiado ? <Check className="h-3.5 w-3.5 text-emerald-600" aria-hidden /> : <Copy className="h-3.5 w-3.5" aria-hidden />}
+      {copiado ? 'Copiado' : formatado}
+    </button>
+  );
 }
 
 function Secao({ icone, titulo, acao, children }: { icone: React.ReactNode; titulo: string; acao?: React.ReactNode; children: React.ReactNode }) {
@@ -52,10 +83,10 @@ function Secao({ icone, titulo, acao, children }: { icone: React.ReactNode; titu
 
 /**
  * Cartão aberto, como no Trello: um modal só, que cresce para baixo, com o checklist do mês,
- * os acessos e as anotações do cliente (os mesmos do cadastro e do Painel V1).
+ * os acessos e as anotações do cliente (os mesmos do cadastro do cliente).
  */
 export default function PainelCartaoDialog({
-  linha, colunas, competencia, hoje, salvando, onAlternar, onItemAdicionado, onFechar, segmento, segmentoDefinido, onMoverSegmento, onAguardarCliente,
+  linha, colunas, competencia, hoje, salvando, onAlternar, onItemAdicionado, onFechar, segmento, segmentoDefinido, onMoverSegmento, onAguardarCliente, cnpj,
 }: PainelCartaoDialogProps) {
   const { can } = useAuth();
   const [ocultarMarcados, setOcultarMarcados] = useState(false);
@@ -67,7 +98,10 @@ export default function PainelCartaoDialog({
     <Dialog open={linha != null} onOpenChange={(aberto) => { if (!aberto) { setOcultarMarcados(false); onFechar(); } }}>
       <DialogContent className="flex max-h-[94vh] w-[calc(100vw-1.5rem)] max-w-2xl flex-col gap-3 overflow-hidden p-4 sm:p-6">
         <DialogHeader className="shrink-0 text-left">
-          <DialogTitle className="pr-6 break-words">{linha?.clienteNome}</DialogTitle>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pr-6">
+            <DialogTitle className="min-w-0 break-words">{linha?.clienteNome}</DialogTitle>
+            {cnpj && <CopiarCnpj cnpj={cnpj} />}
+          </div>
           <DialogDescription>Atividades da competência {rotuloCompetencia(competencia)}</DialogDescription>
           {linha && onMoverSegmento && (
             <div className="flex flex-wrap items-center gap-2 pt-1">

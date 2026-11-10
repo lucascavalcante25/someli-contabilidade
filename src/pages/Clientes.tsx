@@ -21,6 +21,8 @@ import { PAGE_SIZE } from '@/lib/constants';
 import { correspondeBusca } from '@/lib/buscaClientes';
 import { rotuloRegime } from '@/lib/classificacao';
 import { salvarResponsaveis, type ResponsaveisPorSetor } from '@/lib/responsaveis';
+import { definirSegmento, type Segmento } from '@/lib/painelMensal';
+import { segmentoPeloCnae } from '@/lib/segmentoCliente';
 import ResponsavelLegalContato from '@/components/clientes/ResponsavelLegalContato';
 import { ClienteFormModal } from '@/components/clientes/ClienteFormModal';
 import { ClienteDetalhePanel } from '@/pages/ClienteDetalhe';
@@ -140,6 +142,9 @@ interface ClienteFormData {
   /** Responsável de cada setor (usuário do sistema); originais servem para salvar só o que mudou. */
   responsaveis?: ResponsaveisPorSetor;
   responsaveisOriginais?: ResponsaveisPorSetor;
+  segmento?: Segmento | '';
+  segmentoOriginal?: Segmento | '';
+  segmentoSugerido?: boolean;
 }
 
 function formatCurrency(value: number): string {
@@ -318,6 +323,11 @@ export default function Clientes() {
         telefone: String(prefill.telefone || ''),
         email: String(prefill.email || ''),
       };
+      const segmento = segmentoPeloCnae(prefill.cnaePrincipalCodigo);
+      if (segmento) {
+        draft.segmento = segmento;
+        draft.segmentoSugerido = true;
+      }
       setEditingCliente(null);
       setPrefillCliente(draft);
       setShowForm(true);
@@ -512,6 +522,15 @@ export default function Clientes() {
       }
 
       const saved = normalizeClienteFromApi(await response.json());
+
+      // Segmento é tag manual: grava só quando escolheram ou trocaram
+      if (form.segmento && form.segmento !== form.segmentoOriginal) {
+        try {
+          await definirSegmento(saved.id, form.segmento);
+        } catch (e) {
+          toast.error(`Cliente salvo, mas o segmento não: ${e instanceof Error ? e.message : 'erro'}`);
+        }
+      }
 
       if (form.responsaveis) {
         try {

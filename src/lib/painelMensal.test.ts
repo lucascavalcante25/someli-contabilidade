@@ -6,7 +6,7 @@ vi.mock('@/lib/http', () => ({ apiFetch: apiFetchMock }));
 import {
   alterarConclusao,
   carregarPainel,
-  carregarSegmentos,
+  carregarClientesDoPainel,
   competenciaDeTrabalho,
   deslocarCompetencia,
   montarMatriz,
@@ -75,13 +75,17 @@ describe('API', () => {
     expect(JSON.parse(apiFetchMock.mock.calls[1][1].body)).toEqual({ status: 'PENDENTE' });
   });
 
-  it('segmento vem da tag do cliente', async () => {
+  it('segmento vem da tag do cliente e o CNPJ vem do cadastro (numa chamada só)', async () => {
     apiFetchMock.mockResolvedValue(new Response(JSON.stringify([
-      { id: 1, tags: [{ nome: 'SERVICOS' }, { nome: 'SIMPLES_NACIONAL' }] },
-      { id: 2, tags: [{ nome: 'COMERCIO_INDUSTRIA' }] },
+      { id: 1, cnpj: '54.247.625/0001-81', tags: [{ nome: 'SERVICOS' }, { nome: 'SIMPLES_NACIONAL' }] },
+      { id: 2, cnpj: null, tags: [{ nome: 'COMERCIO_INDUSTRIA' }] },
       { id: 3, tags: [] },
     ]), { status: 200 }));
-    expect(await carregarSegmentos()).toEqual({ 1: 'SERVICOS', 2: 'COMERCIO_INDUSTRIA' });
+    expect(await carregarClientesDoPainel()).toEqual({
+      segmentos: { 1: 'SERVICOS', 2: 'COMERCIO_INDUSTRIA' },
+      cnpjs: { 1: '54247625000181' },
+    });
+    expect(apiFetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('separa falha de rede de erro do servidor', async () => {

@@ -26,6 +26,8 @@ interface PainelQuadroProps {
    */
   onMoverSegmento?: (clienteId: number, segmento: Segmento) => void;
   onAguardarCliente?: (ocorrencia: OcorrenciaPainel, aguardar: boolean) => void;
+  /** CNPJ (só números) de cada cliente, mostrado no cartão aberto para copiar. */
+  cnpjs?: Record<number, string>;
 }
 
 const COR_LISTA: Record<string, string> = {
@@ -35,7 +37,7 @@ const COR_LISTA: Record<string, string> = {
 };
 
 /** Painel V2: quadro como o Trello. Cada cliente é um cartão; o cartão muda de lista conforme o checklist anda. */
-export default function PainelQuadro({ matriz, hoje, salvando, onAlternar, contagens, onAbrirCartao, competencia, onItemAdicionado, segmentos = {}, onMoverSegmento, onAguardarCliente }: PainelQuadroProps) {
+export default function PainelQuadro({ matriz, hoje, salvando, onAlternar, contagens, onAbrirCartao, competencia, onItemAdicionado, segmentos = {}, onMoverSegmento, onAguardarCliente, cnpjs }: PainelQuadroProps) {
   const [abertoId, setAbertoId] = useState<number | null>(null);
   const listas = useMemo(() => agruparEmListas(matriz.linhas, segmentos), [matriz.linhas, segmentos]);
   // Sempre a linha atual da matriz: o cartão aberto reflete na hora o que foi marcado
@@ -172,6 +174,7 @@ export default function PainelQuadro({ matriz, hoje, salvando, onAlternar, conta
         segmentoDefinido={aberto ? !!segmentos[aberto.clienteId] : false}
         onMoverSegmento={onMoverSegmento}
         onAguardarCliente={onAguardarCliente}
+        cnpj={aberto ? cnpjs?.[aberto.clienteId] : undefined}
         onFechar={() => setAbertoId(null)}
       />
     </>

@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import SegmentoClienteField from '@/components/clientes/SegmentoClienteField';
+import type { Segmento } from '@/lib/painelMensal';
+import { segmentoDasTags } from '@/lib/segmentoCliente';
 import { dataParaObrigacao, type VencimentoPadrao } from '@/lib/vencimentoPadrao';
 import { Info, Plus, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -45,6 +48,7 @@ interface Cliente {
   certificadoVencimento?: string;
   certificadoTipo?: string;
   certificadoObservacao?: string;
+  tags?: { nome: string }[];
 }
 
 const REGIME_OPTIONS = [
@@ -92,6 +96,11 @@ export interface ClienteFormData {
   certificadoTipo?: string;
   certificadoObservacao?: string;
   clienteObrigacoes: ClienteObrigacaoFormItem[];
+  /** Segmento (lista do Painel do mês); o original serve para gravar só se mudou. */
+  segmento?: Segmento | '';
+  segmentoOriginal?: Segmento | '';
+  /** O segmento veio do CNAE da consulta do CNPJ. */
+  segmentoSugerido?: boolean;
   /** Responsável de cada setor (usuário do sistema); originais servem para salvar só o que mudou. */
   responsaveis?: ResponsaveisPorSetor;
   responsaveisOriginais?: ResponsaveisPorSetor;
@@ -173,6 +182,9 @@ export function ClienteFormModal({
     formaPagamento: cliente?.formaPagamento ?? prefill?.formaPagamento ?? '',
     contaRecebimento: cliente?.contaRecebimento ?? prefill?.contaRecebimento ?? '',
     regimeTributario: cliente?.regimeTributario ?? prefill?.regimeTributario ?? '',
+    segmento: (cliente ? segmentoDasTags(cliente.tags) : prefill?.segmento) ?? '',
+    segmentoOriginal: (cliente ? segmentoDasTags(cliente.tags) : undefined) ?? '',
+    segmentoSugerido: !cliente && !!prefill?.segmentoSugerido,
     ativo: cliente?.ativo !== false,
     certificadoVencimento: cliente?.certificadoVencimento ?? prefill?.certificadoVencimento ?? '',
     certificadoTipo: cliente?.certificadoTipo ?? prefill?.certificadoTipo ?? '',
@@ -211,6 +223,9 @@ export function ClienteFormModal({
         formaPagamento: cliente.formaPagamento ?? '',
         contaRecebimento: cliente.contaRecebimento ?? '',
         regimeTributario: cliente.regimeTributario ?? '',
+        segmento: segmentoDasTags(cliente.tags) ?? '',
+        segmentoOriginal: segmentoDasTags(cliente.tags) ?? '',
+        segmentoSugerido: false,
         ativo: cliente.ativo !== false,
         certificadoVencimento: cliente.certificadoVencimento ?? '',
         certificadoTipo: cliente.certificadoTipo ?? '',
@@ -231,6 +246,9 @@ export function ClienteFormModal({
         status: (prefill.status || 'em_dia') as StatusCliente,
         dataInicioCobranca: prefill.dataInicioCobranca ?? getPrimeiroDiaMesAtual(),
         regimeTributario: prefill.regimeTributario || '',
+        segmento: prefill.segmento || '',
+        segmentoOriginal: '',
+        segmentoSugerido: !!prefill.segmentoSugerido,
         certificadoVencimento: prefill.certificadoVencimento || '',
         certificadoTipo: prefill.certificadoTipo || '',
         certificadoObservacao: prefill.certificadoObservacao || '',
@@ -541,6 +559,11 @@ export function ClienteFormModal({
                 options={REGIME_OPTIONS}
               />
             </div>
+            <SegmentoClienteField
+              value={form.segmento || ''}
+              sugeridoPeloCnae={form.segmentoSugerido}
+              onChange={(seg) => setForm((prev) => ({ ...prev, segmento: seg, segmentoSugerido: false }))}
+            />
             <div className="space-y-1.5">
               <label className="label-text flex items-center gap-1.5">
                 Venc. certificado

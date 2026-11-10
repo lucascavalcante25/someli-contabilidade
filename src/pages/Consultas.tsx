@@ -16,11 +16,14 @@ interface CnpjResult {
   naturezaJuridica: string;
   endereco: string;
   cnaePrincipal: string;
+  /** Código do CNAE principal (ex.: 47.11-3-01), para sugerir o segmento no cadastro. */
+  cnaePrincipalCodigo?: string;
   cnaesSecundarios: string[];
   socios: { nome: string; qualificacao: string }[];
 }
 
 interface ReceitaAtividade {
+  code?: string;
   text?: string;
 }
 
@@ -148,6 +151,7 @@ export default function Consultas() {
         naturezaJuridica: data.naturezaJuridica || data.natureza_juridica || '-',
         endereco: endereco || '-',
         cnaePrincipal: atividadePrincipal,
+        cnaePrincipalCodigo: data.atividade_principal?.[0]?.code || undefined,
         cnaesSecundarios: secundarias,
         socios,
       });
@@ -494,6 +498,7 @@ export default function Consultas() {
                       telefone: '',
                       email: '',
                       proprietario: result.socios?.[0]?.nome || '',
+                      cnaePrincipalCodigo: result.cnaePrincipalCodigo,
                     },
                   },
                 });

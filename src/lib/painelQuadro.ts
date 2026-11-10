@@ -4,7 +4,7 @@ import type { VencimentoPadrao } from '@/lib/vencimentoPadrao';
 /**
  * Painel V2 (teste): o mesmo painel do mês em formato de quadro, como o Trello.
  * Cada cliente é um cartão; as listas mostram o andamento do checklist do mês.
- * Os dados são os mesmos do painel V1 (marcar num aparece no outro).
+ * Os dados vêm de /ocorrencias, os mesmos do cadastro do cliente.
  */
 
 export type Etapa = 'a-fazer' | 'em-andamento' | 'concluidos';

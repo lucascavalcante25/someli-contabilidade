@@ -28,7 +28,7 @@ const campo = 'w-full rounded-md border border-input bg-card px-3 py-2 text-sm o
 
 /**
  * Adiciona um item ao checklist do cliente. Grava o mesmo vínculo do "Editar cliente"
- * (aparece no cadastro, no Painel V1 e no V2). Pode criar uma obrigação nova no catálogo.
+ * (aparece no cadastro e no Painel do mês). Pode criar uma obrigação nova no catálogo.
  */
 export default function AdicionarItemChecklist({ clienteId, competencia, jaNoChecklist, onAdicionado }: AdicionarItemChecklistProps) {
   const { can } = useAuth();

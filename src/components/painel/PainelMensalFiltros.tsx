@@ -17,7 +17,7 @@ const SEGMENTOS = [
   { value: 'COMERCIO_INDUSTRIA', label: 'Comércio e Indústria' },
 ];
 
-/** Competência, andamento e filtros do Painel do mês (iguais no V1 e no V2). */
+/** Competência, andamento e filtros do Painel do mês. */
 export function PainelMensalFiltros({ painel }: { painel: PainelMensalEstado }) {
   const { competencia, setCompetencia, matriz, percentual, atrasadas } = painel;
   return (

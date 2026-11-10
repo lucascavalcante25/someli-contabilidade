@@ -7,7 +7,7 @@ import {
   AGUARDANDO_CLIENTE,
   alterarStatus,
   carregarPainel,
-  carregarSegmentos,
+  carregarClientesDoPainel,
   definirSegmento,
   competenciaDeTrabalho,
   estaFeita,
@@ -22,13 +22,14 @@ export const hojeIso = () => {
 };
 
 /**
- * Dados do Painel do mês, compartilhados pelo painel em tabela (V1) e pelo quadro em cartões (V2):
- * mesma API e mesmas marcações, então o que se marca num aparece no outro.
+ * Dados do Painel do mês (quadro em cartões): ocorrências da competência, segmento e CNPJ de cada cliente.
+ * As marcações são as mesmas do cadastro do cliente e do Andamento do Dashboard.
  */
 export function usePainelMensal() {
   const [competencia, setCompetencia] = useState(competenciaDeTrabalho());
   const [ocorrencias, setOcorrencias] = useState<OcorrenciaPainel[]>([]);
   const [segmentos, setSegmentos] = useState<Record<number, Segmento>>({});
+  const [cnpjs, setCnpjs] = useState<Record<number, string>>({});
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState<Set<number>>(new Set());
@@ -51,9 +52,13 @@ export function usePainelMensal() {
     setCarregando(true);
     setErro(null);
     try {
-      const [lista, segs] = await Promise.all([carregarPainel(competencia), carregarSegmentos().catch(() => ({}))]);
+      const [lista, clientes] = await Promise.all([
+        carregarPainel(competencia),
+        carregarClientesDoPainel().catch(() => ({ segmentos: {}, cnpjs: {} })),
+      ]);
       setOcorrencias(lista);
-      setSegmentos(segs);
+      setSegmentos(clientes.segmentos);
+      setCnpjs(clientes.cnpjs);
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Erro ao carregar o painel');
     } finally {
@@ -139,7 +144,7 @@ export function usePainelMensal() {
 
   return {
     competencia, setCompetencia,
-    ocorrencias, segmentos, carregando, erro, carregar, recarregarSemPiscar, salvando,
+    ocorrencias, segmentos, cnpjs, carregando, erro, carregar, recarregarSemPiscar, salvando,
     busca, setBusca, setor, setSetor, segmento, setSegmento, soPendentes, setSoPendentes,
     contagens, matriz, alternar, aguardarCliente, moverSegmento, percentual, atrasadas,
   };

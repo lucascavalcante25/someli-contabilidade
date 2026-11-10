@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Search, Users, DollarSign, Receipt, UserCog, ClipboardList, CalendarCheck, KanbanSquare } from 'lucide-react';
+import { LayoutDashboard, Search, Users, DollarSign, Receipt, UserCog, ClipboardList, CalendarCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import BrandLogo from '@/components/BrandLogo';
@@ -12,7 +12,6 @@ const menuItems = [
   { label: 'Financeiro', icon: DollarSign, path: '/financeiro', module: 'FINANCEIRO' },
   { label: 'Despesas', icon: Receipt, path: '/despesas', module: 'DESPESAS' },
   { label: 'Painel do mês', icon: CalendarCheck, path: '/painel-mensal', module: 'OBRIGACOES' },
-  { label: 'Painel V2 (teste)', icon: KanbanSquare, path: '/painel-mensal-v2', module: 'OBRIGACOES' },
   { label: 'Tipos de Obrigação', icon: ClipboardList, path: '/obrigacoes-tipos', module: 'OBRIGACOES_TIPOS' },
   { label: 'Usuários', icon: UserCog, path: '/usuarios', module: 'USUARIOS' },
 ];
