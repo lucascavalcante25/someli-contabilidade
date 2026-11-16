@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import CalendarioDatasEspeciais from './CalendarioDatasEspeciais';
-import DatasEspeciaisCard from './DatasEspeciaisCard';
 import type { DataEspecial } from '@/lib/datasEspeciais';
 
 const carregar = vi.fn();
@@ -57,6 +56,17 @@ describe('CalendarioDatasEspeciais', () => {
     expect(links[0].getAttribute('href')).toContain('https://wa.me/5585988887777?text=');
   });
 
+  it('mostra o dia das profissões mesmo sem cliente, inclusive duas no mesmo dia', async () => {
+    const geral = (profissao: string) => evento({ data: '2026-11-19', clienteId: null, clienteNome: null, pessoa: null, telefone: null, profissao });
+    carregar.mockResolvedValue([geral('Ator'), geral('Historiador')]);
+    comQuery(<CalendarioDatasEspeciais hoje={HOJE} />);
+    fireEvent.click(await screen.findByRole('button', { name: /19 de novembro: 2 datas especiais/ }));
+    const balao = await screen.findByRole('dialog');
+    expect(within(balao).getByText('Dia do Ator')).toBeTruthy();
+    expect(within(balao).getByText('Dia do Historiador')).toBeTruthy();
+    expect(within(balao).queryByRole('link')).toBeNull();
+  });
+
   it('troca de mês pelas setas', async () => {
     carregar.mockResolvedValue([]);
     comQuery(<CalendarioDatasEspeciais hoje={HOJE} />);
@@ -83,25 +93,5 @@ describe('CalendarioDatasEspeciais', () => {
     } finally {
       simulacao.falha = null;
     }
-  });
-});
-
-describe('DatasEspeciaisCard', () => {
-  beforeEach(() => carregar.mockReset());
-
-  it('lista hoje e os próximos 7 dias, inclusive na virada do mês', async () => {
-    carregar.mockImplementation(async (_ano: number, mes: number) => (mes === 11
-      ? [evento({ data: '2026-11-16', tipo: 'ANIVERSARIO_EMPRESA', anos: 7 }), evento({ data: '2026-11-28' })]
-      : [evento({ data: '2026-12-01', tipo: 'ANIVERSARIO_RESPONSAVEL', clienteNome: 'Bom Pão', pessoa: 'João Lima' })]));
-    comQuery(<DatasEspeciaisCard hoje={new Date(2026, 10, 26)} />);
-    expect(await screen.findByText('Aniversário de João Lima (Bom Pão)')).toBeTruthy();
-    expect(screen.getByText('Dia do Dentista: Sorriso')).toBeTruthy();
-    expect(screen.queryByText(/faz 7 anos/)).toBeNull();
-  });
-
-  it('nada na semana mostra o estado vazio', async () => {
-    carregar.mockResolvedValue([]);
-    comQuery(<DatasEspeciaisCard hoje={HOJE} />);
-    expect(await screen.findByText(/Nenhuma data especial nos próximos 7 dias/)).toBeTruthy();
   });
 });

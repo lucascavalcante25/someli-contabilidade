@@ -9,8 +9,9 @@ export interface DataEspecial {
   /** yyyy-MM-dd */
   data: string;
   tipo: TipoDataEspecial;
-  clienteId: number;
-  clienteNome: string;
+  /** Null no dia da profissão em si (data comemorativa, sem cliente vinculado). */
+  clienteId: number | null;
+  clienteNome: string | null;
   pessoa: string | null;
   profissao: string | null;
   /** Anos de empresa (só no aniversário da empresa). */
@@ -79,7 +80,7 @@ export function montarCalendario(ano: number, mes: number, eventos: DataEspecial
 
 /** Texto curto do que acontece no dia (balão do calendário e lista). */
 export function descreverEvento(e: DataEspecial): string {
-  if (e.tipo === 'DIA_PROFISSAO') return `Dia do ${e.profissao}: ${e.clienteNome}`;
+  if (e.tipo === 'DIA_PROFISSAO') return e.clienteNome ? `Dia do ${e.profissao}: ${e.clienteNome}` : `Dia do ${e.profissao}`;
   if (e.tipo === 'ANIVERSARIO_EMPRESA') return `${e.clienteNome} faz ${e.anos} ${e.anos === 1 ? 'ano' : 'anos'} de empresa`;
   return e.pessoa ? `Aniversário de ${e.pessoa} (${e.clienteNome})` : `Aniversário do responsável (${e.clienteNome})`;
 }
@@ -102,6 +103,7 @@ function mensagemParabens(e: DataEspecial): string {
 
 /** wa.me com a mensagem pronta; quem envia confere e manda pelo WhatsApp da Someli. Null sem telefone válido. */
 export function linkParabens(e: DataEspecial): string | null {
+  if (e.clienteId == null) return null;
   const base = linkWhatsApp(e.telefone);
   return base ? `${base}?text=${encodeURIComponent(mensagemParabens(e))}` : null;
 }

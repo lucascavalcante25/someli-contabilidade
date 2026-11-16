@@ -68,7 +68,31 @@ public class DatasEspeciaisService {
                 .filter(c -> Boolean.TRUE.equals(c.getAtivo()))
                 .filter(c -> alcadaSet == null || alcadaSet.contains(c.getId()))
                 .toList();
-        return eventos(clientes, YearMonth.of(ano, mes));
+        YearMonth ym = YearMonth.of(ano, mes);
+        List<DataEspecialDTO> lista = new ArrayList<>(eventos(clientes, ym));
+        // O dia de cada profissão aparece mesmo sem cliente vinculado (só no calendário, não no sino)
+        for (Profissao p : profissoesAtivas().values()) {
+            if (p.getMes() != mes) continue;
+            DataEspecialDTO e = new DataEspecialDTO();
+            e.setData(diaNoMes(ym, p.getDia()));
+            e.setTipo(DIA_PROFISSAO);
+            e.setProfissao(p.getNome());
+            lista.add(e);
+        }
+        lista.sort(ORDEM);
+        return lista;
+    }
+
+    /** Por data e tipo; no mesmo dia, o dia da profissão em si vem antes dos clientes. */
+    private static final Comparator<DataEspecialDTO> ORDEM = Comparator.comparing(DataEspecialDTO::getData)
+            .thenComparing(DataEspecialDTO::getTipo)
+            .thenComparing(DataEspecialDTO::getProfissao, Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER))
+            .thenComparing(DataEspecialDTO::getClienteNome, Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER));
+
+    private Map<Long, Profissao> profissoesAtivas() {
+        return profissaoRepository.findAll().stream()
+                .filter(p -> !Boolean.FALSE.equals(p.getAtivo()))
+                .collect(Collectors.toMap(Profissao::getId, Function.identity(), (a, b) -> a));
     }
 
     /**
@@ -97,9 +121,7 @@ public class DatasEspeciaisService {
     }
 
     private List<DataEspecialDTO> eventos(List<Cliente> clientes, YearMonth mes) {
-        Map<Long, Profissao> profissoes = profissaoRepository.findAll().stream()
-                .filter(p -> !Boolean.FALSE.equals(p.getAtivo()))
-                .collect(Collectors.toMap(Profissao::getId, Function.identity(), (a, b) -> a));
+        Map<Long, Profissao> profissoes = profissoesAtivas();
         List<DataEspecialDTO> lista = new ArrayList<>();
         for (Cliente c : clientes) {
             LocalDate nasc = c.getDataNascimentoResponsavel();
@@ -120,9 +142,7 @@ public class DatasEspeciaisService {
                 lista.add(e);
             }
         }
-        lista.sort(Comparator.comparing(DataEspecialDTO::getData)
-                .thenComparing(DataEspecialDTO::getTipo)
-                .thenComparing(DataEspecialDTO::getClienteNome, String.CASE_INSENSITIVE_ORDER));
+        lista.sort(ORDEM);
         return lista;
     }
 

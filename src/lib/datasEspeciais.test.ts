@@ -42,6 +42,11 @@ describe('descreverEvento', () => {
     expect(descreverEvento(evento({ tipo: 'ANIVERSARIO_EMPRESA', anos: 7 }))).toBe('Sorriso faz 7 anos de empresa');
     expect(descreverEvento(evento({ tipo: 'ANIVERSARIO_RESPONSAVEL', pessoa: null }))).toBe('Aniversário do responsável (Sorriso)');
   });
+
+  it('dia da profissão sem cliente vinculado mostra só a data comemorativa', () => {
+    expect(descreverEvento(evento({ clienteId: null, clienteNome: null, pessoa: null, telefone: null, profissao: 'Psicólogo' })))
+      .toBe('Dia do Psicólogo');
+  });
 });
 
 describe('linkParabens', () => {
@@ -55,6 +60,7 @@ describe('linkParabens', () => {
   it('sem telefone válido não tem botão', () => {
     expect(linkParabens(evento({ telefone: null }))).toBeNull();
     expect(linkParabens(evento({ telefone: '9999' }))).toBeNull();
+    expect(linkParabens(evento({ clienteId: null, clienteNome: null, telefone: null }))).toBeNull();
   });
 });
 

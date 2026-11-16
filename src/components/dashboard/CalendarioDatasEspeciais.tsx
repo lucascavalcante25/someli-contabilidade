@@ -52,7 +52,7 @@ export default function CalendarioDatasEspeciais({ hoje = new Date(), className 
   };
 
   return (
-    <section aria-label="Calendário de datas especiais" className={cn('card-surface w-full p-3', className)}>
+    <section aria-label="Calendário de datas especiais" className={cn('card-surface min-w-0 p-4 sm:p-5', className)}>
       <div className="flex items-center justify-between gap-2">
         <h2 className="flex min-w-0 items-center gap-1.5 text-sm font-semibold">
           <CalendarHeart className="h-4 w-4 shrink-0 text-primary" aria-hidden />
@@ -113,7 +113,7 @@ export default function CalendarioDatasEspeciais({ hoje = new Date(), className 
                   {`${String(dia.dia).padStart(2, '0')}/${String(mesAtual.mes).padStart(2, '0')}`}
                 </p>
                 <ul className="divide-y divide-border">
-                  {dia.eventos.map((e) => <EventoDataEspecial key={`${e.tipo}-${e.clienteId}`} evento={e} />)}
+                  {dia.eventos.map((e) => <EventoDataEspecial key={`${e.tipo}-${e.profissao ?? ''}-${e.clienteId ?? 'geral'}`} evento={e} />)}
                 </ul>
               </PopoverContent>
             </Popover>
@@ -132,7 +132,7 @@ export default function CalendarioDatasEspeciais({ hoje = new Date(), className 
       )}
       {consulta.isSuccess && eventos.length === 0 && (
         <p className="mt-2 text-xs text-muted-foreground">
-          Nenhuma data especial neste mês. Cadastre o aniversário e a profissão no cliente.
+          Nenhuma data especial neste mês.
         </p>
       )}
       {eventos.length > 0 && (

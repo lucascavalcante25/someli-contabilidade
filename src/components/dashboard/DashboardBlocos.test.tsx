@@ -34,28 +34,26 @@ describe('DashboardOperacao', () => {
     o({ id: 3, status: 'CONCLUIDA' }),
   ];
 
-  it('mostra Hoje e o andamento do mês com os números do Painel', () => {
-    comRotas(<DashboardOperacao ocorrencias={ocorrencias} competencia="2026-10" hoje="2026-11-10" carregando={false} erro={null} onTentarDeNovo={vi.fn()} />);
-    const hoje = screen.getByRole('region', { name: 'Hoje' });
-    expect(within(within(hoje).getByRole('button', { name: /Atrasadas/ })).getByText('1')).toBeTruthy();
-    expect(within(within(hoje).getByRole('button', { name: /Vencem hoje/ })).getByText('1')).toBeTruthy();
+  it('mostra só o andamento do mês com os números do Painel (o card Hoje saiu)', () => {
+    comRotas(<DashboardOperacao ocorrencias={ocorrencias} competencia="2026-10" carregando={false} erro={null} onTentarDeNovo={vi.fn()} />);
+    expect(screen.queryByRole('region', { name: 'Hoje' })).toBeNull();
     const andamento = screen.getByRole('region', { name: 'Andamento do mês' });
     expect(within(andamento).getByText(/1 de 3 feitas/)).toBeTruthy();
     expect(within(andamento).getByText(/Outubro\/2026/)).toBeTruthy();
   });
 
-  it('clicar num número abre o Painel do mês', () => {
-    comRotas(<DashboardOperacao ocorrencias={ocorrencias} competencia="2026-10" hoje="2026-11-10" carregando={false} erro={null} onTentarDeNovo={vi.fn()} />);
-    fireEvent.click(screen.getByRole('button', { name: /Atrasadas/ }));
+  it('o atalho abre o Painel do mês', () => {
+    comRotas(<DashboardOperacao ocorrencias={ocorrencias} competencia="2026-10" carregando={false} erro={null} onTentarDeNovo={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: /Abrir Painel do mês/ }));
     expect(screen.getByText('Tela do Painel do mês')).toBeTruthy();
   });
 
   it('carregando e erro (com tentar de novo)', () => {
     const onTentar = vi.fn();
-    const { unmount } = comRotas(<DashboardOperacao ocorrencias={[]} competencia="2026-10" hoje="2026-11-10" carregando erro={null} onTentarDeNovo={onTentar} />);
+    const { unmount } = comRotas(<DashboardOperacao ocorrencias={[]} competencia="2026-10" carregando erro={null} onTentarDeNovo={onTentar} />);
     expect(screen.getByText(/Carregando/)).toBeTruthy();
     unmount();
-    comRotas(<DashboardOperacao ocorrencias={[]} competencia="2026-10" hoje="2026-11-10" carregando={false} erro="Sem conexão com o servidor." onTentarDeNovo={onTentar} />);
+    comRotas(<DashboardOperacao ocorrencias={[]} competencia="2026-10" carregando={false} erro="Sem conexão com o servidor." onTentarDeNovo={onTentar} />);
     fireEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }));
     expect(onTentar).toHaveBeenCalled();
   });

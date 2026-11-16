@@ -6,14 +6,12 @@ import DashboardOperacao from '@/components/dashboard/DashboardOperacao';
 import { CertificadosCard, InadimplentesCard, type CertificadoAlerta, type InadimplenteAlerta } from '@/components/dashboard/DashboardAtencao';
 import InadimplenciaDialog from '@/components/dashboard/InadimplenciaDialog';
 import CalendarioDatasEspeciais from '@/components/dashboard/CalendarioDatasEspeciais';
-import DatasEspeciaisCard from '@/components/dashboard/DatasEspeciaisCard';
 import DashboardFinanceiro, { type ResumoFinanceiroMes } from '@/components/dashboard/DashboardFinanceiro';
 import { ClienteDetalhePanel } from '@/pages/ClienteDetalhe';
 import { getGreeting } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
 import { useValoresVisibilidade } from '@/contexts/ValoresVisibilidadeContext';
 import { useIsMobile } from '@/hooks/useMediaQuery';
-import { hojeIso } from '@/hooks/usePainelMensal';
 import { API_BASE_URL } from '@/lib/api';
 import { apiFetch } from '@/lib/http';
 import { useMensagemDoDia } from '@/lib/mensagemDiaria';
@@ -30,11 +28,17 @@ async function lerJson(url: string): Promise<unknown> {
   return res.json();
 }
 
+const COLUNAS: Record<number, string> = {
+  1: 'grid gap-4',
+  2: 'grid gap-4 lg:grid-cols-2',
+  3: 'grid gap-4 md:grid-cols-2 xl:grid-cols-3',
+};
+
 const lista = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
 const objeto = (v: unknown): Record<string, unknown> => (v && typeof v === 'object' ? (v as Record<string, unknown>) : {});
 
 /**
- * Dashboard enxuto: Hoje, Andamento do mês (mesmos dados do Painel do mês), Atenção e Financeiro.
+ * Dashboard enxuto: Andamento do mês (mesmos dados do Painel do mês), Inadimplentes, calendário de datas especiais e Financeiro.
  * A antiga Fila de trabalho e os blocos repetidos saíram; o trabalho do dia fica no Painel do mês.
  */
 export default function Dashboard() {
@@ -140,9 +144,7 @@ export default function Dashboard() {
 
   return (
     <div className="page-shell">
-      {/* Saudação e busca à esquerda; calendário de datas especiais solto no canto direito */}
-      <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_18rem]">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between lg:pt-1">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{getGreeting()}, {user?.nome?.split(' ')[0]}</h1>
           {/* No celular o versículo do dia fica aqui (no computador ele aparece no topo) */}
@@ -163,15 +165,12 @@ export default function Dashboard() {
           {podeHonorario && <ToggleValoresButton />}
         </div>
       </div>
-      {podeVerClientes && <CalendarioDatasEspeciais />}
-      </div>
 
-      {/* Hoje, Andamento do mês e Inadimplentes na mesma linha */}
-      <div className={podeVerInadimplentes ? 'grid gap-4 lg:grid-cols-3' : 'grid gap-4 lg:grid-cols-2'}>
+      {/* Andamento do mês, Inadimplentes e o calendário de datas especiais na mesma linha */}
+      <div className={COLUNAS[1 + Number(podeVerInadimplentes) + Number(podeVerClientes)]}>
         <DashboardOperacao
           ocorrencias={ocorrencias}
           competencia={competencia}
-          hoje={hojeIso()}
           carregando={carregandoOperacao}
           erro={erroOperacao}
           onTentarDeNovo={() => void carregarOperacao()}
@@ -179,15 +178,12 @@ export default function Dashboard() {
         {podeVerInadimplentes && (
           <InadimplentesCard inadimplentes={alertas.inadimplentes} mascarar={mascarar} onAbrir={setInadimplente} />
         )}
+        {podeVerClientes && <CalendarioDatasEspeciais />}
       </div>
 
       {podeFinanceiro && <DashboardFinanceiro resumo={resumo} grafico={graficoVisivel} mascarar={mascarar} />}
 
-      {/* Datas especiais em lista (para comparar com o calendário) e Certificados por último */}
-      <div className={podeVerClientes ? 'grid gap-4 lg:grid-cols-2' : 'grid gap-4'}>
-        {podeVerClientes && <DatasEspeciaisCard />}
-        <CertificadosCard certificados={alertas.certificados} onAbrirCliente={(id) => setViewClienteId(id)} />
-      </div>
+      <CertificadosCard certificados={alertas.certificados} onAbrirCliente={(id) => setViewClienteId(id)} />
 
       {inadimplente && (
         <InadimplenciaDialog

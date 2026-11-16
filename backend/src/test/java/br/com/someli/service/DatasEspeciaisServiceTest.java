@@ -94,6 +94,7 @@ class DatasEspeciaisServiceTest {
                 .containsExactly(
                         org.assertj.core.groups.Tuple.tuple("ANIVERSARIO_EMPRESA", LocalDate.of(2026, 10, 5)),
                         org.assertj.core.groups.Tuple.tuple("ANIVERSARIO_RESPONSAVEL", LocalDate.of(2026, 10, 20)),
+                        org.assertj.core.groups.Tuple.tuple("DIA_PROFISSAO", LocalDate.of(2026, 10, 25)),
                         org.assertj.core.groups.Tuple.tuple("DIA_PROFISSAO", LocalDate.of(2026, 10, 25)));
         DataEspecialDTO empresa = eventos.get(0);
         assertThat(empresa.getAnos()).isEqualTo(7);
@@ -102,7 +103,22 @@ class DatasEspeciaisServiceTest {
         assertThat(dono.getPessoa()).isEqualTo("Dona Sorriso");
         assertThat(dono.getAnos()).as("idade do dono não é exposta").isNull();
         assertThat(dono.getTelefone()).isEqualTo("(85) 98888-7777");
-        assertThat(eventos.get(2).getProfissao()).isEqualTo("Dentista");
+        assertThat(eventos.get(2).getClienteId()).as("o dia da profissão em si vem antes dos clientes").isNull();
+        assertThat(eventos.get(3).getProfissao()).isEqualTo("Dentista");
+        assertThat(eventos.get(3).getClienteNome()).isEqualTo("Sorriso");
+    }
+
+    @Test
+    void diaDaProfissaoApareceMesmoSemClienteCadastrado() {
+        when(clienteRepository.findAllWithResponsavel()).thenReturn(List.of());
+
+        List<DataEspecialDTO> eventos = service.eventosDoMes(2026, 8);
+
+        assertThat(eventos).extracting(DataEspecialDTO::getTipo, DataEspecialDTO::getData, DataEspecialDTO::getProfissao)
+                .containsExactly(org.assertj.core.groups.Tuple.tuple("DIA_PROFISSAO", LocalDate.of(2026, 8, 27), "Psicólogo"));
+        assertThat(eventos.get(0).getClienteId()).isNull();
+        assertThat(eventos.get(0).getClienteNome()).isNull();
+        assertThat(eventos.get(0).getTelefone()).isNull();
     }
 
     @Test
@@ -117,7 +133,7 @@ class DatasEspeciaisServiceTest {
         when(authorizationService.clienteIdsNaAlcada(usuario)).thenReturn(List.of(1L, 3L));
         when(clienteRepository.findAllWithResponsavel()).thenReturn(List.of(meu, alheio, inativo));
 
-        assertThat(service.eventosDoMes(2026, 10)).extracting(DataEspecialDTO::getClienteId).containsExactly(1L);
+        assertThat(service.eventosDoMes(2026, 10)).extracting(DataEspecialDTO::getClienteId).containsExactly(1L, null);
     }
 
     @Test
@@ -181,5 +197,13 @@ class DatasEspeciaisServiceTest {
                 any(), eq("normal"), eq("DATA_ESPECIAL"), eq("DATA:ANIVERSARIO_RESPONSAVEL:1:10:2026-10-20"), eq("/clientes/1"));
         verify(notificationService, times(1)).criarSeNaoExiste(eq(fiscal), isNull(), any(), any(), any(), any(),
                 eq("DATA:ANIVERSARIO_RESPONSAVEL:1:11:2026-10-20"), any());
+    }
+
+    @Test
+    void diaDaProfissaoSemClienteNaoGeraAvisoNoSino() {
+        when(clienteRepository.findAllWithResponsavel()).thenReturn(List.of());
+
+        assertThat(service.notificarDia(LocalDate.of(2026, 10, 25))).isZero();
+        verify(notificationService, never()).criarSeNaoExiste(any(), any(), any(), any(), any(), any(), any(), any());
     }
 }
