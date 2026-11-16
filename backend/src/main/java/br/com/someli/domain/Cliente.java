@@ -369,4 +369,23 @@ public class Cliente {
     public void setValorPendente(java.math.BigDecimal valorPendente) {
         this.valorPendente = valorPendente;
     }
+
+    /** Aniversário do dono/responsável legal (dado pessoal: não vai para log). */
+    @Column(name = "data_nascimento_responsavel")
+    private java.time.LocalDate dataNascimentoResponsavel;
+
+    /** Data de abertura da empresa (vem da Consulta CNPJ). */
+    @Column(name = "data_abertura")
+    private java.time.LocalDate dataAbertura;
+
+    /** Profissão do cliente, para lembrar o dia da profissão (tabela profissao). */
+    @Column(name = "profissao_id")
+    private Long profissaoId;
+
+    public java.time.LocalDate getDataNascimentoResponsavel() { return dataNascimentoResponsavel; }
+    public void setDataNascimentoResponsavel(java.time.LocalDate dataNascimentoResponsavel) { this.dataNascimentoResponsavel = dataNascimentoResponsavel; }
+    public java.time.LocalDate getDataAbertura() { return dataAbertura; }
+    public void setDataAbertura(java.time.LocalDate dataAbertura) { this.dataAbertura = dataAbertura; }
+    public Long getProfissaoId() { return profissaoId; }
+    public void setProfissaoId(Long profissaoId) { this.profissaoId = profissaoId; }
 }

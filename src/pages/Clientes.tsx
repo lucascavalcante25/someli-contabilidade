@@ -23,6 +23,7 @@ import { rotuloRegime } from '@/lib/classificacao';
 import { salvarResponsaveis, type ResponsaveisPorSetor } from '@/lib/responsaveis';
 import { definirSegmento, type Segmento } from '@/lib/painelMensal';
 import { segmentoPeloCnae } from '@/lib/segmentoCliente';
+import { dataDaConsulta } from '@/lib/datasEspeciais';
 import ResponsavelLegalContato from '@/components/clientes/ResponsavelLegalContato';
 import { ClienteFormModal } from '@/components/clientes/ClienteFormModal';
 import { ClienteDetalhePanel } from '@/pages/ClienteDetalhe';
@@ -58,6 +59,9 @@ interface Cliente {
   certificadoVencimento?: string;
   certificadoTipo?: string;
   certificadoObservacao?: string;
+  dataNascimentoResponsavel?: string;
+  dataAbertura?: string;
+  profissaoId?: number | null;
   certificadoStatus?: string;
   certificadoDiasRestantes?: number;
 }
@@ -138,6 +142,9 @@ interface ClienteFormData {
   certificadoVencimento?: string;
   certificadoTipo?: string;
   certificadoObservacao?: string;
+  dataNascimentoResponsavel?: string;
+  dataAbertura?: string;
+  profissaoId?: number | null;
   clienteObrigacoes: ClienteObrigacaoFormItem[];
   /** Responsável de cada setor (usuário do sistema); originais servem para salvar só o que mudou. */
   responsaveis?: ResponsaveisPorSetor;
@@ -145,6 +152,7 @@ interface ClienteFormData {
   segmento?: Segmento | '';
   segmentoOriginal?: Segmento | '';
   segmentoSugerido?: boolean;
+  cnaePrincipalCodigo?: string;
 }
 
 function formatCurrency(value: number): string {
@@ -198,6 +206,9 @@ function normalizeClienteFromApi(raw: any): Cliente {
     certificadoVencimento: raw.certificadoVencimento ? String(raw.certificadoVencimento).slice(0, 10) : undefined,
     certificadoTipo: raw.certificadoTipo ? String(raw.certificadoTipo) : undefined,
     certificadoObservacao: raw.certificadoObservacao ? String(raw.certificadoObservacao) : undefined,
+    dataNascimentoResponsavel: raw.dataNascimentoResponsavel ? String(raw.dataNascimentoResponsavel) : undefined,
+    dataAbertura: raw.dataAbertura ? String(raw.dataAbertura) : undefined,
+    profissaoId: raw.profissaoId != null ? Number(raw.profissaoId) : null,
     certificadoStatus: raw.certificadoStatus ? String(raw.certificadoStatus) : undefined,
     certificadoDiasRestantes: raw.certificadoDiasRestantes != null ? Number(raw.certificadoDiasRestantes) : undefined,
   };
@@ -323,6 +334,8 @@ export default function Clientes() {
         telefone: String(prefill.telefone || ''),
         email: String(prefill.email || ''),
       };
+      draft.dataAbertura = dataDaConsulta(prefill.dataAbertura) || undefined;
+      draft.cnaePrincipalCodigo = prefill.cnaePrincipalCodigo || undefined;
       const segmento = segmentoPeloCnae(prefill.cnaePrincipalCodigo);
       if (segmento) {
         draft.segmento = segmento;
@@ -507,6 +520,9 @@ export default function Clientes() {
         certificadoVencimento: form.certificadoVencimento || null,
         certificadoTipo: form.certificadoTipo?.trim() || null,
         certificadoObservacao: form.certificadoObservacao?.trim() || null,
+        dataNascimentoResponsavel: form.dataNascimentoResponsavel || null,
+        dataAbertura: form.dataAbertura || null,
+        profissaoId: form.profissaoId ?? null,
       };
 
       const response = await apiFetch(

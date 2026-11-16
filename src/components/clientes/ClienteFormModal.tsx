@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import SegmentoClienteField from '@/components/clientes/SegmentoClienteField';
+import DatasEspeciaisCampos from '@/components/clientes/DatasEspeciaisCampos';
 import type { Segmento } from '@/lib/painelMensal';
 import { segmentoDasTags } from '@/lib/segmentoCliente';
 import { dataParaObrigacao, type VencimentoPadrao } from '@/lib/vencimentoPadrao';
@@ -49,6 +50,9 @@ interface Cliente {
   certificadoTipo?: string;
   certificadoObservacao?: string;
   tags?: { nome: string }[];
+  dataNascimentoResponsavel?: string;
+  dataAbertura?: string;
+  profissaoId?: number | null;
 }
 
 const REGIME_OPTIONS = [
@@ -101,6 +105,11 @@ export interface ClienteFormData {
   segmentoOriginal?: Segmento | '';
   /** O segmento veio do CNAE da consulta do CNPJ. */
   segmentoSugerido?: boolean;
+  dataNascimentoResponsavel?: string;
+  dataAbertura?: string;
+  profissaoId?: number | null;
+  /** CNAE da consulta do CNPJ, para sugerir a profissão. */
+  cnaePrincipalCodigo?: string;
   /** Responsável de cada setor (usuário do sistema); originais servem para salvar só o que mudou. */
   responsaveis?: ResponsaveisPorSetor;
   responsaveisOriginais?: ResponsaveisPorSetor;
@@ -185,6 +194,10 @@ export function ClienteFormModal({
     segmento: (cliente ? segmentoDasTags(cliente.tags) : prefill?.segmento) ?? '',
     segmentoOriginal: (cliente ? segmentoDasTags(cliente.tags) : undefined) ?? '',
     segmentoSugerido: !cliente && !!prefill?.segmentoSugerido,
+    dataNascimentoResponsavel: cliente?.dataNascimentoResponsavel ?? '',
+    dataAbertura: cliente?.dataAbertura ?? prefill?.dataAbertura ?? '',
+    profissaoId: cliente ? cliente.profissaoId ?? null : prefill?.profissaoId ?? null,
+    cnaePrincipalCodigo: cliente ? undefined : prefill?.cnaePrincipalCodigo,
     ativo: cliente?.ativo !== false,
     certificadoVencimento: cliente?.certificadoVencimento ?? prefill?.certificadoVencimento ?? '',
     certificadoTipo: cliente?.certificadoTipo ?? prefill?.certificadoTipo ?? '',
@@ -226,6 +239,10 @@ export function ClienteFormModal({
         segmento: segmentoDasTags(cliente.tags) ?? '',
         segmentoOriginal: segmentoDasTags(cliente.tags) ?? '',
         segmentoSugerido: false,
+        dataNascimentoResponsavel: cliente.dataNascimentoResponsavel ?? '',
+        dataAbertura: cliente.dataAbertura ?? '',
+        profissaoId: cliente.profissaoId ?? null,
+        cnaePrincipalCodigo: undefined,
         ativo: cliente.ativo !== false,
         certificadoVencimento: cliente.certificadoVencimento ?? '',
         certificadoTipo: cliente.certificadoTipo ?? '',
@@ -249,6 +266,8 @@ export function ClienteFormModal({
         segmento: prefill.segmento || '',
         segmentoOriginal: '',
         segmentoSugerido: !!prefill.segmentoSugerido,
+        dataAbertura: prefill.dataAbertura || '',
+        cnaePrincipalCodigo: prefill.cnaePrincipalCodigo,
         certificadoVencimento: prefill.certificadoVencimento || '',
         certificadoTipo: prefill.certificadoTipo || '',
         certificadoObservacao: prefill.certificadoObservacao || '',
@@ -563,6 +582,15 @@ export function ClienteFormModal({
               value={form.segmento || ''}
               sugeridoPeloCnae={form.segmentoSugerido}
               onChange={(seg) => setForm((prev) => ({ ...prev, segmento: seg, segmentoSugerido: false }))}
+            />
+            <DatasEspeciaisCampos
+              valores={{
+                dataNascimentoResponsavel: form.dataNascimentoResponsavel || '',
+                dataAbertura: form.dataAbertura || '',
+                profissaoId: form.profissaoId ?? null,
+              }}
+              onChange={(v) => setForm((prev) => ({ ...prev, ...v }))}
+              cnaePrincipal={form.cnaePrincipalCodigo}
             />
             <div className="space-y-1.5">
               <label className="label-text flex items-center gap-1.5">

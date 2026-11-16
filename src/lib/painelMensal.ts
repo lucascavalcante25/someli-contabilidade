@@ -99,7 +99,8 @@ export class ErroPainel extends Error {
   }
 }
 
-async function requisicao<T>(url: string, init?: RequestInit): Promise<T> {
+/** Chamada à API separando erro de rede (sem conexão) de erro do servidor. */
+export async function requisicao<T>(url: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
     response = await apiFetch(url, init);

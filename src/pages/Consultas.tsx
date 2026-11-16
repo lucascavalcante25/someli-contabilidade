@@ -499,6 +499,7 @@ export default function Consultas() {
                       email: '',
                       proprietario: result.socios?.[0]?.nome || '',
                       cnaePrincipalCodigo: result.cnaePrincipalCodigo,
+                      dataAbertura: result.dataAbertura,
                     },
                   },
                 });

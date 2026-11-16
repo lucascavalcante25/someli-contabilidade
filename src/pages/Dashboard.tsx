@@ -5,6 +5,8 @@ import BuscaRapidaCliente, { type ClienteParaBusca } from '@/components/dashboar
 import DashboardOperacao from '@/components/dashboard/DashboardOperacao';
 import { CertificadosCard, InadimplentesCard, type CertificadoAlerta, type InadimplenteAlerta } from '@/components/dashboard/DashboardAtencao';
 import InadimplenciaDialog from '@/components/dashboard/InadimplenciaDialog';
+import CalendarioDatasEspeciais from '@/components/dashboard/CalendarioDatasEspeciais';
+import DatasEspeciaisCard from '@/components/dashboard/DatasEspeciaisCard';
 import DashboardFinanceiro, { type ResumoFinanceiroMes } from '@/components/dashboard/DashboardFinanceiro';
 import { ClienteDetalhePanel } from '@/pages/ClienteDetalhe';
 import { getGreeting } from '@/data/mockData';
@@ -56,6 +58,7 @@ export default function Dashboard() {
   const [abaInicial, setAbaInicial] = useState<'resumo' | 'obrigacoes'>('resumo');
   const [inadimplente, setInadimplente] = useState<InadimplenteAlerta | null>(null);
   const podeVerInadimplentes = podeFinanceiro || podeHonorario;
+  const podeVerClientes = can('CLIENTES_VISUALIZAR');
 
   const carregarOperacao = useCallback(async () => {
     setCarregandoOperacao(true);
@@ -137,7 +140,9 @@ export default function Dashboard() {
 
   return (
     <div className="page-shell">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      {/* Saudação e busca à esquerda; calendário de datas especiais solto no canto direito */}
+      <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_18rem]">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between lg:pt-1">
         <div className="min-w-0">
           <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{getGreeting()}, {user?.nome?.split(' ')[0]}</h1>
           {/* No celular o versículo do dia fica aqui (no computador ele aparece no topo) */}
@@ -158,6 +163,8 @@ export default function Dashboard() {
           {podeHonorario && <ToggleValoresButton />}
         </div>
       </div>
+      {podeVerClientes && <CalendarioDatasEspeciais />}
+      </div>
 
       {/* Hoje, Andamento do mês e Inadimplentes na mesma linha */}
       <div className={podeVerInadimplentes ? 'grid gap-4 lg:grid-cols-3' : 'grid gap-4 lg:grid-cols-2'}>
@@ -176,8 +183,11 @@ export default function Dashboard() {
 
       {podeFinanceiro && <DashboardFinanceiro resumo={resumo} grafico={graficoVisivel} mascarar={mascarar} />}
 
-      {/* Certificados por último: costuma ficar vazio até cadastrarem os vencimentos */}
-      <CertificadosCard certificados={alertas.certificados} onAbrirCliente={(id) => setViewClienteId(id)} />
+      {/* Datas especiais em lista (para comparar com o calendário) e Certificados por último */}
+      <div className={podeVerClientes ? 'grid gap-4 lg:grid-cols-2' : 'grid gap-4'}>
+        {podeVerClientes && <DatasEspeciaisCard />}
+        <CertificadosCard certificados={alertas.certificados} onAbrirCliente={(id) => setViewClienteId(id)} />
+      </div>
 
       {inadimplente && (
         <InadimplenciaDialog

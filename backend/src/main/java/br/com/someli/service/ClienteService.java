@@ -36,12 +36,16 @@ public class ClienteService {
     private final AuditLogService auditLogService;
     private final TagSyncService tagSyncService;
 
+    private final br.com.someli.repository.ProfissaoRepository profissaoRepository;
+
     public ClienteService(ClienteRepository clienteRepository,
                          PagamentoMensalRepository pagamentoMensalRepository,
                          UsuarioRepository usuarioRepository,
                          AuthorizationService authorizationService,
                          AuditLogService auditLogService,
-                         @org.springframework.context.annotation.Lazy TagSyncService tagSyncService) {
+                         @org.springframework.context.annotation.Lazy TagSyncService tagSyncService,
+                         br.com.someli.repository.ProfissaoRepository profissaoRepository) {
+        this.profissaoRepository = profissaoRepository;
         this.clienteRepository = clienteRepository;
         this.pagamentoMensalRepository = pagamentoMensalRepository;
         this.usuarioRepository = usuarioRepository;
@@ -327,6 +331,25 @@ public class ClienteService {
         }
         cliente.setCertificadoTipo(tipoCert);
         cliente.setCertificadoObservacao(trimOrNull(request.getCertificadoObservacao()));
+        preencherDatasEspeciais(cliente, request);
+    }
+
+    /** Aniversário do dono, abertura da empresa e profissão (calendário de datas especiais). */
+    private void preencherDatasEspeciais(Cliente cliente, CreateClienteRequestDTO request) {
+        LocalDate minimo = LocalDate.of(1900, 1, 1);
+        if (request.getDataNascimentoResponsavel() != null && request.getDataNascimentoResponsavel().isBefore(minimo)) {
+            throw new RegraNegocioException("Data de nascimento inválida");
+        }
+        if (request.getDataAbertura() != null && request.getDataAbertura().isBefore(minimo)) {
+            throw new RegraNegocioException("Data de abertura inválida");
+        }
+        Long profissaoId = request.getProfissaoId();
+        if (profissaoId != null && !profissaoRepository.existsById(profissaoId)) {
+            throw new RegraNegocioException("Profissão não encontrada");
+        }
+        cliente.setDataNascimentoResponsavel(request.getDataNascimentoResponsavel());
+        cliente.setDataAbertura(request.getDataAbertura());
+        cliente.setProfissaoId(profissaoId);
     }
 
     private Usuario resolverResponsavel(Long responsavelId) {

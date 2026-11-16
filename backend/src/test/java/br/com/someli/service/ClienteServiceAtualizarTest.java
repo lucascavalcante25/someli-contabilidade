@@ -33,6 +33,7 @@ class ClienteServiceAtualizarTest {
     @Mock private AuthorizationService authorizationService;
     @Mock private AuditLogService auditLogService;
     @Mock private TagSyncService tagSyncService;
+    @Mock private br.com.someli.repository.ProfissaoRepository profissaoRepository;
 
     private ClienteService service;
     private Cliente existente;
@@ -40,7 +41,7 @@ class ClienteServiceAtualizarTest {
     @BeforeEach
     void setUp() {
         service = new ClienteService(clienteRepository, pagamentoMensalRepository, usuarioRepository,
-                authorizationService, auditLogService, tagSyncService);
+                authorizationService, auditLogService, tagSyncService, profissaoRepository);
         existente = new Cliente();
         existente.setId(1L);
         existente.setRazaoSocial("Padaria Bom Pão");
@@ -85,5 +86,40 @@ class ClienteServiceAtualizarTest {
         Cliente resposta = service.atualizar(1L, pedido("S"));
 
         assertThat(resposta).isSameAs(existente);
+    }
+
+    @Test
+    void atualizar_gravaAniversarioAberturaEProfissao() {
+        when(clienteRepository.save(any(Cliente.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(profissaoRepository.existsById(3L)).thenReturn(true);
+        UpdateClienteRequestDTO r = pedido("S");
+        r.setDataNascimentoResponsavel(java.time.LocalDate.of(1985, 10, 20));
+        r.setDataAbertura(java.time.LocalDate.of(2019, 10, 5));
+        r.setProfissaoId(3L);
+
+        service.atualizar(1L, r);
+
+        assertThat(existente.getDataNascimentoResponsavel()).isEqualTo(java.time.LocalDate.of(1985, 10, 20));
+        assertThat(existente.getDataAbertura()).isEqualTo(java.time.LocalDate.of(2019, 10, 5));
+        assertThat(existente.getProfissaoId()).isEqualTo(3L);
+    }
+
+    @Test
+    void atualizar_profissaoQueNaoExiste_naoGrava() {
+        when(profissaoRepository.existsById(99L)).thenReturn(false);
+        UpdateClienteRequestDTO r = pedido("S");
+        r.setProfissaoId(99L);
+
+        assertThatThrownBy(() -> service.atualizar(1L, r)).isInstanceOf(RegraNegocioException.class);
+        verify(clienteRepository, never()).save(any());
+    }
+
+    @Test
+    void atualizar_nascimentoAntesDe1900_naoGrava() {
+        UpdateClienteRequestDTO r = pedido("S");
+        r.setDataNascimentoResponsavel(java.time.LocalDate.of(1890, 1, 1));
+
+        assertThatThrownBy(() -> service.atualizar(1L, r)).isInstanceOf(RegraNegocioException.class);
+        verify(clienteRepository, never()).save(any());
     }
 }

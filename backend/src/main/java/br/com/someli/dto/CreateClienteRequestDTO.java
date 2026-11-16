@@ -218,4 +218,19 @@ public class CreateClienteRequestDTO {
     public void setCertificadoObservacao(String certificadoObservacao) {
         this.certificadoObservacao = certificadoObservacao;
     }
+
+    @jakarta.validation.constraints.PastOrPresent(message = "Data de nascimento não pode ser no futuro")
+    private java.time.LocalDate dataNascimentoResponsavel;
+
+    @jakarta.validation.constraints.PastOrPresent(message = "Data de abertura não pode ser no futuro")
+    private java.time.LocalDate dataAbertura;
+
+    private Long profissaoId;
+
+    public java.time.LocalDate getDataNascimentoResponsavel() { return dataNascimentoResponsavel; }
+    public void setDataNascimentoResponsavel(java.time.LocalDate dataNascimentoResponsavel) { this.dataNascimentoResponsavel = dataNascimentoResponsavel; }
+    public java.time.LocalDate getDataAbertura() { return dataAbertura; }
+    public void setDataAbertura(java.time.LocalDate dataAbertura) { this.dataAbertura = dataAbertura; }
+    public Long getProfissaoId() { return profissaoId; }
+    public void setProfissaoId(Long profissaoId) { this.profissaoId = profissaoId; }
 }

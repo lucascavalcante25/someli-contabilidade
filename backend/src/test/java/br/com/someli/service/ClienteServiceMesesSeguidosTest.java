@@ -24,6 +24,7 @@ class ClienteServiceMesesSeguidosTest {
     @Mock private AuthorizationService authorizationService;
     @Mock private AuditLogService auditLogService;
     @Mock private TagSyncService tagSyncService;
+    @Mock private br.com.someli.repository.ProfissaoRepository profissaoRepository;
 
     private Cliente clienteComSetembroEOutubroEmAberto() {
         Cliente c = new Cliente();
@@ -41,7 +42,7 @@ class ClienteServiceMesesSeguidosTest {
 
     private ClienteService service() {
         return new ClienteService(clienteRepository, pagamentoMensalRepository, usuarioRepository,
-                authorizationService, auditLogService, tagSyncService);
+                authorizationService, auditLogService, tagSyncService, profissaoRepository);
     }
 
     @Test

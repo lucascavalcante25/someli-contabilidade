@@ -266,4 +266,15 @@ public class ClienteDTO {
     public void setTags(java.util.List<TagDTO> tags) {
         this.tags = tags;
     }
+
+    private java.time.LocalDate dataNascimentoResponsavel;
+    private java.time.LocalDate dataAbertura;
+    private Long profissaoId;
+
+    public java.time.LocalDate getDataNascimentoResponsavel() { return dataNascimentoResponsavel; }
+    public void setDataNascimentoResponsavel(java.time.LocalDate dataNascimentoResponsavel) { this.dataNascimentoResponsavel = dataNascimentoResponsavel; }
+    public java.time.LocalDate getDataAbertura() { return dataAbertura; }
+    public void setDataAbertura(java.time.LocalDate dataAbertura) { this.dataAbertura = dataAbertura; }
+    public Long getProfissaoId() { return profissaoId; }
+    public void setProfissaoId(Long profissaoId) { this.profissaoId = profissaoId; }
 }
