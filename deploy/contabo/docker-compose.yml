@@ -45,10 +45,46 @@ services:
       # Perder a chave impede abrir os acessos já guardados. Guarde uma cópia fora da VPS.
       COFRE_CHAVE_MESTRA: ${COFRE_CHAVE_MESTRA:-}
       NFSE_ADN_AGENDAMENTO: ${NFSE_ADN_AGENDAMENTO:-false}
+      # Simulador CBS/IBS: calculadoras da Receita na rede interna do Docker (perfil "rtc", abaixo).
+      # Sem elas no ar, a tela do simulador mostra "calculadora indisponível" e o resto do sistema segue normal.
+      RTC_REGIME_REGULAR_URL: ${RTC_REGIME_REGULAR_URL:-http://rtc-regime-regular:8080/api}
+      RTC_SIMPLES_URL: ${RTC_SIMPLES_URL:-http://rtc-simples:8082/api}
       JAVA_OPTS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=60.0 -Xms256m -Xmx512m"
     volumes:
       - someli-uploads:/app/data/uploads
     mem_limit: 768m
+
+  # Calculadoras oficiais da Receita (licença MIT), sem porta exposta: só a API da Someli fala com elas.
+  # Ficam no perfil "rtc" para não subirem no deploy automático antes de conferir a memória da VPS:
+  #   docker compose --env-file .env --profile rtc up -d --build rtc-regime-regular rtc-simples
+  # Atualizar a versão: trocar TAG abaixo e rodar o mesmo comando. Ver docs/CALCULADORA_RTC.md.
+  rtc-regime-regular:
+    profiles: ["rtc"]
+    build:
+      context: ./rtc
+      args:
+        REPO: calculadora-rtc-regime-regular
+        TAG: "1.7.2"
+        TAG_BANCO: "1.7.2"
+        JAR: api-regime-geral.jar
+    restart: unless-stopped
+    environment:
+      VERSAO_AMBIENTE: someli-contabo
+    mem_limit: 512m
+
+  rtc-simples:
+    profiles: ["rtc"]
+    build:
+      context: ./rtc
+      args:
+        REPO: calculadora-rtc-simples-nacional
+        TAG: "1.0.2"
+        TAG_BANCO: "1.7.2"
+        JAR: api-simples-nacional.jar
+    restart: unless-stopped
+    environment:
+      VERSAO_AMBIENTE: someli-contabo
+    mem_limit: 512m
 
 volumes:
   pgdata:

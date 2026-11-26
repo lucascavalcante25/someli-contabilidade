@@ -84,6 +84,22 @@ class AuthorizationServiceTest {
     }
 
     @Test
+    void moduloSimuladorRtc_exigePermissaoPropria() {
+        Usuario u = usuario(13L, Perfil.FISCAL, false);
+        when(securityUtils.requireCurrentUser()).thenReturn(u);
+        when(perfilPermissaoRepository.findByPerfil("FISCAL")).thenReturn(List.of(
+                pp(PermissaoCodigo.CONSULTAS_VISUALIZAR)
+        ));
+        when(usuarioPermissaoRepository.findByUsuarioId(13L)).thenReturn(List.of());
+        assertFalse(service.canAccessModule("SIMULADOR_RTC"));
+
+        when(perfilPermissaoRepository.findByPerfil("FISCAL")).thenReturn(List.of(
+                pp(PermissaoCodigo.SIMULADOR_RTC_USAR)
+        ));
+        assertTrue(service.canAccessModule("SIMULADOR_RTC"));
+    }
+
+    @Test
     void cenario3_semFinanceiro_moduloBloqueado() {
         Usuario u = usuario(12L, Perfil.OPERADOR, false);
         when(securityUtils.requireCurrentUser()).thenReturn(u);

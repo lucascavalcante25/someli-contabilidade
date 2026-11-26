@@ -74,6 +74,14 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI());
     }
 
+    @ExceptionHandler(SimulacaoRtcCenarioNaoEncontradoException.class)
+    public ResponseEntity<ApiErrorDTO> handleSimulacaoRtcCenarioNaoEncontrado(
+            SimulacaoRtcCenarioNaoEncontradoException ex,
+            HttpServletRequest request
+    ) {
+        return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI());
+    }
+
     @ExceptionHandler(LimiteRequisicoesException.class)
     public ResponseEntity<ApiErrorDTO> handleLimite(LimiteRequisicoesException ex, HttpServletRequest request) {
         return buildError(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), request.getRequestURI());

@@ -90,6 +90,7 @@ public class AuthorizationService {
         return switch (modulo.toUpperCase()) {
             case "DASHBOARD" -> perms.contains(PermissaoCodigo.DASHBOARD_VISUALIZAR);
             case "CONSULTAS" -> perms.contains(PermissaoCodigo.CONSULTAS_VISUALIZAR);
+            case "SIMULADOR_RTC" -> perms.contains(PermissaoCodigo.SIMULADOR_RTC_USAR);
             case "CLIENTES" -> perms.contains(PermissaoCodigo.CLIENTES_VISUALIZAR);
             case "OBRIGACOES", "OBRIGACOES_TIPOS" -> perms.contains(PermissaoCodigo.OBRIGACOES_VISUALIZAR)
                     || perms.contains(PermissaoCodigo.OBRIGACOES_TIPOS_GERENCIAR);

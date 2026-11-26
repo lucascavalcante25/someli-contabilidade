@@ -21,6 +21,11 @@ describe('permissions', () => {
     expect(canAccessModule([Permissoes.CLIENTES_VISUALIZAR], 'OBRIGACOES')).toBe(false);
   });
 
+  it('simulador CBS/IBS exige SIMULADOR_RTC_USAR', () => {
+    expect(canAccessModule([Permissoes.SIMULADOR_RTC_USAR], 'SIMULADOR_RTC')).toBe(true);
+    expect(canAccessModule([Permissoes.CONSULTAS_VISUALIZAR], 'SIMULADOR_RTC')).toBe(false);
+  });
+
   it('cenario2: honorário exige permissão específica', () => {
     expect(hasPermission([Permissoes.CLIENTES_VISUALIZAR], Permissoes.HONORARIO_VISUALIZAR)).toBe(false);
     expect(hasPermission([Permissoes.HONORARIO_VISUALIZAR], Permissoes.HONORARIO_VISUALIZAR)).toBe(true);
@@ -37,7 +42,7 @@ const CODIGOS_DO_BANCO = [
   'USUARIOS_EDITAR', 'USUARIOS_DESATIVAR', 'USUARIOS_PERMISSOES', 'RELATORIOS_OPERACIONAIS',
   'RELATORIOS_FINANCEIROS', 'RELATORIOS_EXPORTAR', 'ADMINISTRACAO_VISUALIZAR', 'ALCADA_GLOBAL',
   'ALCADA_SETOR', 'VISAO_GERENCIAL', 'CERTIFICADO_A1_GERENCIAR',
-  'CLIENTE_ACESSOS_VER', 'CLIENTE_ACESSOS_EDITAR',
+  'CLIENTE_ACESSOS_VER', 'CLIENTE_ACESSOS_EDITAR', 'SIMULADOR_RTC_USAR',
 ];
 
 describe('textos de permissões', () => {

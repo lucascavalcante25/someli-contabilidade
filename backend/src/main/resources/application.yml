@@ -81,3 +81,10 @@ infosimples:
   token: ${INFOSIMPLES_TOKEN:}
   api:
     url: ${INFOSIMPLES_API_URL:https://api.infosimples.com/api/v2/consultas/sintegra/unificada}
+
+# Calculadoras oficiais da Receita (CBS/IBS/IS), cada uma num serviço próprio. Ver docs/CALCULADORA_RTC.md.
+rtc:
+  regime-regular:
+    url: ${RTC_REGIME_REGULAR_URL:http://localhost:8180/api}
+  simples-nacional:
+    url: ${RTC_SIMPLES_URL:http://localhost:8182/api}

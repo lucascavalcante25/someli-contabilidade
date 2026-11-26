@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Search, Users, DollarSign, Receipt, UserCog, ChevronLeft, ChevronRight, ClipboardList, CalendarCheck } from 'lucide-react';
+import { LayoutDashboard, Search, Users, DollarSign, Receipt, UserCog, ChevronLeft, ChevronRight, ClipboardList, CalendarCheck, Calculator } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import BrandLogo from '@/components/BrandLogo';
@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 const menuItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', module: 'DASHBOARD' },
   { label: 'Consultas', icon: Search, path: '/consultas', module: 'CONSULTAS' },
+  { label: 'Simulador CBS/IBS', icon: Calculator, path: '/simulador-cbs-ibs', module: 'SIMULADOR_RTC' },
   { label: 'Clientes', icon: Users, path: '/clientes', module: 'CLIENTES' },
   { label: 'Financeiro', icon: DollarSign, path: '/financeiro', module: 'FINANCEIRO' },
   { label: 'Despesas', icon: Receipt, path: '/despesas', module: 'DESPESAS' },

@@ -19,6 +19,7 @@ import Consultas from "./pages/Consultas";
 import EnviarDocumento from "./pages/EnviarDocumento";
 import NotFound from "./pages/NotFound";
 import PainelMensal from './pages/PainelMensal';
+import SimuladorRtc from './pages/SimuladorRtc';
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,7 @@ const App = () => (
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<PermissionRoute module="DASHBOARD"><Dashboard /></PermissionRoute>} />
               <Route path="/consultas" element={<PermissionRoute module="CONSULTAS"><Consultas /></PermissionRoute>} />
+              <Route path="/simulador-cbs-ibs" element={<PermissionRoute module="SIMULADOR_RTC"><SimuladorRtc /></PermissionRoute>} />
               <Route path="/clientes" element={<PermissionRoute module="CLIENTES"><Clientes /></PermissionRoute>} />
               <Route path="/clientes/:id" element={<PermissionRoute module="CLIENTES"><ClienteDetalhe /></PermissionRoute>} />
               <Route path="/financeiro" element={<PermissionRoute module="FINANCEIRO"><Financeiro /></PermissionRoute>} />

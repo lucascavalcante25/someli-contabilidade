@@ -41,6 +41,8 @@ public final class PermissaoCodigo {
     public static final String RELATORIOS_FINANCEIROS = "RELATORIOS_FINANCEIROS";
     public static final String RELATORIOS_EXPORTAR = "RELATORIOS_EXPORTAR";
     public static final String ADMINISTRACAO_VISUALIZAR = "ADMINISTRACAO_VISUALIZAR";
+    /** Usar o simulador CBS/IBS (calculadoras da Receita) e os cenários salvos dos clientes na alçada. */
+    public static final String SIMULADOR_RTC_USAR = "SIMULADOR_RTC_USAR";
     public static final String ALCADA_GLOBAL = "ALCADA_GLOBAL";
     public static final String ALCADA_SETOR = "ALCADA_SETOR";
     public static final String VISAO_GERENCIAL = "VISAO_GERENCIAL";

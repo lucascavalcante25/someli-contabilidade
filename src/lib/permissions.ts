@@ -27,6 +27,7 @@ export const Permissoes = {
   USUARIOS_EDITAR: 'USUARIOS_EDITAR',
   USUARIOS_PERMISSOES: 'USUARIOS_PERMISSOES',
   VISAO_GERENCIAL: 'VISAO_GERENCIAL',
+  SIMULADOR_RTC_USAR: 'SIMULADOR_RTC_USAR',
   ALCADA_GLOBAL: 'ALCADA_GLOBAL',
 } as const;
 
@@ -36,6 +37,7 @@ export type PermissaoCode = (typeof Permissoes)[keyof typeof Permissoes];
 const PERMISSAO_TEXTOS: Record<string, { titulo: string; ajuda: string }> = {
   DASHBOARD_VISUALIZAR: { titulo: 'Visualizar dashboard', ajuda: 'Acessa o painel inicial do escritório.' },
   VISAO_GERENCIAL: { titulo: 'Visualizar indicadores gerenciais', ajuda: 'Mostra os indicadores gerenciais no Meu Trabalho.' },
+  SIMULADOR_RTC_USAR: { titulo: 'Usar o simulador CBS/IBS', ajuda: 'Simula CBS, IBS e IS com a calculadora da Receita e salva cenários dos clientes da sua alçada.' },
   CONSULTAS_VISUALIZAR: { titulo: 'Acessar consultas', ajuda: 'Acessa as consultas de CNPJ, inscrição estadual, CEP e feriados.' },
   ADMINISTRACAO_VISUALIZAR: { titulo: 'Acessar administração', ajuda: 'Libera telas e ações administrativas do sistema.' },
   ALCADA_GLOBAL: { titulo: 'Acessar todos os clientes', ajuda: 'Vê e opera todos os clientes, sem restrição de carteira.' },
@@ -138,6 +140,8 @@ export function canAccessModule(permissoes: string[] | undefined | null, modulo:
       return hasPermission(permissoes, Permissoes.DASHBOARD_VISUALIZAR);
     case 'CONSULTAS':
       return hasPermission(permissoes, Permissoes.CONSULTAS_VISUALIZAR);
+    case 'SIMULADOR_RTC':
+      return hasPermission(permissoes, Permissoes.SIMULADOR_RTC_USAR);
     case 'CLIENTES':
       return hasPermission(permissoes, Permissoes.CLIENTES_VISUALIZAR);
     case 'FINANCEIRO':
