@@ -13,16 +13,23 @@ FROM eclipse-temurin:25-jdk AS build
 ARG REPO
 ARG TAG
 ARG TAG_BANCO=1.7.2
-RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
+ARG MAVEN_VERSAO=3.9.5
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates curl && rm -rf /var/lib/apt/lists/*
+# Os repositórios não versionam o maven-wrapper.jar e o mvnw não consegue baixá-lo na imagem.
+# Usa o Maven direto, na mesma versão do .mvn/wrapper/maven-wrapper.properties, com SHA-512 conferido.
+RUN base="https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/${MAVEN_VERSAO}" \
+ && curl -fsSLo /tmp/maven.tar.gz "${base}/apache-maven-${MAVEN_VERSAO}-bin.tar.gz" \
+ && echo "$(curl -fsSL "${base}/apache-maven-${MAVEN_VERSAO}-bin.tar.gz.sha512" | cut -c1-128)  /tmp/maven.tar.gz" | sha512sum -c - \
+ && tar -xzf /tmp/maven.tar.gz -C /opt && ln -s "/opt/apache-maven-${MAVEN_VERSAO}/bin/mvn" /usr/local/bin/mvn \
+ && rm /tmp/maven.tar.gz
 RUN git clone --depth 1 --branch "${TAG}" "https://github.com/ReceitaFederal/${REPO}.git" /src \
  && git clone --depth 1 --branch "${TAG_BANCO}" https://github.com/ReceitaFederal/calculadora-rtc-regime-regular.git /banco
 WORKDIR /src
 # O Simples não traz os scripts do banco: o README dele manda copiar a pasta flyway/ do regime regular.
 RUN rm -rf flyway && cp -r /banco/flyway ./flyway \
  && mkdir -p calculadora/db \
- && chmod +x mvnw \
- && ./mvnw -B -q flyway:migrate -Dflyway.configFiles=./flyway/flyway-pro.conf \
- && ./mvnw -B -q -DskipTests package
+ && mvn -B -q flyway:migrate -Dflyway.configFiles=./flyway/flyway-pro.conf \
+ && mvn -B -q -DskipTests package
 
 FROM eclipse-temurin:25-jre
 ARG JAR
